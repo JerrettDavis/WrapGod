@@ -7,8 +7,8 @@ analyzer tooling.
 
 ## Schema overview
 
-Manifests conform to the JSON Schema at
-[`schemas/wrapgod.manifest.v1.schema.json`](../schemas/wrapgod.manifest.v1.schema.json).
+Manifests conform to the JSON Schema in `schemas/wrapgod.manifest.v1.schema.json`
+at the repository root.
 
 Serialization conventions (handled by `ManifestSerializer`):
 

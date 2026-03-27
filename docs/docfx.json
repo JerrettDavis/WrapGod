@@ -1,0 +1,66 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": [
+            "WrapGod.Abstractions/WrapGod.Abstractions.csproj",
+            "WrapGod.Analyzers/WrapGod.Analyzers.csproj",
+            "WrapGod.Cli/WrapGod.Cli.csproj",
+            "WrapGod.Extractor/WrapGod.Extractor.csproj",
+            "WrapGod.Fluent/WrapGod.Fluent.csproj",
+            "WrapGod.Generator/WrapGod.Generator.csproj",
+            "WrapGod.Manifest/WrapGod.Manifest.csproj",
+            "WrapGod.Runtime/WrapGod.Runtime.csproj",
+            "WrapGod.TypeMap/WrapGod.TypeMap.csproj"
+          ]
+        }
+      ],
+      "dest": "api",
+      "disableGitFeatures": false
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "**/*.md",
+          "**/*.yml"
+        ],
+        "exclude": [
+          "_site/**",
+          "api/.manifest"
+        ]
+      },
+      {
+        "files": [
+          "api/**.yml",
+          "api/index.md"
+        ],
+        "exclude": [
+          "_site/**"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "images/**"
+        ]
+      }
+    ],
+    "output": "_site",
+    "template": [
+      "default",
+      "modern"
+    ],
+    "globalMetadata": {
+      "_appTitle": "WrapGod",
+      "_enableSearch": true,
+      "_disableContribution": true,
+      "_disableAffix": false
+    }
+  }
+}
