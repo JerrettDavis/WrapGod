@@ -44,6 +44,18 @@ public static class AssemblyExtractor
     }
 
     /// <summary>
+    /// RFC-0051 cache-aware extraction entrypoint.
+    /// </summary>
+    public static ApiManifest ExtractWithCache(string assemblyPath, ExtractorCacheOptions? options = null)
+    {
+        var cacheOptions = options ?? ExtractorCacheOptions.Default;
+        if (!cacheOptions.Enabled)
+            return Extract(assemblyPath);
+
+        return RfcExtractorCache.ExtractOrAdd(assemblyPath, cacheOptions, () => Extract(assemblyPath));
+    }
+
+    /// <summary>
     /// Extracts an <see cref="ApiManifest"/> from the assembly at <paramref name="assemblyPath"/>.
     /// </summary>
     /// <param name="assemblyPath">Absolute path to the .NET assembly DLL.</param>
