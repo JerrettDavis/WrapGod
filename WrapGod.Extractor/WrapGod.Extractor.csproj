@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="9.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
     <ProjectReference Include="..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
   </ItemGroup>
