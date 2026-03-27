@@ -274,9 +274,9 @@ No formatter may invent data not present in canonical model except presentation-
 
 ## 11) Follow-up implementation issues
 
-- [ ] Implement `wg.diagnostic.v1` model + JSON emitter
-- [ ] Implement SARIF emitter + rule catalog projection
-- [ ] Implement CLI gate evaluator and standardized exit codes
+- [x] #81 — Implement `wg.diagnostic.v1` model + JSON emitter
+- [x] #82 — Implement SARIF emitter + rule catalog projection
+- [x] #83 — Implement CLI gate evaluator and standardized exit codes
 - [ ] Adopt contract in extractor/planner/generator/analyzer pipelines
 
 ## 12) Decision
