@@ -1,0 +1,48 @@
+name: Examples
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'examples/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'examples/**'
+
+jobs:
+  build-examples:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build FluentAssertions Before
+        run: dotnet build examples/FluentAssertionsToShouldly/SampleTests.Before/SampleTests.Before.csproj --nologo
+
+      - name: Build FluentAssertions After
+        run: dotnet build examples/FluentAssertionsToShouldly/SampleTests.After/SampleTests.After.csproj --nologo
+
+      - name: Build Moq-to-NSubstitute Before
+        run: dotnet build examples/MoqToNSubstitute/SampleTests.Before/SampleTests.Before.csproj --nologo
+
+      - name: Build Moq-to-NSubstitute After
+        run: dotnet build examples/MoqToNSubstitute/SampleTests.After/SampleTests.After.csproj --nologo
+
+      - name: Build NSubstitute-to-Moq Before
+        run: dotnet build examples/NSubstituteToMoq/SampleTests.Before/SampleTests.Before.csproj --nologo
+
+      - name: Build NSubstitute-to-Moq After
+        run: dotnet build examples/NSubstituteToMoq/SampleTests.After/SampleTests.After.csproj --nologo
+
+      - name: Build BasicExample
+        run: dotnet build examples/BasicExample/BasicExample.slnx --nologo
+
+      - name: Build WrapGod.Examples
+        run: dotnet build examples/WrapGod.Examples.slnx --nologo
