@@ -26,6 +26,21 @@ dotnet add package WrapGod.Generator
 See the [Quick Start Guide](docs/QUICKSTART.md) for a complete walkthrough
 covering extraction, configuration, generation, and migration.
 
+## CLI diagnostics gate and exit codes
+
+`wrap-god analyze` follows the RFC-0054 diagnostics gate policy:
+
+- `0`: success (no effective errors)
+- `1`: command/runtime failure (bad input, deserialize/IO failure, exception)
+- `2`: diagnostics gate failed due to effective `error` diagnostics
+- `3`: diagnostics gate failed due to effective `warning` diagnostics when `--warnings-as-errors` is enabled
+
+Use `--warnings-as-errors` to promote warning diagnostics to a failing gate:
+
+```bash
+wrap-god analyze manifest.wrapgod.json --warnings-as-errors
+```
+
 ## Solution structure
 
 | Project | Description |

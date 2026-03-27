@@ -312,6 +312,19 @@ The analyzer reads mapping data from `*.wrapgod-types.txt` additional files.
 Adding new entries to this file (or generating it as a build artifact from the
 manifest) automatically extends analyzer coverage without code changes.
 
+### Diagnostics Report Formats (RFC-0054)
+
+`WrapGod.Abstractions.Diagnostics.WgDiagnosticEmitter` is the canonical formatter
+entry point for structured diagnostics:
+
+- `EmitJson(...)` emits the `wg.diagnostic.v1` contract records.
+- `EmitSarif(...)` emits SARIF 2.1.0 for CI/security tooling integration.
+
+SARIF output projects a stable WG rule catalog into
+`runs[0].tool.driver.rules[]` (one entry per `WG####`) and maps diagnostic
+severity, locations, related locations, fingerprints, and suppression metadata
+from the same canonical model used by JSON output.
+
 ---
 
 ## Determinism and Reproducibility

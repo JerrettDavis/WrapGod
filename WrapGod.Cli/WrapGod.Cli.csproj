@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
     <ProjectReference Include="..\WrapGod.Extractor\WrapGod.Extractor.csproj" />
     <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
     <ProjectReference Include="..\WrapGod.Generator\WrapGod.Generator.csproj" />

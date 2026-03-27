@@ -1,5 +1,7 @@
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Text.Json;
+using WrapGod.Abstractions.Diagnostics;
 using WrapGod.Manifest;
 
 namespace WrapGod.Cli;
@@ -16,22 +18,36 @@ internal static class AnalyzeCommand
             ["--config", "-c"],
             "Path to the WrapGod config JSON file");
 
+        var warningsAsErrorsOption = new Option<bool>(
+            "--warnings-as-errors",
+            "Treat warning diagnostics as gate failures (exit code 3)");
+
         var command = new Command("analyze", "Analyze a manifest and report diagnostic information")
         {
             manifestPathArg,
-            configOption
+            configOption,
+            warningsAsErrorsOption
         };
 
-        command.SetHandler(HandleAsync, manifestPathArg, configOption);
+        command.SetHandler(async (FileInfo manifestPath, FileInfo? config, bool warningsAsErrors, InvocationContext context) =>
+            {
+                context.ExitCode = await HandleAsync(manifestPath, config, warningsAsErrors);
+            },
+            manifestPathArg,
+            configOption,
+            warningsAsErrorsOption);
+
         return command;
     }
 
-    private static async Task HandleAsync(FileInfo manifestPath, FileInfo? config)
+    private static async Task<int> HandleAsync(FileInfo manifestPath, FileInfo? config, bool warningsAsErrors)
     {
+        var diagnostics = new List<WgDiagnosticV1>();
+
         if (!manifestPath.Exists)
         {
             Console.Error.WriteLine($"Manifest not found: {manifestPath.FullName}");
-            return;
+            return (int)WgCliExitCode.RuntimeFailure;
         }
 
         Console.WriteLine("WrapGod Analyzer");
@@ -44,7 +60,7 @@ internal static class AnalyzeCommand
         if (manifest is null)
         {
             Console.Error.WriteLine("Failed to deserialize manifest.");
-            return;
+            return (int)WgCliExitCode.RuntimeFailure;
         }
 
         Console.WriteLine($"Assembly:    {manifest.Assembly.Name}");
@@ -70,9 +86,27 @@ internal static class AnalyzeCommand
         {
             Console.WriteLine();
             if (config.Exists)
+            {
                 Console.WriteLine($"Config loaded: {config.FullName}");
+            }
             else
+            {
                 Console.Error.WriteLine($"Config not found: {config.FullName}");
+                diagnostics.Add(new WgDiagnosticV1
+                {
+                    Code = "WG7001",
+                    Severity = WgDiagnosticSeverity.Warning,
+                    Stage = WgDiagnosticStage.Cli,
+                    Category = "cli",
+                    Message = $"Config file not found: {config.FullName}",
+                    Source = new WgDiagnosticSource
+                    {
+                        Tool = "WrapGod",
+                        Component = "WrapGod.Cli.analyze",
+                    },
+                    Location = new WgDiagnosticLocation { Uri = config.FullName },
+                });
+            }
         }
 
         Console.WriteLine();
@@ -80,5 +114,8 @@ internal static class AnalyzeCommand
         Console.WriteLine("WrapGod.Analyzers to your project and build:");
         Console.WriteLine("  dotnet add package WrapGod.Analyzers");
         Console.WriteLine("  dotnet build");
+
+        var exitCode = DiagnosticsGateEvaluator.EvaluateExitCode(diagnostics, warningsAsErrors);
+        return (int)exitCode;
     }
 }
