@@ -99,6 +99,137 @@ public sealed class ConfigRoundtripTests(ITestOutputHelper output) : TinyBddXuni
         return JsonSerializer.Deserialize<WrapGodConfig>(json, JsonOptions)!;
     }
 
+    private static WrapGodConfig BuildProgrammaticConfig() =>
+        ToWrapGodConfig(
+            WrapGodConfiguration.Create()
+                .ForAssembly("Vendor.Lib")
+                .WrapType("Vendor.Lib.HttpClient")
+                    .As("IHttpClient")
+                    .WrapMethod("SendAsync").As("SendRequestAsync")
+                    .WrapProperty("Timeout")
+                    .ExcludeMember("Dispose")
+                .WrapType("Vendor.Lib.Logger")
+                    .As("ILogger")
+                    .WrapAllPublicMembers()
+                .Build());
+
+    private static string BuildHandWrittenJson() =>
+        """
+        {
+          "types": [
+            {
+              "sourceType": "Vendor.Lib.HttpClient",
+              "include": true,
+              "targetName": "IHttpClient",
+              "members": [
+                { "sourceMember": "SendAsync", "include": true, "targetName": "SendRequestAsync" },
+                { "sourceMember": "Timeout", "include": true },
+                { "sourceMember": "Dispose", "include": false }
+              ]
+            },
+            {
+              "sourceType": "Vendor.Lib.Logger",
+              "include": true,
+              "targetName": "ILogger",
+              "members": []
+            }
+          ]
+        }
+        """;
+
+    private static string Serialize(WrapGodConfig config) => JsonSerializer.Serialize(config, JsonOptions);
+
+    private static WrapGodConfig ToWrapGodConfig(GenerationPlan plan)
+    {
+        var config = new WrapGodConfig();
+
+        foreach (var directive in plan.TypeDirectives)
+        {
+            var type = new TypeConfig
+            {
+                SourceType = directive.SourceType,
+                Include = directive.WrapAllPublicMembers ? true : null,
+                TargetName = directive.TargetName,
+            };
+
+            foreach (var member in directive.MemberDirectives)
+            {
+                type.Members.Add(new MemberConfig
+                {
+                    SourceMember = member.SourceName,
+                    Include = true,
+                    TargetName = member.TargetName,
+                });
+            }
+
+            foreach (var excluded in directive.ExcludedMembers)
+            {
+                type.Members.Add(new MemberConfig
+                {
+                    SourceMember = excluded,
+                    Include = false,
+                });
+            }
+
+            config.Types.Add(type);
+        }
+
+        return config;
+    }
+
+    private static string Normalize(WrapGodConfig config)
+    {
+        var normalized = new WrapGodConfig
+        {
+            Types = config.Types
+                .OrderBy(t => t.SourceType, StringComparer.Ordinal)
+                .Select(t => new TypeConfig
+                {
+                    SourceType = t.SourceType,
+                    Include = t.Include,
+                    TargetName = t.TargetName,
+                    Members = t.Members
+                        .OrderBy(m => m.SourceMember, StringComparer.Ordinal)
+                        .Select(m => new MemberConfig
+                        {
+                            SourceMember = m.SourceMember,
+                            Include = m.Include,
+                            TargetName = m.TargetName,
+                        })
+                        .ToList(),
+                })
+                .ToList(),
+        };
+
+        return Serialize(normalized);
+    }
+
+    private static WrapGodConfig BuildAttributeBaselineConfig()
+    {
+        var baseline = new WrapGodConfig();
+        baseline.Types.Add(new TypeConfig
+        {
+            SourceType = "Vendor.Lib.HttpClient",
+            Include = true,
+            TargetName = "IHttpClient",
+            Members =
+            {
+                new MemberConfig { SourceMember = "SendAsync", Include = true, TargetName = "SendRequestAsync" },
+                new MemberConfig { SourceMember = "Timeout", Include = true },
+                new MemberConfig { SourceMember = "Dispose", Include = false },
+            },
+        });
+
+        baseline.Types.Add(new TypeConfig
+        {
+            SourceType = "Vendor.Lib.Logger",
+            Include = true,
+            TargetName = "ILogger",
+        });
+
+        return baseline;
+    }
+
     // ── Scenarios ────────────────────────────────────────────────────
 
     [Scenario("Fluent config GenerationPlan matches equivalent hand-built expectations")]
@@ -186,4 +317,52 @@ public sealed class ConfigRoundtripTests(ITestOutputHelper output) : TinyBddXuni
             .And("second member include is preserved", config =>
                 config.Types[0].Members[1].Include == true)
             .AssertPassed();
+
+    [Fact]
+    public void FluentConfig_RoundtripsThroughJson()
+    {
+        var fluentConfig = BuildProgrammaticConfig();
+        var roundtripped = JsonConfigLoader.LoadFromJson(Serialize(fluentConfig));
+
+        Assert.Equal(Normalize(fluentConfig), Normalize(roundtripped));
+    }
+
+    [Fact]
+    public void MergeOutput_IsIdenticalAcrossFluentAndJsonInputs()
+    {
+        var fluentConfig = BuildProgrammaticConfig();
+        var jsonConfig = JsonConfigLoader.LoadFromJson(BuildHandWrittenJson());
+        var attributeBaseline = BuildAttributeBaselineConfig();
+
+        var fromFluent = ConfigMergeEngine.Merge(fluentConfig, attributeBaseline);
+        var fromJson = ConfigMergeEngine.Merge(jsonConfig, attributeBaseline);
+
+        Assert.Equal(Normalize(fromFluent.Config), Normalize(fromJson.Config));
+        Assert.Equal(fromFluent.Diagnostics.Count, fromJson.Diagnostics.Count);
+    }
+
+    [Fact]
+    public void Roundtrip_PreservesExplicitMemberExcludeRegression()
+    {
+        var json = """
+            {
+              "types": [
+                {
+                  "sourceType": "Vendor.Lib.Client",
+                  "members": [
+                    { "sourceMember": "Dispose", "include": false }
+                  ]
+                }
+              ]
+            }
+            """;
+
+        var parsed = JsonConfigLoader.LoadFromJson(json);
+        var roundtripped = JsonConfigLoader.LoadFromJson(Serialize(parsed));
+
+        Assert.Single(roundtripped.Types);
+        Assert.Single(roundtripped.Types[0].Members);
+        Assert.Equal("Dispose", roundtripped.Types[0].Members[0].SourceMember);
+        Assert.False(roundtripped.Types[0].Members[0].Include);
+    }
 }
