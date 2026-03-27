@@ -1,0 +1,51 @@
+{
+  "$schema": "../../schemas/wrapgod.manifest.v1.schema.json",
+  "name": "Moq",
+  "version": "4.20.72",
+  "description": "Manifest defining the Moq public API surface targeted for migration to NSubstitute.",
+  "types": [
+    {
+      "name": "Moq.Mock`1",
+      "namespace": "Moq",
+      "kind": "Class",
+      "genericParameters": ["T"],
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [] },
+        { "name": "Object", "kind": "Property", "returnType": "T" },
+        { "name": "Setup", "kind": "Method", "returnType": "ISetup<T>", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TResult>>" }] },
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }] },
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }, { "name": "times", "type": "Times" }] }
+      ]
+    },
+    {
+      "name": "Moq.Language.Flow.ISetup`1",
+      "namespace": "Moq.Language.Flow",
+      "kind": "Interface",
+      "members": [
+        { "name": "Returns", "kind": "Method", "returnType": "IReturnsResult<T>", "parameters": [{ "name": "value", "type": "TResult" }] },
+        { "name": "Throws", "kind": "Method", "returnType": "IThrowsResult", "parameters": [{ "name": "exception", "type": "Exception" }] },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action" }] }
+      ]
+    },
+    {
+      "name": "Moq.Times",
+      "namespace": "Moq",
+      "kind": "Struct",
+      "members": [
+        { "name": "Once", "kind": "Method", "returnType": "Times", "parameters": [], "isStatic": true },
+        { "name": "Never", "kind": "Method", "returnType": "Times", "parameters": [], "isStatic": true },
+        { "name": "Exactly", "kind": "Method", "returnType": "Times", "parameters": [{ "name": "callCount", "type": "int" }], "isStatic": true },
+        { "name": "AtLeastOnce", "kind": "Method", "returnType": "Times", "parameters": [], "isStatic": true }
+      ]
+    },
+    {
+      "name": "Moq.It",
+      "namespace": "Moq",
+      "kind": "Static",
+      "members": [
+        { "name": "IsAny", "kind": "Method", "returnType": "TValue", "parameters": [] },
+        { "name": "Is", "kind": "Method", "returnType": "TValue", "parameters": [{ "name": "match", "type": "Expression<Func<TValue, bool>>" }] }
+      ]
+    }
+  ]
+}

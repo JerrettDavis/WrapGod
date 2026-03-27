@@ -1,0 +1,104 @@
+{
+  "migrationName": "Moq-to-NSubstitute",
+  "sourceLibrary": "Moq",
+  "targetLibrary": "NSubstitute",
+  "sourcePackage": "Moq",
+  "targetPackage": "NSubstitute",
+  "usingReplacements": {
+    "Moq": "NSubstitute"
+  },
+  "mappings": [
+    {
+      "description": "Mock creation",
+      "source": "new Mock<{T}>()",
+      "target": "Substitute.For<{T}>()",
+      "safety": "safe",
+      "notes": "Moq wraps in Mock<T>; NSubstitute returns the interface directly."
+    },
+    {
+      "description": "Accessing mock object",
+      "source": "{mock}.Object",
+      "target": "{mock}",
+      "safety": "safe",
+      "notes": "NSubstitute substitutes are the object directly -- no .Object accessor needed."
+    },
+    {
+      "description": "Setup with returns",
+      "source": "{mock}.Setup(x => x.{Method}({args})).Returns({value})",
+      "target": "{mock}.{Method}({args}).Returns({value})",
+      "safety": "safe",
+      "notes": "NSubstitute chains Returns directly on the method call."
+    },
+    {
+      "description": "Setup with throws",
+      "source": "{mock}.Setup(x => x.{Method}({args})).Throws({exception})",
+      "target": "{mock}.{Method}({args}).Throws({exception})",
+      "safety": "safe"
+    },
+    {
+      "description": "Verify called once",
+      "source": "{mock}.Verify(x => x.{Method}({args}), Times.Once)",
+      "target": "{mock}.Received(1).{Method}({args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Verify never called",
+      "source": "{mock}.Verify(x => x.{Method}({args}), Times.Never)",
+      "target": "{mock}.DidNotReceive().{Method}({args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Verify called exactly N times",
+      "source": "{mock}.Verify(x => x.{Method}({args}), Times.Exactly({n}))",
+      "target": "{mock}.Received({n}).{Method}({args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Verify called at least once",
+      "source": "{mock}.Verify(x => x.{Method}({args}), Times.AtLeastOnce)",
+      "target": "{mock}.Received().{Method}({args})",
+      "safety": "safe",
+      "notes": "Received() with no count means at-least-once in NSubstitute."
+    },
+    {
+      "description": "Argument matcher: any",
+      "source": "It.IsAny<{T}>()",
+      "target": "Arg.Any<{T}>()",
+      "safety": "safe"
+    },
+    {
+      "description": "Argument matcher: predicate",
+      "source": "It.Is<{T}>({predicate})",
+      "target": "Arg.Is<{T}>({predicate})",
+      "safety": "safe"
+    },
+    {
+      "description": "Callback on setup",
+      "source": "{mock}.Setup(x => x.{Method}({args})).Callback({action})",
+      "target": "{mock}.{Method}({args}).Returns(x => { {action}; return default; })",
+      "safety": "guided",
+      "notes": "NSubstitute callbacks are expressed via Returns lambda. Structural rewrite required."
+    },
+    {
+      "description": "MockBehavior.Strict",
+      "source": "new Mock<{T}>(MockBehavior.Strict)",
+      "target": "Substitute.For<{T}>()",
+      "safety": "guided",
+      "notes": "NSubstitute has no strict mode. Unmatched calls return defaults instead of throwing. Review test expectations."
+    },
+    {
+      "description": "VerifyAll",
+      "source": "{mock}.VerifyAll()",
+      "target": "// NSubstitute: verify each call individually with Received()",
+      "safety": "manual",
+      "notes": "No direct NSubstitute equivalent. Each expected call must be verified explicitly."
+    },
+    {
+      "description": "VerifyNoOtherCalls",
+      "source": "{mock}.VerifyNoOtherCalls()",
+      "target": "// NSubstitute: no direct equivalent -- review call expectations",
+      "safety": "manual",
+      "notes": "NSubstitute does not track unexpected calls the same way. Consider restructuring verification."
+    }
+  ]
+}
