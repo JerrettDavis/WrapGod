@@ -106,4 +106,128 @@ public sealed class DiagnosticsContractTests
         Assert.Contains("\"severity\": \"error\"", json, StringComparison.Ordinal);
         Assert.Contains("\"severity\": \"note\"", json, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void SarifOutput_UsesSarif210WithStableWgRuleCatalogProjection()
+    {
+        var payload = new[]
+        {
+            new WgDiagnosticV1
+            {
+                Code = "WG6001",
+                Severity = WgDiagnosticSeverity.Warning,
+                Stage = WgDiagnosticStage.Config,
+                Category = "config",
+                Message = "Config include conflict.",
+                HelpUri = "https://wrapgod.dev/docs/config/WG6001",
+                Source = new WgDiagnosticSource { Tool = "WrapGod", Component = "tests" },
+                TimestampUtc = FixedUtc,
+            },
+            new WgDiagnosticV1
+            {
+                Code = "WG2002",
+                Severity = WgDiagnosticSeverity.Error,
+                Stage = WgDiagnosticStage.Analyze,
+                Category = "migration",
+                Message = "Facade migration required.",
+                HelpUri = "https://wrapgod.dev/docs/analyzers/WG2002",
+                Source = new WgDiagnosticSource { Tool = "WrapGod", Component = "tests" },
+                TimestampUtc = FixedUtc,
+            },
+            new WgDiagnosticV1
+            {
+                Code = "WG2002",
+                Severity = WgDiagnosticSeverity.Warning,
+                Stage = WgDiagnosticStage.Analyze,
+                Category = "migration",
+                Message = "Additional WG2002 occurrence.",
+                Source = new WgDiagnosticSource { Tool = "WrapGod", Component = "tests" },
+                TimestampUtc = FixedUtc,
+            },
+        };
+
+        using var doc = JsonDocument.Parse(WgDiagnosticEmitter.EmitSarif(payload));
+        var root = doc.RootElement;
+
+        Assert.Equal("2.1.0", root.GetProperty("version").GetString());
+        Assert.Equal("https://json.schemastore.org/sarif-2.1.0.json", root.GetProperty("$schema").GetString());
+
+        var run = root.GetProperty("runs")[0];
+        Assert.Equal("WrapGod", run.GetProperty("tool").GetProperty("driver").GetProperty("name").GetString());
+
+        var rules = run.GetProperty("tool").GetProperty("driver").GetProperty("rules").EnumerateArray().ToArray();
+        Assert.Equal(2, rules.Length);
+        Assert.Equal("WG2002", rules[0].GetProperty("id").GetString());
+        Assert.Equal("WG6001", rules[1].GetProperty("id").GetString());
+        Assert.Equal("error", rules[0].GetProperty("defaultConfiguration").GetProperty("level").GetString());
+        Assert.Equal("warning", rules[1].GetProperty("defaultConfiguration").GetProperty("level").GetString());
+
+        var results = run.GetProperty("results").EnumerateArray().ToArray();
+        Assert.Equal(3, results.Length);
+        Assert.Equal("WG6001", results[0].GetProperty("ruleId").GetString());
+        Assert.Equal("WG2002", results[1].GetProperty("ruleId").GetString());
+    }
+
+    [Fact]
+    public void SarifMapping_IncludesLocationsRelatedLocationsFingerprintsAndSuppressions()
+    {
+        var payload = new[]
+        {
+            new WgDiagnosticV1
+            {
+                Code = "WG2001",
+                Severity = WgDiagnosticSeverity.Warning,
+                Stage = WgDiagnosticStage.Analyze,
+                Category = "migration",
+                Message = "Direct type usage detected.",
+                Source = new WgDiagnosticSource { Tool = "WrapGod", Component = "tests" },
+                Location = new WgDiagnosticLocation
+                {
+                    Uri = "src/Program.cs",
+                    Line = 42,
+                    Column = 5,
+                    EndLine = 42,
+                    EndColumn = 18,
+                },
+                RelatedLocations =
+                [
+                    new WgDiagnosticLocation
+                    {
+                        Symbol = "Vendor.Client",
+                    },
+                ],
+                Fingerprint = "WG2001:src/Program.cs:42:5",
+                Suppression = new WgDiagnosticSuppression
+                {
+                    Kind = "pragma",
+                    Justification = "Intentional migration staging",
+                    Source = "#pragma warning disable WG2001",
+                },
+                TimestampUtc = FixedUtc,
+            },
+        };
+
+        using var doc = JsonDocument.Parse(WgDiagnosticEmitter.EmitSarif(payload));
+        var result = doc.RootElement.GetProperty("runs")[0].GetProperty("results")[0];
+
+        Assert.Equal("WG2001", result.GetProperty("ruleId").GetString());
+        Assert.Equal("warning", result.GetProperty("level").GetString());
+        Assert.Equal("src/Program.cs", result.GetProperty("locations")[0]
+            .GetProperty("physicalLocation")
+            .GetProperty("artifactLocation")
+            .GetProperty("uri")
+            .GetString());
+
+        Assert.Equal("Vendor.Client", result.GetProperty("relatedLocations")[0]
+            .GetProperty("logicalLocations")[0]
+            .GetProperty("name")
+            .GetString());
+
+        Assert.Equal("WG2001:src/Program.cs:42:5", result.GetProperty("fingerprints")
+            .GetProperty("wrapgodFingerprint")
+            .GetString());
+
+        Assert.Equal("inSource", result.GetProperty("suppressions")[0].GetProperty("kind").GetString());
+        Assert.Equal("Intentional migration staging", result.GetProperty("suppressions")[0].GetProperty("justification").GetString());
+    }
 }
