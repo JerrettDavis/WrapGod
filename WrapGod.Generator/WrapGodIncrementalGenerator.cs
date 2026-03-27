@@ -262,7 +262,8 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
                         filteredMembers,
                         targetName: !string.IsNullOrEmpty(rule.TargetName) ? rule.TargetName : type.TargetName,
                         introducedIn: type.IntroducedIn,
-                        removedIn: type.RemovedIn));
+                        removedIn: type.RemovedIn,
+                        genericTypeParameters: type.GenericTypeParameters));
                 }
                 else
                 {
@@ -302,7 +303,32 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
             }
         }
 
-        return new TypePlan(fullName, name, ns, members);
+        // Parse type-level generic parameters.
+        var genericTypeParams = new List<GenericTypeParameterPlan>();
+        if (typeEl.TryGetProperty("genericParameters", out var gpEl) && gpEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var gp in gpEl.EnumerateArray())
+            {
+                string gpName = GetStringProperty(gp, "name");
+                if (string.IsNullOrEmpty(gpName))
+                    continue;
+
+                var constraints = new List<string>();
+                if (gp.TryGetProperty("constraints", out var consEl) && consEl.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var c in consEl.EnumerateArray())
+                    {
+                        var cv = c.GetString() ?? string.Empty;
+                        if (!string.IsNullOrEmpty(cv))
+                            constraints.Add(cv);
+                    }
+                }
+
+                genericTypeParams.Add(new GenericTypeParameterPlan(gpName, constraints));
+            }
+        }
+
+        return new TypePlan(fullName, name, ns, members, genericTypeParameters: genericTypeParams);
     }
 
     private static MemberPlan? ParseMemberPlan(JsonElement memberEl)
