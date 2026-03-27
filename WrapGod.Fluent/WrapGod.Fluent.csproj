@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
+    <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
+    <ProjectReference Include="..\WrapGod.TypeMap\WrapGod.TypeMap.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

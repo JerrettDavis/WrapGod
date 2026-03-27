@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
+    <ProjectReference Include="..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
+    <ProjectReference Include="..\WrapGod.TypeMap\WrapGod.TypeMap.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+</Project>

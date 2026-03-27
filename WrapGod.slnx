@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="WrapGod.Abstractions/WrapGod.Abstractions.csproj" />
+  <Project Path="WrapGod.Analyzers/WrapGod.Analyzers.csproj" />
+  <Project Path="WrapGod.Extractor/WrapGod.Extractor.csproj" />
+  <Project Path="WrapGod.Fluent/WrapGod.Fluent.csproj" />
+  <Project Path="WrapGod.Generator/WrapGod.Generator.csproj" />
+  <Project Path="WrapGod.Manifest/WrapGod.Manifest.csproj" />
+  <Project Path="WrapGod.Runtime/WrapGod.Runtime.csproj" />
+  <Project Path="WrapGod.Tests/WrapGod.Tests.csproj" />
+  <Project Path="WrapGod.TypeMap/WrapGod.TypeMap.csproj" />
+</Solution>
