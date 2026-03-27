@@ -13,6 +13,12 @@ internal static class SourceEmitter
     private const string GeneratedNamespace = "WrapGod.Generated";
 
     /// <summary>
+    /// When <c>true</c>, the emitter wraps version-specific facade members
+    /// with runtime availability checks (used in Adaptive mode).
+    /// </summary>
+    public static bool AdaptiveMode { get; set; }
+
+    /// <summary>
     /// Emits an interface source file for the given type plan.
     /// The interface name follows the pattern <c>IWrapped{TypeName}</c>.
     /// </summary>
@@ -108,6 +114,8 @@ internal static class SourceEmitter
 
     private static void EmitFacadeMember(StringBuilder sb, MemberPlan member)
     {
+        bool needsGuard = AdaptiveMode && member.IntroducedIn != null;
+
         if (member.Kind == "property")
         {
             sb.Append("    public ").Append(member.ReturnType).Append(' ').Append(member.Name);
@@ -115,30 +123,129 @@ internal static class SourceEmitter
             sb.AppendLine("    {");
             if (member.HasGetter)
             {
-                sb.Append("        get => _inner.").Append(member.Name).AppendLine(";");
+                if (needsGuard)
+                {
+                    EmitVersionGuardedPropertyGetter(sb, member);
+                }
+                else
+                {
+                    sb.Append("        get => _inner.").Append(member.Name).AppendLine(";");
+                }
             }
 
             if (member.HasSetter)
             {
-                sb.Append("        set => _inner.").Append(member.Name).AppendLine(" = value;");
+                if (needsGuard)
+                {
+                    EmitVersionGuardedPropertySetter(sb, member);
+                }
+                else
+                {
+                    sb.Append("        set => _inner.").Append(member.Name).AppendLine(" = value;");
+                }
             }
 
             sb.AppendLine("    }");
         }
         else
         {
-            // Method -- expression-bodied forwarding works for both void and non-void
-            sb.Append("    public ").Append(member.ReturnType).Append(' ').Append(member.Name);
-            AppendGenericParameters(sb, member.GenericParameters);
-            sb.Append('(');
-            AppendParameters(sb, member.Parameters);
-            sb.AppendLine(")");
-            sb.Append("        => _inner.").Append(member.Name);
-            AppendGenericParameters(sb, member.GenericParameters);
-            sb.Append('(');
-            AppendArguments(sb, member.Parameters);
-            sb.AppendLine(");");
+            if (needsGuard)
+            {
+                EmitVersionGuardedMethod(sb, member);
+            }
+            else
+            {
+                // Method -- expression-bodied forwarding works for both void and non-void
+                sb.Append("    public ").Append(member.ReturnType).Append(' ').Append(member.Name);
+                AppendGenericParameters(sb, member.GenericParameters);
+                sb.Append('(');
+                AppendParameters(sb, member.Parameters);
+                sb.AppendLine(")");
+                sb.Append("        => _inner.").Append(member.Name);
+                AppendGenericParameters(sb, member.GenericParameters);
+                sb.Append('(');
+                AppendArguments(sb, member.Parameters);
+                sb.AppendLine(");");
+            }
         }
+    }
+
+    private static string BuildAvailabilityComment(MemberPlan member)
+    {
+        var parts = new StringBuilder();
+        parts.Append("Available since ").Append(member.IntroducedIn);
+        if (member.RemovedIn != null)
+        {
+            parts.Append(", removed in ").Append(member.RemovedIn);
+        }
+
+        return parts.ToString();
+    }
+
+    private static void EmitVersionGuardedPropertyGetter(StringBuilder sb, MemberPlan member)
+    {
+        sb.Append("        // ").AppendLine(BuildAvailabilityComment(member));
+        sb.AppendLine("        get");
+        sb.AppendLine("        {");
+        sb.Append("            if (!WrapGodVersionHelper.IsMemberAvailable(\"")
+            .Append(member.IntroducedIn).Append("\", ");
+        if (member.RemovedIn != null)
+            sb.Append('"').Append(member.RemovedIn).Append('"');
+        else
+            sb.Append("null");
+        sb.AppendLine("))");
+        sb.Append("                throw new System.PlatformNotSupportedException(\"")
+            .Append(member.Name).AppendLine(" is not available in the current version.\");");
+        sb.Append("            return _inner.").Append(member.Name).AppendLine(";");
+        sb.AppendLine("        }");
+    }
+
+    private static void EmitVersionGuardedPropertySetter(StringBuilder sb, MemberPlan member)
+    {
+        sb.Append("        // ").AppendLine(BuildAvailabilityComment(member));
+        sb.AppendLine("        set");
+        sb.AppendLine("        {");
+        sb.Append("            if (!WrapGodVersionHelper.IsMemberAvailable(\"")
+            .Append(member.IntroducedIn).Append("\", ");
+        if (member.RemovedIn != null)
+            sb.Append('"').Append(member.RemovedIn).Append('"');
+        else
+            sb.Append("null");
+        sb.AppendLine("))");
+        sb.Append("                throw new System.PlatformNotSupportedException(\"")
+            .Append(member.Name).AppendLine(" is not available in the current version.\");");
+        sb.Append("            _inner.").Append(member.Name).AppendLine(" = value;");
+        sb.AppendLine("        }");
+    }
+
+    private static void EmitVersionGuardedMethod(StringBuilder sb, MemberPlan member)
+    {
+        sb.Append("    // ").AppendLine(BuildAvailabilityComment(member));
+        sb.Append("    public ").Append(member.ReturnType).Append(' ').Append(member.Name);
+        AppendGenericParameters(sb, member.GenericParameters);
+        sb.Append('(');
+        AppendParameters(sb, member.Parameters);
+        sb.AppendLine(")");
+        sb.AppendLine("    {");
+        sb.Append("        if (!WrapGodVersionHelper.IsMemberAvailable(\"")
+            .Append(member.IntroducedIn).Append("\", ");
+        if (member.RemovedIn != null)
+            sb.Append('"').Append(member.RemovedIn).Append('"');
+        else
+            sb.Append("null");
+        sb.AppendLine("))");
+        sb.Append("            throw new System.PlatformNotSupportedException(\"")
+            .Append(member.Name).AppendLine(" is not available in the current version.\");");
+
+        bool isVoid = member.ReturnType == "void" || member.ReturnType == "System.Void";
+        sb.Append("        ");
+        if (!isVoid) sb.Append("return ");
+        sb.Append("_inner.").Append(member.Name);
+        AppendGenericParameters(sb, member.GenericParameters);
+        sb.Append('(');
+        AppendArguments(sb, member.Parameters);
+        sb.AppendLine(");");
+        sb.AppendLine("    }");
     }
 
     private static void AppendGenericParameters(StringBuilder sb, IReadOnlyList<string> genericParameters)
