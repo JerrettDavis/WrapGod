@@ -15,11 +15,31 @@ public sealed class TypeDirectiveBuilder
     private bool _wrapAll;
     private readonly List<MemberDirectiveBuilder> _memberBuilders = [];
     private readonly List<string> _excludedMembers = [];
+    private readonly bool _isGenericPattern;
+    private readonly int _genericArity;
 
     internal TypeDirectiveBuilder(WrapGodConfiguration parent, string sourceType)
     {
         _parent = parent;
         _sourceType = sourceType;
+
+        // Auto-detect open generic patterns like "IRepository<>" or "Dictionary<,>".
+        var openAngle = sourceType.IndexOf('<');
+        if (openAngle >= 0)
+        {
+            var closeAngle = sourceType.LastIndexOf('>');
+            if (closeAngle > openAngle)
+            {
+                var inner = sourceType.Substring(openAngle + 1, closeAngle - openAngle - 1).Trim();
+                bool isOpen = inner.Length == 0 ||
+                              inner.Replace(",", "").Replace(" ", "").Length == 0;
+                if (isOpen)
+                {
+                    _isGenericPattern = true;
+                    _genericArity = inner.Length == 0 ? 1 : inner.Split(',').Length;
+                }
+            }
+        }
     }
 
     /// <summary>Set the target interface / wrapper name for this type.</summary>
@@ -90,6 +110,8 @@ public sealed class TypeDirectiveBuilder
             WrapAllPublicMembers = _wrapAll,
             MemberDirectives = members,
             ExcludedMembers = _excludedMembers,
+            IsGenericPattern = _isGenericPattern,
+            GenericArity = _genericArity,
         };
     }
 }
