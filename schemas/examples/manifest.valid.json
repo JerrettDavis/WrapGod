@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-03-27T15:00:00Z",
+  "sourceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "assembly": {
+    "name": "ThirdParty.Client",
+    "version": "2.3.0",
+    "targetFramework": ".NETStandard,Version=v2.0"
+  },
+  "types": [
+    {
+      "stableId": "ThirdParty.Client.ApiClient",
+      "fullName": "ThirdParty.Client.ApiClient",
+      "name": "ApiClient",
+      "namespace": "ThirdParty.Client",
+      "kind": "class",
+      "interfaces": [],
+      "genericParameters": [],
+      "members": [
+        {
+          "stableId": "ThirdParty.Client.ApiClient.GetUser(System.String)",
+          "name": "GetUser",
+          "kind": "method",
+          "returnType": "ThirdParty.Client.User",
+          "parameters": [
+            {
+              "name": "id",
+              "type": "System.String",
+              "isOptional": false,
+              "isParams": false,
+              "isOut": false,
+              "isRef": false
+            }
+          ],
+          "genericParameters": [],
+          "isStatic": false,
+          "isVirtual": false,
+          "isAbstract": false,
+          "hasGetter": false,
+          "hasSetter": false,
+          "presence": {
+            "introducedIn": "2.0.0"
+          }
+        }
+      ],
+      "presence": {
+        "introducedIn": "2.0.0"
+      }
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/JerrettDavis/WrapGod/main/schemas/wrapgod.manifest.v1.schema.json",
+  "title": "WrapGod Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "generatedAt", "assembly", "types"],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "sourceHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "assembly": { "$ref": "#/$defs/assemblyIdentity" },
+    "types": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/apiTypeNode" }
+    }
+  },
+  "$defs": {
+    "assemblyIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "culture": { "type": ["string", "null"] },
+        "publicKeyToken": { "type": ["string", "null"] },
+        "targetFramework": { "type": ["string", "null"] }
+      }
+    },
+    "versionPresence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "introducedIn": { "type": ["string", "null"] },
+        "removedIn": { "type": ["string", "null"] },
+        "changedIn": { "type": ["string", "null"] }
+      }
+    },
+    "genericParameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "constraints"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "constraints": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "isOptional": { "type": "boolean" },
+        "isParams": { "type": "boolean" },
+        "isOut": { "type": "boolean" },
+        "isRef": { "type": "boolean" },
+        "defaultValue": { "type": ["string", "null"] }
+      }
+    },
+    "apiMemberNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stableId", "name", "kind", "parameters", "genericParameters"],
+      "properties": {
+        "stableId": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "kind": {
+          "type": "string",
+          "enum": ["method", "property", "field", "event", "constructor", "indexer", "operator"]
+        },
+        "returnType": { "type": ["string", "null"] },
+        "parameters": { "type": "array", "items": { "$ref": "#/$defs/parameter" } },
+        "genericParameters": { "type": "array", "items": { "$ref": "#/$defs/genericParameter" } },
+        "isStatic": { "type": "boolean" },
+        "isVirtual": { "type": "boolean" },
+        "isAbstract": { "type": "boolean" },
+        "hasGetter": { "type": "boolean" },
+        "hasSetter": { "type": "boolean" },
+        "presence": { "$ref": "#/$defs/versionPresence" }
+      }
+    },
+    "apiTypeNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stableId",
+        "fullName",
+        "name",
+        "namespace",
+        "kind",
+        "interfaces",
+        "genericParameters",
+        "members"
+      ],
+      "properties": {
+        "stableId": { "type": "string", "minLength": 1 },
+        "fullName": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "namespace": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["class", "struct", "interface", "enum", "delegate", "record", "recordStruct"]
+        },
+        "baseType": { "type": ["string", "null"] },
+        "interfaces": { "type": "array", "items": { "type": "string" } },
+        "genericParameters": { "type": "array", "items": { "$ref": "#/$defs/genericParameter" } },
+        "isSealed": { "type": "boolean" },
+        "isAbstract": { "type": "boolean" },
+        "isStatic": { "type": "boolean" },
+        "members": { "type": "array", "items": { "$ref": "#/$defs/apiMemberNode" } },
+        "presence": { "$ref": "#/$defs/versionPresence" }
+      }
+    }
+  }
+}
