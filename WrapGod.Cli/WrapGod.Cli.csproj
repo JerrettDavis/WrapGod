@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>wrap-god</ToolCommandName>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+    <RootNamespace>WrapGod.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WrapGod.Extractor\WrapGod.Extractor.csproj" />
+    <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
+    <ProjectReference Include="..\WrapGod.Generator\WrapGod.Generator.csproj" />
+  </ItemGroup>
+
+</Project>

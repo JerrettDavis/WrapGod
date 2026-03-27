@@ -1,0 +1,11 @@
+using System.CommandLine;
+using WrapGod.Cli;
+
+var rootCommand = new RootCommand("WrapGod CLI -- extract manifests, generate wrappers, and analyze migrations")
+{
+    ExtractCommand.Create(),
+    GenerateCommand.Create(),
+    AnalyzeCommand.Create()
+};
+
+return await rootCommand.InvokeAsync(args);
