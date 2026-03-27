@@ -58,6 +58,13 @@ internal sealed class TypePlan : IEquatable<TypePlan>
     public IReadOnlyList<MemberPlan> Members { get; }
 
     /// <summary>
+    /// Optional override name from user configuration.
+    /// When set, the generated interface/facade use this name instead of the
+    /// default derived from <see cref="Name"/>.
+    /// </summary>
+    public string? TargetName { get; }
+
+    /// <summary>
     /// Version in which this type first appeared, or <c>null</c> when
     /// version metadata is not available.
     /// </summary>
@@ -69,11 +76,17 @@ internal sealed class TypePlan : IEquatable<TypePlan>
     /// </summary>
     public string? RemovedIn { get; }
 
+    /// <summary>
+    /// Returns <see cref="TargetName"/> when set, otherwise <see cref="Name"/>.
+    /// </summary>
+    public string EffectiveName => TargetName ?? Name;
+
     public TypePlan(
         string fullName,
         string name,
         string ns,
         IReadOnlyList<MemberPlan> members,
+        string? targetName = null,
         string? introducedIn = null,
         string? removedIn = null)
     {
@@ -81,6 +94,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         Name = name;
         Namespace = ns;
         Members = members;
+        TargetName = targetName;
         IntroducedIn = introducedIn;
         RemovedIn = removedIn;
     }
@@ -90,6 +104,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         if (FullName != other.FullName || Name != other.Name || Namespace != other.Namespace) return false;
+        if (TargetName != other.TargetName) return false;
         if (IntroducedIn != other.IntroducedIn || RemovedIn != other.RemovedIn) return false;
         if (Members.Count != other.Members.Count) return false;
 
@@ -108,6 +123,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         int hash = FullName.GetHashCode();
         hash = (hash * 397) ^ Name.GetHashCode();
         hash = (hash * 397) ^ Namespace.GetHashCode();
+        if (TargetName != null) hash = (hash * 397) ^ TargetName.GetHashCode();
         if (IntroducedIn != null) hash = (hash * 397) ^ IntroducedIn.GetHashCode();
         if (RemovedIn != null) hash = (hash * 397) ^ RemovedIn.GetHashCode();
         foreach (var m in Members)
@@ -134,6 +150,12 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
     public IReadOnlyList<string> GenericParameters { get; }
 
     /// <summary>
+    /// Optional override name from user configuration.
+    /// When set, the generated member uses this name instead of <see cref="Name"/>.
+    /// </summary>
+    public string? TargetName { get; }
+
+    /// <summary>
     /// Version in which this member first appeared, or <c>null</c> when
     /// version metadata is not available.
     /// </summary>
@@ -145,6 +167,11 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
     /// </summary>
     public string? RemovedIn { get; }
 
+    /// <summary>
+    /// Returns <see cref="TargetName"/> when set, otherwise <see cref="Name"/>.
+    /// </summary>
+    public string EffectiveName => TargetName ?? Name;
+
     public MemberPlan(
         string name,
         string kind,
@@ -154,6 +181,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         bool hasSetter,
         bool isStatic = false,
         IReadOnlyList<string>? genericParameters = null,
+        string? targetName = null,
         string? introducedIn = null,
         string? removedIn = null)
     {
@@ -165,6 +193,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         HasSetter = hasSetter;
         IsStatic = isStatic;
         GenericParameters = genericParameters ?? Array.Empty<string>();
+        TargetName = targetName;
         IntroducedIn = introducedIn;
         RemovedIn = removedIn;
     }
@@ -176,6 +205,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         if (Name != other.Name || Kind != other.Kind || ReturnType != other.ReturnType) return false;
         if (HasGetter != other.HasGetter || HasSetter != other.HasSetter) return false;
         if (IsStatic != other.IsStatic) return false;
+        if (TargetName != other.TargetName) return false;
         if (IntroducedIn != other.IntroducedIn || RemovedIn != other.RemovedIn) return false;
         if (Parameters.Count != other.Parameters.Count) return false;
         if (GenericParameters.Count != other.GenericParameters.Count) return false;
@@ -201,6 +231,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         hash = (hash * 397) ^ Kind.GetHashCode();
         hash = (hash * 397) ^ ReturnType.GetHashCode();
         hash = (hash * 397) ^ IsStatic.GetHashCode();
+        if (TargetName != null) hash = (hash * 397) ^ TargetName.GetHashCode();
         if (IntroducedIn != null) hash = (hash * 397) ^ IntroducedIn.GetHashCode();
         if (RemovedIn != null) hash = (hash * 397) ^ RemovedIn.GetHashCode();
         return hash;
@@ -240,6 +271,117 @@ internal sealed class ParameterPlan : IEquatable<ParameterPlan>
     {
         int hash = (Name.GetHashCode() * 397) ^ Type.GetHashCode();
         hash = (hash * 397) ^ Modifier.GetHashCode();
+        return hash;
+    }
+}
+
+/// <summary>
+/// Lightweight config model parsed from <c>*.wrapgod.config.json</c>.
+/// Designed for use inside the incremental generator pipeline.
+/// </summary>
+internal sealed class ConfigPlan : IEquatable<ConfigPlan>
+{
+    public IReadOnlyList<ConfigTypePlan> Types { get; }
+
+    public ConfigPlan(IReadOnlyList<ConfigTypePlan> types)
+    {
+        Types = types;
+    }
+
+    public bool Equals(ConfigPlan? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        if (Types.Count != other.Types.Count) return false;
+        for (int i = 0; i < Types.Count; i++)
+        {
+            if (!Types[i].Equals(other.Types[i])) return false;
+        }
+
+        return true;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ConfigPlan);
+
+    public override int GetHashCode()
+    {
+        int hash = 17;
+        foreach (var t in Types)
+        {
+            hash = (hash * 397) ^ t.GetHashCode();
+        }
+
+        return hash;
+    }
+}
+
+internal sealed class ConfigTypePlan : IEquatable<ConfigTypePlan>
+{
+    public string SourceType { get; }
+    public bool Include { get; }
+    public string? TargetName { get; }
+    public IReadOnlyList<ConfigMemberPlan> Members { get; }
+
+    public ConfigTypePlan(string sourceType, bool include, string? targetName, IReadOnlyList<ConfigMemberPlan> members)
+    {
+        SourceType = sourceType;
+        Include = include;
+        TargetName = targetName;
+        Members = members;
+    }
+
+    public bool Equals(ConfigTypePlan? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        if (SourceType != other.SourceType || Include != other.Include || TargetName != other.TargetName) return false;
+        if (Members.Count != other.Members.Count) return false;
+        for (int i = 0; i < Members.Count; i++)
+        {
+            if (!Members[i].Equals(other.Members[i])) return false;
+        }
+
+        return true;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ConfigTypePlan);
+
+    public override int GetHashCode()
+    {
+        int hash = SourceType.GetHashCode();
+        hash = (hash * 397) ^ Include.GetHashCode();
+        if (TargetName != null) hash = (hash * 397) ^ TargetName.GetHashCode();
+        return hash;
+    }
+}
+
+internal sealed class ConfigMemberPlan : IEquatable<ConfigMemberPlan>
+{
+    public string SourceMember { get; }
+    public bool Include { get; }
+    public string? TargetName { get; }
+
+    public ConfigMemberPlan(string sourceMember, bool include, string? targetName)
+    {
+        SourceMember = sourceMember;
+        Include = include;
+        TargetName = targetName;
+    }
+
+    public bool Equals(ConfigMemberPlan? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return SourceMember == other.SourceMember && Include == other.Include && TargetName == other.TargetName;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as ConfigMemberPlan);
+
+    public override int GetHashCode()
+    {
+        int hash = SourceMember.GetHashCode();
+        hash = (hash * 397) ^ Include.GetHashCode();
+        if (TargetName != null) hash = (hash * 397) ^ TargetName.GetHashCode();
         return hash;
     }
 }
