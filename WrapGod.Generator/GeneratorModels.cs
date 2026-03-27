@@ -77,6 +77,12 @@ internal sealed class TypePlan : IEquatable<TypePlan>
     public string? RemovedIn { get; }
 
     /// <summary>
+    /// Type-level generic parameters (e.g. <c>["T"]</c> for <c>Repository&lt;T&gt;</c>,
+    /// <c>["TKey", "TValue"]</c> for <c>Dictionary&lt;TKey, TValue&gt;</c>).
+    /// </summary>
+    public IReadOnlyList<GenericTypeParameterPlan> GenericTypeParameters { get; }
+
+    /// <summary>
     /// Returns <see cref="TargetName"/> when set, otherwise <see cref="Name"/>.
     /// </summary>
     public string EffectiveName => TargetName ?? Name;
@@ -88,7 +94,8 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         IReadOnlyList<MemberPlan> members,
         string? targetName = null,
         string? introducedIn = null,
-        string? removedIn = null)
+        string? removedIn = null,
+        IReadOnlyList<GenericTypeParameterPlan>? genericTypeParameters = null)
     {
         FullName = fullName;
         Name = name;
@@ -97,6 +104,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         TargetName = targetName;
         IntroducedIn = introducedIn;
         RemovedIn = removedIn;
+        GenericTypeParameters = genericTypeParameters ?? Array.Empty<GenericTypeParameterPlan>();
     }
 
     public bool Equals(TypePlan? other)
@@ -107,10 +115,16 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         if (TargetName != other.TargetName) return false;
         if (IntroducedIn != other.IntroducedIn || RemovedIn != other.RemovedIn) return false;
         if (Members.Count != other.Members.Count) return false;
+        if (GenericTypeParameters.Count != other.GenericTypeParameters.Count) return false;
 
         for (int i = 0; i < Members.Count; i++)
         {
             if (!Members[i].Equals(other.Members[i])) return false;
+        }
+
+        for (int i = 0; i < GenericTypeParameters.Count; i++)
+        {
+            if (!GenericTypeParameters[i].Equals(other.GenericTypeParameters[i])) return false;
         }
 
         return true;
@@ -129,6 +143,59 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         foreach (var m in Members)
         {
             hash = (hash * 397) ^ m.GetHashCode();
+        }
+
+        foreach (var gp in GenericTypeParameters)
+        {
+            hash = (hash * 397) ^ gp.GetHashCode();
+        }
+
+        return hash;
+    }
+}
+
+/// <summary>
+/// Describes a generic type parameter with optional constraints.
+/// </summary>
+internal sealed class GenericTypeParameterPlan : IEquatable<GenericTypeParameterPlan>
+{
+    /// <summary>The parameter name (e.g. <c>T</c>, <c>TKey</c>).</summary>
+    public string Name { get; }
+
+    /// <summary>
+    /// Constraint clauses (e.g. <c>["class"]</c>, <c>["struct"]</c>,
+    /// <c>["IComparable&lt;T&gt;"]</c>).
+    /// </summary>
+    public IReadOnlyList<string> Constraints { get; }
+
+    public GenericTypeParameterPlan(string name, IReadOnlyList<string>? constraints = null)
+    {
+        Name = name;
+        Constraints = constraints ?? Array.Empty<string>();
+    }
+
+    public bool Equals(GenericTypeParameterPlan? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        if (Name != other.Name) return false;
+        if (Constraints.Count != other.Constraints.Count) return false;
+        for (int i = 0; i < Constraints.Count; i++)
+        {
+            if (Constraints[i] != other.Constraints[i]) return false;
+        }
+
+        return true;
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as GenericTypeParameterPlan);
+
+    public override int GetHashCode()
+    {
+        int hash = Name.GetHashCode();
+        foreach (var c in Constraints)
+        {
+            hash = (hash * 397) ^ c.GetHashCode();
         }
 
         return hash;
