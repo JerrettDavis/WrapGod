@@ -27,26 +27,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect docfx config
+        id: docfx
+        shell: bash
+        run: |
+          if [ -f docs/docfx.json ]; then
+            echo "has_config=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_config=false" >> "$GITHUB_OUTPUT"
+            echo "docs/docfx.json not found; skipping docs publish."
+          fi
+
       - name: Setup .NET
+        if: steps.docfx.outputs.has_config == 'true'
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
 
-      - run: dotnet tool update -g docfx
+      - name: Install docfx
+        if: steps.docfx.outputs.has_config == 'true'
+        run: dotnet tool update -g docfx
 
       - name: Build docfx metadata
+        if: steps.docfx.outputs.has_config == 'true'
         run: docfx metadata docs/docfx.json
-        continue-on-error: true
 
       - name: Build docfx site
+        if: steps.docfx.outputs.has_config == 'true'
         run: docfx build docs/docfx.json
-        continue-on-error: true
 
       - name: Upload artifact
+        if: steps.docfx.outputs.has_config == 'true'
         uses: actions/upload-pages-artifact@v4
         with:
           path: 'docs/_site'
 
       - name: Deploy to GitHub Pages
+        if: steps.docfx.outputs.has_config == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
