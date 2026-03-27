@@ -18,4 +18,8 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="WrapGod.Tests" />
+  </ItemGroup>
+
 </Project>

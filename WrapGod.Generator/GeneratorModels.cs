@@ -57,12 +57,32 @@ internal sealed class TypePlan : IEquatable<TypePlan>
     public string Namespace { get; }
     public IReadOnlyList<MemberPlan> Members { get; }
 
-    public TypePlan(string fullName, string name, string ns, IReadOnlyList<MemberPlan> members)
+    /// <summary>
+    /// Version in which this type first appeared, or <c>null</c> when
+    /// version metadata is not available.
+    /// </summary>
+    public string? IntroducedIn { get; }
+
+    /// <summary>
+    /// Version in which this type was removed, or <c>null</c> if it is
+    /// still present in the latest version.
+    /// </summary>
+    public string? RemovedIn { get; }
+
+    public TypePlan(
+        string fullName,
+        string name,
+        string ns,
+        IReadOnlyList<MemberPlan> members,
+        string? introducedIn = null,
+        string? removedIn = null)
     {
         FullName = fullName;
         Name = name;
         Namespace = ns;
         Members = members;
+        IntroducedIn = introducedIn;
+        RemovedIn = removedIn;
     }
 
     public bool Equals(TypePlan? other)
@@ -70,6 +90,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         if (FullName != other.FullName || Name != other.Name || Namespace != other.Namespace) return false;
+        if (IntroducedIn != other.IntroducedIn || RemovedIn != other.RemovedIn) return false;
         if (Members.Count != other.Members.Count) return false;
 
         for (int i = 0; i < Members.Count; i++)
@@ -87,6 +108,8 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         int hash = FullName.GetHashCode();
         hash = (hash * 397) ^ Name.GetHashCode();
         hash = (hash * 397) ^ Namespace.GetHashCode();
+        if (IntroducedIn != null) hash = (hash * 397) ^ IntroducedIn.GetHashCode();
+        if (RemovedIn != null) hash = (hash * 397) ^ RemovedIn.GetHashCode();
         foreach (var m in Members)
         {
             hash = (hash * 397) ^ m.GetHashCode();
@@ -110,6 +133,18 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
     public bool IsStatic { get; }
     public IReadOnlyList<string> GenericParameters { get; }
 
+    /// <summary>
+    /// Version in which this member first appeared, or <c>null</c> when
+    /// version metadata is not available.
+    /// </summary>
+    public string? IntroducedIn { get; }
+
+    /// <summary>
+    /// Version in which this member was removed, or <c>null</c> if it is
+    /// still present in the latest version.
+    /// </summary>
+    public string? RemovedIn { get; }
+
     public MemberPlan(
         string name,
         string kind,
@@ -118,7 +153,9 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         bool hasGetter,
         bool hasSetter,
         bool isStatic = false,
-        IReadOnlyList<string>? genericParameters = null)
+        IReadOnlyList<string>? genericParameters = null,
+        string? introducedIn = null,
+        string? removedIn = null)
     {
         Name = name;
         Kind = kind;
@@ -128,6 +165,8 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         HasSetter = hasSetter;
         IsStatic = isStatic;
         GenericParameters = genericParameters ?? Array.Empty<string>();
+        IntroducedIn = introducedIn;
+        RemovedIn = removedIn;
     }
 
     public bool Equals(MemberPlan? other)
@@ -137,6 +176,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         if (Name != other.Name || Kind != other.Kind || ReturnType != other.ReturnType) return false;
         if (HasGetter != other.HasGetter || HasSetter != other.HasSetter) return false;
         if (IsStatic != other.IsStatic) return false;
+        if (IntroducedIn != other.IntroducedIn || RemovedIn != other.RemovedIn) return false;
         if (Parameters.Count != other.Parameters.Count) return false;
         if (GenericParameters.Count != other.GenericParameters.Count) return false;
 
@@ -161,6 +201,8 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         hash = (hash * 397) ^ Kind.GetHashCode();
         hash = (hash * 397) ^ ReturnType.GetHashCode();
         hash = (hash * 397) ^ IsStatic.GetHashCode();
+        if (IntroducedIn != null) hash = (hash * 397) ^ IntroducedIn.GetHashCode();
+        if (RemovedIn != null) hash = (hash * 397) ^ RemovedIn.GetHashCode();
         return hash;
     }
 }
