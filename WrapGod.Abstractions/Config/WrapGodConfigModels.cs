@@ -14,6 +14,20 @@ public sealed class TypeConfig
     public bool? Include { get; set; }
     public string? TargetName { get; set; }
     public List<MemberConfig> Members { get; set; } = new();
+
+    /// <summary>
+    /// When <c>true</c>, <see cref="SourceType"/> is treated as an open generic
+    /// pattern (e.g. <c>"Dictionary&lt;,&gt;"</c> or <c>"IRepository&lt;&gt;"</c>).
+    /// The pattern matches any closed construction of the generic type.
+    /// </summary>
+    public bool IsGenericPattern { get; set; }
+
+    /// <summary>
+    /// The arity (number of type parameters) of the generic pattern.
+    /// Derived automatically from the source type pattern when
+    /// <see cref="IsGenericPattern"/> is <c>true</c>.
+    /// </summary>
+    public int GenericArity { get; set; }
 }
 
 public sealed class MemberConfig

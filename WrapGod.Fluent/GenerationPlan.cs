@@ -47,6 +47,18 @@ public sealed class TypeDirective
 
     /// <summary>Members to exclude by name.</summary>
     public IReadOnlyList<string> ExcludedMembers { get; init; } = [];
+
+    /// <summary>
+    /// When <c>true</c>, <see cref="SourceType"/> is an open generic pattern
+    /// (e.g. <c>"IRepository&lt;&gt;"</c>) that matches any closed construction.
+    /// </summary>
+    public bool IsGenericPattern { get; init; }
+
+    /// <summary>
+    /// The arity (number of type parameters) of the generic pattern.
+    /// Only meaningful when <see cref="IsGenericPattern"/> is <c>true</c>.
+    /// </summary>
+    public int GenericArity { get; init; }
 }
 
 /// <summary>

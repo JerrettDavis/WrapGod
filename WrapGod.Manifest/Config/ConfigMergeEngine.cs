@@ -18,14 +18,59 @@ public static class ConfigMergeEngine
 
         foreach (var typeKey in allTypeKeys)
         {
-            var fromJson = jsonConfig.Types.FirstOrDefault(t => string.Equals(t.SourceType, typeKey, StringComparison.Ordinal));
-            var fromAttr = attributeConfig.Types.FirstOrDefault(t => string.Equals(t.SourceType, typeKey, StringComparison.Ordinal));
+            var fromJson = FindMatchingType(jsonConfig.Types, typeKey);
+            var fromAttr = FindMatchingType(attributeConfig.Types, typeKey);
 
             var mergedType = MergeType(typeKey, fromJson, fromAttr, options, result.Diagnostics);
+
+            // Preserve generic pattern metadata from whichever source had it.
+            var sourceWithPattern = fromJson?.IsGenericPattern == true ? fromJson
+                : fromAttr?.IsGenericPattern == true ? fromAttr
+                : null;
+            if (sourceWithPattern != null)
+            {
+                mergedType.IsGenericPattern = true;
+                mergedType.GenericArity = sourceWithPattern.GenericArity;
+            }
+
             result.Config.Types.Add(mergedType);
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Finds a type config matching the given key. First tries an exact match,
+    /// then falls back to matching generic patterns by base name.
+    /// </summary>
+    private static TypeConfig? FindMatchingType(List<TypeConfig> types, string key)
+    {
+        // Exact match first.
+        var exact = types.FirstOrDefault(t => string.Equals(t.SourceType, key, StringComparison.Ordinal));
+        if (exact != null)
+            return exact;
+
+        // Try matching open generic patterns by base name.
+        var baseName = GetGenericBaseName(key);
+        if (baseName != null)
+        {
+            return types.FirstOrDefault(t =>
+                t.IsGenericPattern &&
+                string.Equals(GetGenericBaseName(t.SourceType) ?? t.SourceType, baseName, StringComparison.Ordinal));
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts the base type name from a generic type string.
+    /// <c>"Dictionary&lt;,&gt;"</c> becomes <c>"Dictionary"</c>.
+    /// Returns <c>null</c> for non-generic types.
+    /// </summary>
+    internal static string? GetGenericBaseName(string sourceType)
+    {
+        var openAngle = sourceType.IndexOf('<');
+        return openAngle > 0 ? sourceType.Substring(0, openAngle) : null;
     }
 
     private static TypeConfig MergeType(
