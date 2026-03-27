@@ -28,6 +28,7 @@
     <Using Include="WrapGod.Fluent" />
     <Using Include="WrapGod.Abstractions.Config" />
     <Using Include="WrapGod.Manifest.Config" />
+    <Using Include="WrapGod.TypeMap" />
     <Using Include="Json.Schema" />
     <Using Include="System.Text.Json" />
     <Using Include="TinyBDD" />
