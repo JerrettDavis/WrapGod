@@ -17,6 +17,9 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
         PropertyNameCaseInsensitive = true,
     };
 
+    private const string WrapTypeAttributeFullName = "WrapGod.Abstractions.Config.WrapTypeAttribute";
+    private const string SelfSourceAssembly = "@self";
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Step 1a: Filter AdditionalFiles to *.wrapgod.json manifests
@@ -46,17 +49,194 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
             .Where(static config => config is not null)
             .Select(static (config, _) => config!);
 
-        // Step 4: Collect plans + configs and apply config rules before emission
+        // Step 4a: Extract types from [WrapType] attributes in the compilation
+        var wrapTypeProvider = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                WrapTypeAttributeFullName,
+                predicate: static (node, _) => true,
+                transform: static (ctx, _) => ExtractWrapTypePlan(ctx))
+            .Where(static plan => plan is not null)
+            .Select(static (plan, _) => plan!);
+
+        // Step 4b: Collect plans + configs and @self plans, then merge before emission
         var collectedPlans = plans.Collect();
         var collectedConfigs = configs.Collect();
+        var collectedSelfPlans = wrapTypeProvider.Collect();
 
-        var combined = collectedPlans.Combine(collectedConfigs);
+        var combined = collectedPlans
+            .Combine(collectedConfigs)
+            .Combine(collectedSelfPlans);
 
         context.RegisterSourceOutput(combined, static (spc, pair) =>
         {
-            var filteredPlans = ApplyConfig(pair.Left, pair.Right);
+            var filePlans = pair.Left.Left;
+            var configPlans = pair.Left.Right;
+            var selfPlans = pair.Right;
+
+            // Merge @self plans into a single GenerationPlan.
+            var allPlans = filePlans;
+            if (selfPlans.Length > 0)
+            {
+                var selfTypes = new List<TypePlan>(selfPlans.Length);
+                foreach (var tp in selfPlans)
+                {
+                    selfTypes.Add(tp);
+                }
+
+                var selfPlan = new GenerationPlan(SelfSourceAssembly, selfTypes);
+                allPlans = allPlans.Add(selfPlan);
+            }
+
+            var filteredPlans = ApplyConfig(allPlans, configPlans);
             EmitSources(spc, filteredPlans);
         });
+    }
+
+    /// <summary>
+    /// Extracts a <see cref="TypePlan"/> from a type annotated with [WrapType].
+    /// The attributed type serves as the wrapping target; the sourceType argument
+    /// names the type to wrap. When sourceType is "@self", the attributed type
+    /// itself is extracted from the compilation.
+    /// </summary>
+    internal static TypePlan? ExtractWrapTypePlan(GeneratorAttributeSyntaxContext ctx)
+    {
+        var symbol = ctx.TargetSymbol as INamedTypeSymbol;
+        if (symbol == null)
+            return null;
+
+        // Read the [WrapType] attribute data.
+        var attrData = ctx.Attributes.FirstOrDefault(a =>
+            a.AttributeClass?.ToDisplayString() == WrapTypeAttributeFullName);
+
+        if (attrData == null)
+            return null;
+
+        string sourceType = attrData.ConstructorArguments.Length > 0
+            ? attrData.ConstructorArguments[0].Value?.ToString() ?? string.Empty
+            : string.Empty;
+
+        bool include = true;
+        string? targetName = null;
+
+        foreach (var named in attrData.NamedArguments)
+        {
+            if (named.Key == "Include" && named.Value.Value is bool b)
+                include = b;
+            else if (named.Key == "TargetName" && named.Value.Value is string s)
+                targetName = s;
+        }
+
+        if (!include)
+            return null;
+
+        // Determine which type to extract.
+        INamedTypeSymbol? extractTarget;
+
+        if (string.Equals(sourceType, SelfSourceAssembly, StringComparison.Ordinal))
+        {
+            // Extract the attributed type itself.
+            extractTarget = symbol;
+        }
+        else
+        {
+            // Look up the named type in the compilation.
+            extractTarget = ctx.SemanticModel.Compilation.GetTypeByMetadataName(sourceType);
+            if (extractTarget == null)
+                return null;
+        }
+
+        return ExtractTypePlanFromSymbol(extractTarget, targetName);
+    }
+
+    /// <summary>
+    /// Converts an <see cref="INamedTypeSymbol"/> into a <see cref="TypePlan"/>
+    /// for use in source generation.
+    /// </summary>
+    internal static TypePlan ExtractTypePlanFromSymbol(INamedTypeSymbol symbol, string? targetName = null)
+    {
+        var fullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+            .Replace("global::", string.Empty);
+        var name = symbol.Name;
+        var ns = symbol.ContainingNamespace?.ToDisplayString() ?? string.Empty;
+
+        var members = new List<MemberPlan>();
+        var genericTypeParameters = new List<GenericTypeParameterPlan>();
+
+        // Extract generic type parameters.
+        foreach (var tp in symbol.TypeParameters)
+        {
+            var constraints = new List<string>();
+            foreach (var ct in tp.ConstraintTypes)
+            {
+                constraints.Add(ct.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                    .Replace("global::", string.Empty));
+            }
+
+            if (tp.HasReferenceTypeConstraint) constraints.Add("class");
+            if (tp.HasValueTypeConstraint) constraints.Add("struct");
+            if (tp.HasConstructorConstraint) constraints.Add("new()");
+
+            genericTypeParameters.Add(new GenericTypeParameterPlan(tp.Name, constraints));
+        }
+
+        // Extract public members.
+        foreach (var member in symbol.GetMembers())
+        {
+            if (member.DeclaredAccessibility != Accessibility.Public)
+                continue;
+
+            switch (member)
+            {
+                case IMethodSymbol method when method.MethodKind == MethodKind.Ordinary:
+                    var methodGenericParams = new List<string>();
+                    foreach (var tp in method.TypeParameters)
+                    {
+                        methodGenericParams.Add(tp.Name);
+                    }
+
+                    var methodParams = new List<ParameterPlan>();
+                    foreach (var p in method.Parameters)
+                    {
+                        string modifier = "";
+                        if (p.RefKind == RefKind.Out) modifier = "out";
+                        else if (p.RefKind == RefKind.Ref) modifier = "ref";
+                        else if (p.IsParams) modifier = "params";
+
+                        methodParams.Add(new ParameterPlan(
+                            p.Name,
+                            p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                                .Replace("global::", string.Empty),
+                            modifier));
+                    }
+
+                    members.Add(new MemberPlan(
+                        method.Name,
+                        "method",
+                        method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                            .Replace("global::", string.Empty),
+                        methodParams,
+                        hasGetter: false,
+                        hasSetter: false,
+                        isStatic: method.IsStatic,
+                        genericParameters: methodGenericParams));
+                    break;
+
+                case IPropertySymbol property when !property.IsIndexer:
+                    members.Add(new MemberPlan(
+                        property.Name,
+                        "property",
+                        property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                            .Replace("global::", string.Empty),
+                        Array.Empty<ParameterPlan>(),
+                        hasGetter: property.GetMethod != null,
+                        hasSetter: property.SetMethod != null,
+                        isStatic: property.IsStatic));
+                    break;
+            }
+        }
+
+        return new TypePlan(fullName, name, ns, members, targetName: targetName,
+            genericTypeParameters: genericTypeParameters);
     }
 
     /// <summary>
