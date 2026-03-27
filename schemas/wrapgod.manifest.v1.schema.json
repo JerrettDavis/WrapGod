@@ -40,9 +40,11 @@
     "genericParameter": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "constraints"],
+      "required": ["name", "position", "variance", "constraints"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
+        "position": { "type": "integer", "minimum": 0 },
+        "variance": { "type": "string", "enum": ["none", "in", "out"] },
         "constraints": { "type": "array", "items": { "type": "string" } }
       }
     },
@@ -63,7 +65,7 @@
     "apiMemberNode": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stableId", "name", "kind", "parameters", "genericParameters"],
+      "required": ["stableId", "name", "kind", "parameters", "genericParameters", "isGenericMethod", "isGenericMethodDefinition", "isConstructedGenericMethod", "containsGenericParameters"],
       "properties": {
         "stableId": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
@@ -74,6 +76,10 @@
         "returnType": { "type": ["string", "null"] },
         "parameters": { "type": "array", "items": { "$ref": "#/$defs/parameter" } },
         "genericParameters": { "type": "array", "items": { "$ref": "#/$defs/genericParameter" } },
+        "isGenericMethod": { "type": "boolean" },
+        "isGenericMethodDefinition": { "type": "boolean" },
+        "isConstructedGenericMethod": { "type": "boolean" },
+        "containsGenericParameters": { "type": "boolean" },
         "isStatic": { "type": "boolean" },
         "isVirtual": { "type": "boolean" },
         "isAbstract": { "type": "boolean" },
@@ -93,6 +99,10 @@
         "kind",
         "interfaces",
         "genericParameters",
+        "isGenericType",
+        "isGenericTypeDefinition",
+        "isConstructedGenericType",
+        "containsGenericParameters",
         "members"
       ],
       "properties": {
@@ -107,6 +117,10 @@
         "baseType": { "type": ["string", "null"] },
         "interfaces": { "type": "array", "items": { "type": "string" } },
         "genericParameters": { "type": "array", "items": { "$ref": "#/$defs/genericParameter" } },
+        "isGenericType": { "type": "boolean" },
+        "isGenericTypeDefinition": { "type": "boolean" },
+        "isConstructedGenericType": { "type": "boolean" },
+        "containsGenericParameters": { "type": "boolean" },
         "isSealed": { "type": "boolean" },
         "isAbstract": { "type": "boolean" },
         "isStatic": { "type": "boolean" },

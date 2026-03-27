@@ -16,6 +16,10 @@
       "kind": "class",
       "interfaces": [],
       "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
       "members": [
         {
           "stableId": "ThirdParty.Client.ApiClient.GetUser(System.String)",
@@ -33,6 +37,10 @@
             }
           ],
           "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
           "isStatic": false,
           "isVirtual": false,
           "isAbstract": false,
