@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using WrapGod.Manifest;
 
 namespace WrapGod.Extractor;
@@ -44,6 +47,69 @@ public static class MultiVersionExtractor
         }
 
         return Merge(manifests);
+    }
+
+    public static MultiVersionResult ExtractWithCache(IReadOnlyList<VersionInput> versions, ExtractorCacheOptions? options = null)
+    {
+        if (versions.Count == 0)
+            throw new ArgumentException("At least one version is required.", nameof(versions));
+
+        var cacheOptions = options ?? ExtractorCacheOptions.Default;
+        if (!cacheOptions.Enabled)
+            return Extract(versions);
+
+        var manifests = new List<(string Label, ApiManifest Manifest)>();
+        var keys = new List<(string Label, string Hash)>();
+
+        foreach (var version in versions)
+        {
+            manifests.Add((version.VersionLabel, AssemblyExtractor.ExtractWithCache(version.AssemblyPath, cacheOptions)));
+            var keyHash = ExtractorCacheKey.CreateForAssembly(version.AssemblyPath, cacheOptions).ComputeHash();
+            keys.Add((version.VersionLabel, keyHash));
+        }
+
+        var canonical = BuildMultiVersionCanonicalKey(keys);
+        var hash = ComputeSha256(canonical);
+        var cachePath = GetMultiVersionCachePath(cacheOptions, hash);
+
+        if (File.Exists(cachePath))
+        {
+            try
+            {
+                var cached = JsonSerializer.Deserialize<MultiVersionCacheEnvelope>(File.ReadAllText(cachePath));
+                if (cached is not null
+                    && string.Equals(cached.CacheKeyHash, hash, StringComparison.Ordinal)
+                    && string.Equals(cached.CanonicalKey, canonical, StringComparison.Ordinal)
+                    && cached.Result is not null)
+                {
+                    return cached.Result;
+                }
+            }
+            catch
+            {
+                try { File.Delete(cachePath); } catch { }
+            }
+        }
+
+        var merged = Merge(manifests);
+
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
+            File.WriteAllText(cachePath, JsonSerializer.Serialize(new MultiVersionCacheEnvelope
+            {
+                CacheKeyHash = hash,
+                CanonicalKey = canonical,
+                CreatedAtUtc = DateTimeOffset.UtcNow,
+                Result = merged,
+            }));
+        }
+        catch
+        {
+            // best-effort cache write only
+        }
+
+        return merged;
     }
 
     /// <summary>
@@ -438,6 +504,59 @@ public static class MultiVersionExtractor
         }
     }
 
+    private static string BuildMultiVersionCanonicalKey(IReadOnlyList<(string Label, string Hash)> inputs)
+    {
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream);
+
+        writer.WriteStartObject();
+        writer.WriteString("keySchema", "wg.extractor.multiversion.cache.v1");
+        writer.WriteString("mergeAlgoVersion", "1");
+        writer.WritePropertyName("inputs");
+        writer.WriteStartArray();
+        foreach (var input in inputs)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("label", input.Label);
+            writer.WriteString("extractKey", input.Hash);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+        writer.WriteEndObject();
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static string ComputeSha256(string value)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static string GetMultiVersionCachePath(ExtractorCacheOptions options, string hash)
+    {
+        var sharedRoot = options.SharedCacheRoot ?? GetDefaultSharedCacheRoot();
+        return Path.Combine(sharedRoot, "multiversion", $"{hash}.multiversion.json");
+    }
+
+    private static string GetDefaultSharedCacheRoot()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            return Path.Combine(localAppData, "WrapGod", "cache", "extractor");
+        }
+
+        var xdg = Environment.GetEnvironmentVariable("XDG_CACHE_HOME");
+        if (!string.IsNullOrWhiteSpace(xdg))
+            return Path.Combine(xdg, "wrapgod", "extractor");
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Path.Combine(home, ".cache", "wrapgod", "extractor");
+    }
+
     private static ApiTypeNode CloneTypeNode(ApiTypeNode source)
     {
         return new ApiTypeNode
@@ -508,5 +627,13 @@ public static class MultiVersionExtractor
             HasGetter = source.HasGetter,
             HasSetter = source.HasSetter,
         };
+    }
+
+    private sealed class MultiVersionCacheEnvelope
+    {
+        public required string CacheKeyHash { get; init; }
+        public required string CanonicalKey { get; init; }
+        public required DateTimeOffset CreatedAtUtc { get; init; }
+        public required MultiVersionResult Result { get; init; }
     }
 }
