@@ -87,7 +87,7 @@ public class ConfigIngestionTests
     }
 
     [WrapType("Vendor.Client", TargetName = "IClient")]
-    private class AttributedWrapper
+    private sealed class AttributedWrapper
     {
         [WrapMember("GetUser", TargetName = "FetchUser")]
         public string GetUser(string id) => id;
