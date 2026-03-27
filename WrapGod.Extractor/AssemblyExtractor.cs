@@ -114,6 +114,10 @@ public static class AssemblyExtractor
                 .OrderBy(n => n, StringComparer.Ordinal)
                 .ToList(),
             GenericParameters = ExtractGenericParameters(type),
+            IsGenericType = type.IsGenericType,
+            IsGenericTypeDefinition = type.IsGenericTypeDefinition,
+            IsConstructedGenericType = type.IsConstructedGenericType,
+            ContainsGenericParameters = type.ContainsGenericParameters,
             IsSealed = type.IsSealed && !type.IsValueType,
             IsAbstract = type.IsAbstract && !type.IsInterface,
             IsStatic = type.IsAbstract && type.IsSealed,
@@ -187,14 +191,7 @@ public static class AssemblyExtractor
             return [];
 
         return type.GetGenericArguments()
-            .Select(g => new GenericParameterInfo
-            {
-                Name = g.Name,
-                Constraints = g.GetGenericParameterConstraints()
-                    .Select(FormatTypeName)
-                    .OrderBy(c => c, StringComparer.Ordinal)
-                    .ToList(),
-            })
+            .Select(ExtractGenericParameter)
             .ToList();
     }
 
@@ -204,15 +201,79 @@ public static class AssemblyExtractor
             return [];
 
         return method.GetGenericArguments()
-            .Select(g => new GenericParameterInfo
-            {
-                Name = g.Name,
-                Constraints = g.GetGenericParameterConstraints()
-                    .Select(FormatTypeName)
-                    .OrderBy(c => c, StringComparer.Ordinal)
-                    .ToList(),
-            })
+            .Select(ExtractGenericParameter)
             .ToList();
+    }
+
+    private static GenericParameterInfo ExtractGenericParameter(Type genericParameter)
+    {
+        var constraints = genericParameter.GetGenericParameterConstraints()
+            .Select(FormatTypeName)
+            .ToList();
+
+        var attrs = genericParameter.GenericParameterAttributes;
+        var special = attrs & GenericParameterAttributes.SpecialConstraintMask;
+        if (special.HasFlag(GenericParameterAttributes.ReferenceTypeConstraint))
+            constraints.Add("class");
+        if (special.HasFlag(GenericParameterAttributes.NotNullableValueTypeConstraint))
+            constraints.Add("struct");
+        if (special.HasFlag(GenericParameterAttributes.DefaultConstructorConstraint))
+            constraints.Add("new()");
+
+        // Best-effort extraction for C#-level constraints that are represented by attributes.
+        if (HasCustomAttribute(genericParameter, "System.Runtime.CompilerServices.IsUnmanagedAttribute"))
+            constraints.Add("unmanaged");
+        if (HasNotNullConstraint(genericParameter))
+            constraints.Add("notnull");
+
+        return new GenericParameterInfo
+        {
+            Name = genericParameter.Name,
+            Position = genericParameter.GenericParameterPosition,
+            Variance = GetVariance(attrs),
+            Constraints = constraints
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(c => c, StringComparer.Ordinal)
+                .ToList(),
+        };
+    }
+
+    private static GenericParameterVariance GetVariance(GenericParameterAttributes attrs)
+    {
+        return (attrs & GenericParameterAttributes.VarianceMask) switch
+        {
+            GenericParameterAttributes.Contravariant => GenericParameterVariance.In,
+            GenericParameterAttributes.Covariant => GenericParameterVariance.Out,
+            _ => GenericParameterVariance.None,
+        };
+    }
+
+    private static bool HasCustomAttribute(Type type, string fullName)
+        => type.CustomAttributes.Any(a => a.AttributeType.FullName == fullName);
+
+    private static bool HasNotNullConstraint(Type genericParameter)
+    {
+        var nullableAttribute = genericParameter.CustomAttributes
+            .FirstOrDefault(a => a.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute");
+
+        if (nullableAttribute is null)
+            return false;
+
+        if (nullableAttribute.ConstructorArguments.Count == 0)
+            return false;
+
+        var arg = nullableAttribute.ConstructorArguments[0];
+
+        // Byte value 1 corresponds to non-nullable metadata in compiler annotations.
+        if (arg.ArgumentType.FullName == "System.Byte" && arg.Value is byte b)
+            return b == 1;
+
+        if (arg.Value is IReadOnlyCollection<CustomAttributeTypedArgument> typedArgs)
+        {
+            return typedArgs.Any(a => a.Value is byte bb && bb == 1);
+        }
+
+        return false;
     }
 
     private static IEnumerable<ApiMemberNode> ExtractMembers(Type type, string typeStableId)
@@ -254,6 +315,10 @@ public static class AssemblyExtractor
                         IsAbstract = method.IsAbstract,
                         Parameters = ExtractParameters(method.GetParameters()),
                         GenericParameters = ExtractGenericParameters(method),
+                        IsGenericMethod = method.IsGenericMethod,
+                        IsGenericMethodDefinition = method.IsGenericMethodDefinition,
+                        IsConstructedGenericMethod = method.IsConstructedGenericMethod,
+                        ContainsGenericParameters = method.ContainsGenericParameters,
                     };
                 }
 
@@ -276,6 +341,10 @@ public static class AssemblyExtractor
                 IsAbstract = method.IsAbstract,
                 Parameters = ExtractParameters(method.GetParameters()),
                 GenericParameters = ExtractGenericParameters(method),
+                IsGenericMethod = method.IsGenericMethod,
+                IsGenericMethodDefinition = method.IsGenericMethodDefinition,
+                IsConstructedGenericMethod = method.IsConstructedGenericMethod,
+                ContainsGenericParameters = method.ContainsGenericParameters,
             };
         }
 

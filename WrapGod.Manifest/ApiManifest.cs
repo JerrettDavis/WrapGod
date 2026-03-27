@@ -66,6 +66,18 @@ public sealed class ApiTypeNode
     /// <summary>Generic type parameters.</summary>
     public List<GenericParameterInfo> GenericParameters { get; set; } = [];
 
+    /// <summary>Whether this type is generic (definition or constructed).</summary>
+    public bool IsGenericType { get; set; }
+
+    /// <summary>Whether this type is an open generic type definition.</summary>
+    public bool IsGenericTypeDefinition { get; set; }
+
+    /// <summary>Whether this type is a constructed generic type instance.</summary>
+    public bool IsConstructedGenericType { get; set; }
+
+    /// <summary>Whether this type (or any containing type arguments) contains unbound generic parameters.</summary>
+    public bool ContainsGenericParameters { get; set; }
+
     /// <summary>Whether the type is sealed.</summary>
     public bool IsSealed { get; set; }
 
@@ -105,6 +117,18 @@ public sealed class ApiMemberNode
     /// <summary>Generic type parameters (for generic methods).</summary>
     public List<GenericParameterInfo> GenericParameters { get; set; } = [];
 
+    /// <summary>Whether this member is a generic method (definition or constructed).</summary>
+    public bool IsGenericMethod { get; set; }
+
+    /// <summary>Whether this member is an open generic method definition.</summary>
+    public bool IsGenericMethodDefinition { get; set; }
+
+    /// <summary>Whether this member is a constructed generic method instance.</summary>
+    public bool IsConstructedGenericMethod { get; set; }
+
+    /// <summary>Whether this member contains unbound generic parameters.</summary>
+    public bool ContainsGenericParameters { get; set; }
+
     /// <summary>Whether the member is static.</summary>
     public bool IsStatic { get; set; }
 
@@ -140,7 +164,16 @@ public sealed class ApiParameterInfo
 public sealed class GenericParameterInfo
 {
     public string Name { get; set; } = string.Empty;
+    public int Position { get; set; }
+    public GenericParameterVariance Variance { get; set; }
     public List<string> Constraints { get; set; } = [];
+}
+
+public enum GenericParameterVariance
+{
+    None,
+    In,
+    Out,
 }
 
 /// <summary>Version presence metadata for multi-version manifests.</summary>

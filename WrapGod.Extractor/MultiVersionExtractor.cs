@@ -453,9 +453,15 @@ public static class MultiVersionExtractor
                 .Select(g => new GenericParameterInfo
                 {
                     Name = g.Name,
+                    Position = g.Position,
+                    Variance = g.Variance,
                     Constraints = [.. g.Constraints],
                 })
                 .ToList(),
+            IsGenericType = source.IsGenericType,
+            IsGenericTypeDefinition = source.IsGenericTypeDefinition,
+            IsConstructedGenericType = source.IsConstructedGenericType,
+            ContainsGenericParameters = source.ContainsGenericParameters,
             IsSealed = source.IsSealed,
             IsAbstract = source.IsAbstract,
             IsStatic = source.IsStatic,
@@ -487,9 +493,15 @@ public static class MultiVersionExtractor
                 .Select(g => new GenericParameterInfo
                 {
                     Name = g.Name,
+                    Position = g.Position,
+                    Variance = g.Variance,
                     Constraints = [.. g.Constraints],
                 })
                 .ToList(),
+            IsGenericMethod = source.IsGenericMethod,
+            IsGenericMethodDefinition = source.IsGenericMethodDefinition,
+            IsConstructedGenericMethod = source.IsConstructedGenericMethod,
+            ContainsGenericParameters = source.ContainsGenericParameters,
             IsStatic = source.IsStatic,
             IsVirtual = source.IsVirtual,
             IsAbstract = source.IsAbstract,
