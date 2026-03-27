@@ -378,7 +378,7 @@ public sealed class TypeMapCoverageTests(ITestOutputHelper output) : TinyBddXuni
             .And("line1again has 4 spaces after outdent", output =>
                 output.Contains("    line1again"))
             .And("line0again has no indentation after double outdent", output =>
-                output.Contains("\nline0again") || output.StartsWith("line0again"))
+                output.Contains("\nline0again", StringComparison.Ordinal) || output.StartsWith("line0again", StringComparison.Ordinal))
             .AssertPassed();
 
     [Scenario("MapperSourceBuilder OpenBrace and CloseBrace manage indent")]
@@ -395,13 +395,13 @@ public sealed class TypeMapCoverageTests(ITestOutputHelper output) : TinyBddXuni
                     return sb.ToString();
                 })
             .Then("the opening brace is at base indentation", output =>
-                output.Contains("{"))
+                output.Contains('{'))
             .And("the member is indented inside the brace", output =>
                 output.Contains("    int x;"))
             .And("the closing brace is at base indentation", output =>
-                output.Contains("}"))
+                output.Contains('}'))
             .And("the indent level returns to zero", output =>
-                output.TrimEnd().EndsWith("}"))
+                output.TrimEnd().EndsWith('}'))
             .AssertPassed();
 
     [Scenario("MapperSourceBuilder BlankLine inserts empty line")]
