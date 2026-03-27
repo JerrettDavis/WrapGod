@@ -1,0 +1,1 @@
+// Intentionally removed. See FooService/BarClient.
