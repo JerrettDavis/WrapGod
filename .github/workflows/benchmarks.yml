@@ -1,0 +1,48 @@
+name: Benchmarks
+
+on:
+  workflow_dispatch:
+    inputs:
+      filter:
+        description: 'BenchmarkDotNet filter pattern'
+        required: false
+        default: '*'
+  schedule:
+    # Weekly on Sundays at 04:00 UTC — informational only
+    - cron: '0 4 * * 0'
+
+jobs:
+  run-benchmarks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore WrapGod.Benchmarks/WrapGod.Benchmarks.csproj
+
+      - name: Build benchmarks
+        run: dotnet build WrapGod.Benchmarks/WrapGod.Benchmarks.csproj --configuration Release --no-restore
+
+      - name: Run benchmarks
+        run: >
+          dotnet run --project WrapGod.Benchmarks/WrapGod.Benchmarks.csproj
+          --configuration Release
+          --no-build
+          --
+          --filter '${{ github.event.inputs.filter || '*' }}'
+          --exporters json
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: BenchmarkDotNet.Artifacts/
+          retention-days: 30
