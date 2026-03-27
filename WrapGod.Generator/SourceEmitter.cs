@@ -29,6 +29,10 @@ internal static class SourceEmitter
 
         foreach (var member in type.Members)
         {
+            // Skip static members -- interfaces model instance contracts
+            if (member.IsStatic)
+                continue;
+
             EmitInterfaceMember(sb, member);
         }
 
@@ -57,11 +61,15 @@ internal static class SourceEmitter
         sb.AppendLine();
         sb.Append("    public ").Append(className).Append('(').Append(type.FullName).AppendLine(" inner)");
         sb.AppendLine("    {");
-        sb.AppendLine("        _inner = inner;");
+        sb.AppendLine("        _inner = inner ?? throw new System.ArgumentNullException(nameof(inner));");
         sb.AppendLine("    }");
 
         foreach (var member in type.Members)
         {
+            // Skip static members -- facade delegates to an instance
+            if (member.IsStatic)
+                continue;
+
             sb.AppendLine();
             EmitFacadeMember(sb, member);
         }
@@ -90,7 +98,9 @@ internal static class SourceEmitter
         else
         {
             // Method
-            sb.Append("    ").Append(member.ReturnType).Append(' ').Append(member.Name).Append('(');
+            sb.Append("    ").Append(member.ReturnType).Append(' ').Append(member.Name);
+            AppendGenericParameters(sb, member.GenericParameters);
+            sb.Append('(');
             AppendParameters(sb, member.Parameters);
             sb.AppendLine(");");
         }
@@ -117,15 +127,33 @@ internal static class SourceEmitter
         }
         else
         {
-            // Method
-            string returnKeyword = member.ReturnType == "void" ? "" : "return ";
-            sb.Append("    public ").Append(member.ReturnType).Append(' ').Append(member.Name).Append('(');
+            // Method -- expression-bodied forwarding works for both void and non-void
+            sb.Append("    public ").Append(member.ReturnType).Append(' ').Append(member.Name);
+            AppendGenericParameters(sb, member.GenericParameters);
+            sb.Append('(');
             AppendParameters(sb, member.Parameters);
             sb.AppendLine(")");
-            sb.Append("        => ").Append(returnKeyword).Append("_inner.").Append(member.Name).Append('(');
+            sb.Append("        => _inner.").Append(member.Name);
+            AppendGenericParameters(sb, member.GenericParameters);
+            sb.Append('(');
             AppendArguments(sb, member.Parameters);
             sb.AppendLine(");");
         }
+    }
+
+    private static void AppendGenericParameters(StringBuilder sb, IReadOnlyList<string> genericParameters)
+    {
+        if (genericParameters.Count == 0)
+            return;
+
+        sb.Append('<');
+        for (int i = 0; i < genericParameters.Count; i++)
+        {
+            if (i > 0) sb.Append(", ");
+            sb.Append(genericParameters[i]);
+        }
+
+        sb.Append('>');
     }
 
     private static void AppendParameters(StringBuilder sb, IReadOnlyList<ParameterPlan> parameters)
@@ -133,6 +161,11 @@ internal static class SourceEmitter
         for (int i = 0; i < parameters.Count; i++)
         {
             if (i > 0) sb.Append(", ");
+            if (parameters[i].Modifier.Length > 0)
+            {
+                sb.Append(parameters[i].Modifier).Append(' ');
+            }
+
             sb.Append(parameters[i].Type).Append(' ').Append(parameters[i].Name);
         }
     }
@@ -142,6 +175,14 @@ internal static class SourceEmitter
         for (int i = 0; i < parameters.Count; i++)
         {
             if (i > 0) sb.Append(", ");
+
+            // ref/out must be forwarded with the same keyword
+            string mod = parameters[i].Modifier;
+            if (mod == "ref" || mod == "out")
+            {
+                sb.Append(mod).Append(' ');
+            }
+
             sb.Append(parameters[i].Name);
         }
     }

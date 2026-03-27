@@ -107,6 +107,8 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
     public IReadOnlyList<ParameterPlan> Parameters { get; }
     public bool HasGetter { get; }
     public bool HasSetter { get; }
+    public bool IsStatic { get; }
+    public IReadOnlyList<string> GenericParameters { get; }
 
     public MemberPlan(
         string name,
@@ -114,7 +116,9 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         string returnType,
         IReadOnlyList<ParameterPlan> parameters,
         bool hasGetter,
-        bool hasSetter)
+        bool hasSetter,
+        bool isStatic = false,
+        IReadOnlyList<string>? genericParameters = null)
     {
         Name = name;
         Kind = kind;
@@ -122,6 +126,8 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         Parameters = parameters;
         HasGetter = hasGetter;
         HasSetter = hasSetter;
+        IsStatic = isStatic;
+        GenericParameters = genericParameters ?? Array.Empty<string>();
     }
 
     public bool Equals(MemberPlan? other)
@@ -130,11 +136,18 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         if (ReferenceEquals(this, other)) return true;
         if (Name != other.Name || Kind != other.Kind || ReturnType != other.ReturnType) return false;
         if (HasGetter != other.HasGetter || HasSetter != other.HasSetter) return false;
+        if (IsStatic != other.IsStatic) return false;
         if (Parameters.Count != other.Parameters.Count) return false;
+        if (GenericParameters.Count != other.GenericParameters.Count) return false;
 
         for (int i = 0; i < Parameters.Count; i++)
         {
             if (!Parameters[i].Equals(other.Parameters[i])) return false;
+        }
+
+        for (int i = 0; i < GenericParameters.Count; i++)
+        {
+            if (GenericParameters[i] != other.GenericParameters[i]) return false;
         }
 
         return true;
@@ -147,6 +160,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         int hash = Name.GetHashCode();
         hash = (hash * 397) ^ Kind.GetHashCode();
         hash = (hash * 397) ^ ReturnType.GetHashCode();
+        hash = (hash * 397) ^ IsStatic.GetHashCode();
         return hash;
     }
 }
@@ -159,23 +173,31 @@ internal sealed class ParameterPlan : IEquatable<ParameterPlan>
     public string Name { get; }
     public string Type { get; }
 
-    public ParameterPlan(string name, string type)
+    /// <summary>
+    /// Parameter modifier: "", "ref", "out", "in", or "params".
+    /// </summary>
+    public string Modifier { get; }
+
+    public ParameterPlan(string name, string type, string modifier = "")
     {
         Name = name;
         Type = type;
+        Modifier = modifier;
     }
 
     public bool Equals(ParameterPlan? other)
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Type == other.Type;
+        return Name == other.Name && Type == other.Type && Modifier == other.Modifier;
     }
 
     public override bool Equals(object? obj) => Equals(obj as ParameterPlan);
 
     public override int GetHashCode()
     {
-        return (Name.GetHashCode() * 397) ^ Type.GetHashCode();
+        int hash = (Name.GetHashCode() * 397) ^ Type.GetHashCode();
+        hash = (hash * 397) ^ Modifier.GetHashCode();
+        return hash;
     }
 }
