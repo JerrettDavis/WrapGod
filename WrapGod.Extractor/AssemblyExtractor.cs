@@ -11,6 +11,39 @@ namespace WrapGod.Extractor;
 public static class AssemblyExtractor
 {
     /// <summary>
+    /// Extracts an <see cref="ApiManifest"/> from the assembly at <paramref name="assemblyPath"/>,
+    /// optionally using an <see cref="ExtractorCache"/> to skip re-extraction when the assembly
+    /// has not changed.
+    /// </summary>
+    /// <param name="assemblyPath">Absolute path to the .NET assembly DLL.</param>
+    /// <param name="useCache">When <c>true</c>, checks cache before extracting and stores the result.</param>
+    /// <param name="cache">Cache instance. If null and <paramref name="useCache"/> is true, a default cache is created.</param>
+    /// <returns>A fully-populated, deterministically-sorted manifest.</returns>
+    /// <exception cref="FileNotFoundException">Thrown when the assembly file does not exist.</exception>
+    public static ApiManifest Extract(string assemblyPath, bool useCache, ExtractorCache? cache = null)
+    {
+        if (!File.Exists(assemblyPath))
+        {
+            throw new FileNotFoundException("Assembly file not found.", assemblyPath);
+        }
+
+        if (useCache)
+        {
+            cache ??= new ExtractorCache();
+
+            var cached = cache.TryGetCached(assemblyPath);
+            if (cached is not null)
+                return cached;
+
+            var manifest = Extract(assemblyPath);
+            cache.Store(assemblyPath, manifest);
+            return manifest;
+        }
+
+        return Extract(assemblyPath);
+    }
+
+    /// <summary>
     /// Extracts an <see cref="ApiManifest"/> from the assembly at <paramref name="assemblyPath"/>.
     /// </summary>
     /// <param name="assemblyPath">Absolute path to the .NET assembly DLL.</param>
