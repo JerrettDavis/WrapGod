@@ -50,7 +50,7 @@ public sealed class GeneratorCoverageTests(ITestOutputHelper output) : TinyBddXu
         return driver.GetRunResult();
     }
 
-    private static IReadOnlyList<string> AllGeneratedHintNames(GeneratorDriverRunResult result)
+    private static List<string> AllGeneratedHintNames(GeneratorDriverRunResult result)
         => result.Results.SelectMany(r => r.GeneratedSources).Select(s => s.HintName).ToList();
 
     private static string GetSource(GeneratorDriverRunResult result, string hintName)
@@ -142,71 +142,6 @@ public sealed class GeneratorCoverageTests(ITestOutputHelper output) : TinyBddXu
                   "isStatic": true,
                   "hasGetter": false,
                   "hasSetter": false
-                }
-              ]
-            }
-          ]
-        }
-        """;
-
-    private static readonly string ManifestAdaptiveVersion = """
-        {
-          "schemaVersion": "1.0",
-          "assembly": { "name": "Acme.Lib", "version": "1.0.0" },
-          "types": [
-            {
-              "fullName": "Acme.Lib.Service",
-              "name": "Service",
-              "namespace": "Acme.Lib",
-              "kind": "class",
-              "members": [
-                {
-                  "name": "DoWork",
-                  "kind": "method",
-                  "returnType": "string",
-                  "parameters": [{ "name": "input", "type": "string" }],
-                  "genericParameters": [],
-                  "isStatic": false,
-                  "hasGetter": false,
-                  "hasSetter": false,
-                  "introducedIn": "2.0",
-                  "removedIn": null
-                },
-                {
-                  "name": "DoVoidWork",
-                  "kind": "method",
-                  "returnType": "void",
-                  "parameters": [],
-                  "genericParameters": [],
-                  "isStatic": false,
-                  "hasGetter": false,
-                  "hasSetter": false,
-                  "introducedIn": "2.0",
-                  "removedIn": "4.0"
-                },
-                {
-                  "name": "Enabled",
-                  "kind": "property",
-                  "returnType": "bool",
-                  "parameters": [],
-                  "genericParameters": [],
-                  "isStatic": false,
-                  "hasGetter": true,
-                  "hasSetter": true,
-                  "introducedIn": "3.0",
-                  "removedIn": null
-                },
-                {
-                  "name": "ReadOnlyFlag",
-                  "kind": "property",
-                  "returnType": "bool",
-                  "parameters": [],
-                  "genericParameters": [],
-                  "isStatic": false,
-                  "hasGetter": true,
-                  "hasSetter": false,
-                  "introducedIn": "3.0",
-                  "removedIn": "5.0"
                 }
               ]
             }
@@ -354,9 +289,9 @@ public sealed class GeneratorCoverageTests(ITestOutputHelper output) : TinyBddXu
             .And("a facade is emitted", result =>
                 AllGeneratedHintNames(result).Contains("MarkerFacade.g.cs"))
             .And("the interface body has no method signatures", result =>
-                !GetSource(result, "IWrappedMarker.g.cs").Contains("(", StringComparison.Ordinal)
-                || GetSource(result, "IWrappedMarker.g.cs").Split('\n')
-                    .Count(l => l.TrimStart().StartsWith("    ") && l.Contains("(")) == 0)
+                !GetSource(result, "IWrappedMarker.g.cs").Contains('(')
+                || !GetSource(result, "IWrappedMarker.g.cs").Split('\n')
+                    .Any(l => l.TrimStart().StartsWith("    ", StringComparison.Ordinal) && l.Contains('(')))
             .AssertPassed();
 
     // ── Scenario: Property-only type ─────────────────────────────────
