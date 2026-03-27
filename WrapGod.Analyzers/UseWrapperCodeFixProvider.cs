@@ -21,8 +21,10 @@ namespace WrapGod.Analyzers;
 ///   WG2001 — replaces direct type references with the wrapper interface
 ///   WG2002 — replaces direct method calls with facade calls
 ///
-/// Reads the same <c>*.wrapgod-types.txt</c> additional files used by
-/// <see cref="DirectUsageAnalyzer"/> to determine the deterministic mapping.
+/// Mapping information is embedded in the diagnostic message arguments produced
+/// by <see cref="DirectUsageAnalyzer"/>, which derives mappings from
+/// <c>*.wrapgod.json</c> manifests + <c>*.wrapgod.config.json</c> config files
+/// (with <c>*.wrapgod-types.txt</c> as a legacy fallback).
 /// Supports FixAll via the built-in <see cref="WellKnownFixAllProviders.BatchFixer"/>.
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(UseWrapperCodeFixProvider))]
