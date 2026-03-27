@@ -1,0 +1,88 @@
+{
+  "$schema": "../../schemas/wrapgod.manifest.v1.schema.json",
+  "name": "FluentAssertions",
+  "version": "8.3.0",
+  "description": "Manifest defining the FluentAssertions public API surface targeted for migration to Shouldly.",
+  "types": [
+    {
+      "name": "FluentAssertions.AssertionExtensions",
+      "namespace": "FluentAssertions",
+      "kind": "Static",
+      "members": [
+        {
+          "name": "Should",
+          "kind": "Method",
+          "returnType": "ObjectAssertions",
+          "parameters": [
+            { "name": "actualValue", "type": "object" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FluentAssertions.Primitives.ObjectAssertions",
+      "namespace": "FluentAssertions.Primitives",
+      "kind": "Class",
+      "members": [
+        { "name": "Be", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "expected", "type": "object" }] },
+        { "name": "BeNull", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "NotBeNull", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "BeOfType", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "BeAssignableTo", "kind": "Method", "returnType": "AndConstraint", "parameters": [] }
+      ]
+    },
+    {
+      "name": "FluentAssertions.Primitives.BooleanAssertions",
+      "namespace": "FluentAssertions.Primitives",
+      "kind": "Class",
+      "members": [
+        { "name": "BeTrue", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "BeFalse", "kind": "Method", "returnType": "AndConstraint", "parameters": [] }
+      ]
+    },
+    {
+      "name": "FluentAssertions.Primitives.StringAssertions",
+      "namespace": "FluentAssertions.Primitives",
+      "kind": "Class",
+      "members": [
+        { "name": "Contain", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "expected", "type": "string" }] },
+        { "name": "StartWith", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "expected", "type": "string" }] },
+        { "name": "EndWith", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "expected", "type": "string" }] },
+        { "name": "BeEmpty", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "NotBeNullOrEmpty", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "MatchRegex", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "pattern", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "FluentAssertions.Numeric.NumericAssertions",
+      "namespace": "FluentAssertions.Numeric",
+      "kind": "Class",
+      "members": [
+        { "name": "Be", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "expected", "type": "object" }] },
+        { "name": "BeGreaterThan", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "expected", "type": "object" }] },
+        { "name": "BeNegative", "kind": "Method", "returnType": "AndConstraint", "parameters": [] }
+      ]
+    },
+    {
+      "name": "FluentAssertions.Collections.GenericCollectionAssertions",
+      "namespace": "FluentAssertions.Collections",
+      "kind": "Class",
+      "members": [
+        { "name": "Contain", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "expected", "type": "T" }] },
+        { "name": "HaveCount", "kind": "Method", "returnType": "AndConstraint", "parameters": [{ "name": "expected", "type": "int" }] },
+        { "name": "BeEmpty", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "NotContainNulls", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "BeInAscendingOrder", "kind": "Method", "returnType": "AndConstraint", "parameters": [] },
+        { "name": "ContainSingle", "kind": "Method", "returnType": "AndConstraint", "parameters": [] }
+      ]
+    },
+    {
+      "name": "FluentAssertions.Specialized.ActionAssertions",
+      "namespace": "FluentAssertions.Specialized",
+      "kind": "Class",
+      "members": [
+        { "name": "Throw", "kind": "Method", "returnType": "ExceptionAssertions", "parameters": [] }
+      ]
+    }
+  ]
+}
