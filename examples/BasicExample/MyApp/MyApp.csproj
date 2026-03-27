@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>MyApp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VendorLib\VendorLib.csproj" />
+    <ProjectReference Include="..\..\..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
+    <ProjectReference Include="..\..\..\WrapGod.Fluent\WrapGod.Fluent.csproj" />
+    <ProjectReference Include="..\..\..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
+    <ProjectReference Include="..\..\..\WrapGod.TypeMap\WrapGod.TypeMap.csproj" />
+  </ItemGroup>
+
+</Project>

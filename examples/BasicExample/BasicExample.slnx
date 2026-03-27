@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="VendorLib/VendorLib.csproj" />
+  <Project Path="MyApp/MyApp.csproj" />
+</Solution>

@@ -1,0 +1,31 @@
+{
+  "types": [
+    {
+      "sourceType": "VendorLib.HttpClient",
+      "include": true,
+      "targetName": "IHttpClient",
+      "members": [
+        { "sourceMember": "Get", "include": true, "targetName": "SendGet" },
+        { "sourceMember": "Post", "include": true, "targetName": "SendPost" },
+        { "sourceMember": "Timeout", "include": true },
+        { "sourceMember": "Dispose", "include": false }
+      ]
+    },
+    {
+      "sourceType": "VendorLib.Logger",
+      "include": true,
+      "targetName": "ILogger",
+      "members": [
+        { "sourceMember": "Info", "include": true },
+        { "sourceMember": "Warn", "include": true },
+        { "sourceMember": "Error", "include": true }
+      ]
+    },
+    {
+      "sourceType": "VendorLib.LogLevel",
+      "include": true,
+      "targetName": "AppLogLevel",
+      "members": []
+    }
+  ]
+}
