@@ -1,0 +1,85 @@
+# Auto-labeling configuration for pull requests
+
+'area: abstractions':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Abstractions/**/*'
+
+'area: analyzers':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Analyzers/**/*'
+
+'area: cli':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Cli/**/*'
+
+'area: extractor':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Extractor/**/*'
+
+'area: fluent':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Fluent/**/*'
+
+'area: generator':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Generator/**/*'
+
+'area: manifest':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Manifest/**/*'
+
+'area: runtime':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Runtime/**/*'
+
+'area: typemap':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.TypeMap/**/*'
+
+'area: examples':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'examples/**/*'
+
+'area: documentation':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.md'
+      - 'docs/**/*'
+
+'area: tests':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Tests/**/*'
+
+'area: benchmarks':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'WrapGod.Benchmarks/**/*'
+
+'area: ci/cd':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/**/*'
+
+'area: schemas':
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'schemas/**/*'
+
+'dependencies':
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/packages.lock.json'
+      - '**/*.csproj'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
