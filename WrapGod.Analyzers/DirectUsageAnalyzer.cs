@@ -58,6 +58,7 @@ public sealed class DirectUsageAnalyzer : DiagnosticAnalyzer
             compilationStart.RegisterSyntaxNodeAction(
                 nodeContext => AnalyzeNode(nodeContext, lookup),
                 SyntaxKind.IdentifierName,
+                SyntaxKind.GenericName,
                 SyntaxKind.SimpleMemberAccessExpression);
         });
     }
@@ -73,6 +74,9 @@ public sealed class DirectUsageAnalyzer : DiagnosticAnalyzer
 
         switch (node)
         {
+            case GenericNameSyntax genericName:
+                AnalyzeGenericName(context, genericName, semanticModel, lookup);
+                break;
             case IdentifierNameSyntax identifier:
                 AnalyzeIdentifier(context, identifier, semanticModel, lookup);
                 break;
@@ -111,7 +115,8 @@ public sealed class DirectUsageAnalyzer : DiagnosticAnalyzer
             return;
 
         var fullName = GetFullyQualifiedName(typeSymbol);
-        if (lookup.TryGetValue(fullName, out var mapping))
+        var mapping = FindMapping(fullName, typeSymbol, lookup);
+        if (mapping != null)
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 DiagnosticDescriptors.DirectTypeUsage,
@@ -141,7 +146,8 @@ public sealed class DirectUsageAnalyzer : DiagnosticAnalyzer
             return;
 
         var fullName = GetFullyQualifiedName(containingType);
-        if (lookup.TryGetValue(fullName, out var mapping))
+        var mapping = FindMapping(fullName, containingType, lookup);
+        if (mapping != null)
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 DiagnosticDescriptors.DirectMethodCall,
@@ -150,6 +156,87 @@ public sealed class DirectUsageAnalyzer : DiagnosticAnalyzer
                 fullName,
                 mapping.FacadeType));
         }
+    }
+
+    /// <summary>
+    /// Analyzes generic name syntax (e.g. <c>Repository&lt;User&gt;</c>) to detect
+    /// usage of wrapped generic types.
+    /// </summary>
+    private static void AnalyzeGenericName(
+        SyntaxNodeAnalysisContext context,
+        GenericNameSyntax genericName,
+        SemanticModel semanticModel,
+        ImmutableDictionary<string, WrappedTypeMapping> lookup)
+    {
+        // Skip if part of a member access (handled by AnalyzeMemberAccess).
+        if (genericName.Parent is MemberAccessExpressionSyntax)
+            return;
+
+        var symbolInfo = semanticModel.GetSymbolInfo(genericName, context.CancellationToken);
+        var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
+        if (symbol is null)
+            return;
+
+        ITypeSymbol? typeSymbol = symbol switch
+        {
+            ITypeSymbol ts => ts,
+            IMethodSymbol ms => ms.ContainingType,
+            _ => null,
+        };
+
+        if (typeSymbol is null)
+            return;
+
+        var fullName = GetFullyQualifiedName(typeSymbol);
+        var mapping = FindMapping(fullName, typeSymbol, lookup);
+        if (mapping != null)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.DirectTypeUsage,
+                genericName.GetLocation(),
+                fullName,
+                mapping.WrapperInterface));
+        }
+    }
+
+    /// <summary>
+    /// Tries to find a mapping for the given type. First attempts an exact match
+    /// by fully-qualified name, then falls back to matching via the open generic
+    /// definition (e.g. <c>Acme.Lib.Repository&lt;User&gt;</c> matches
+    /// <c>Acme.Lib.Repository</c> if <c>Repository</c> is a wrapped type).
+    /// </summary>
+    private static WrappedTypeMapping? FindMapping(
+        string fullName,
+        ITypeSymbol typeSymbol,
+        ImmutableDictionary<string, WrappedTypeMapping> lookup)
+    {
+        // Exact match.
+        if (lookup.TryGetValue(fullName, out var mapping))
+            return mapping;
+
+        // Generic fallback: if the type is a constructed generic, try the
+        // open generic definition name (without type arguments).
+        if (typeSymbol is INamedTypeSymbol namedType && namedType.IsGenericType)
+        {
+            var openGenericName = GetFullyQualifiedName(namedType.ConstructedFrom.OriginalDefinition);
+
+            // The manifest stores generic types without type args (e.g. "Acme.Lib.Repository`1"
+            // in metadata form, but we normalize to display form). Try the base name.
+            if (lookup.TryGetValue(openGenericName, out mapping))
+                return mapping;
+
+            // Also try stripping the generic suffix to match by simple name.
+            // e.g. "Acme.Lib.Repository<T>" -> "Acme.Lib.Repository"
+            var angleBracket = openGenericName.IndexOf('<');
+            if (angleBracket > 0)
+            {
+                var baseName = openGenericName.Substring(0, angleBracket);
+                if (lookup.TryGetValue(baseName, out mapping))
+                    return mapping;
+            }
+        }
+
+        return null;
     }
 
     // ── Manifest + config mapping discovery ──────────────────────────

@@ -89,10 +89,24 @@ public sealed class UseWrapperCodeFixProvider : CodeFixProvider
         string wrapperInterface,
         CancellationToken cancellationToken)
     {
-        var newIdentifier = SyntaxFactory.IdentifierName(wrapperInterface)
-            .WithTriviaFrom(node);
+        SyntaxNode replacement;
 
-        var newRoot = root.ReplaceNode(node, newIdentifier);
+        // If the original node is a generic name (e.g. Repository<User>),
+        // preserve the type arguments on the replacement.
+        if (node is GenericNameSyntax genericName)
+        {
+            replacement = SyntaxFactory.GenericName(
+                    SyntaxFactory.Identifier(wrapperInterface),
+                    genericName.TypeArgumentList)
+                .WithTriviaFrom(node);
+        }
+        else
+        {
+            replacement = SyntaxFactory.IdentifierName(wrapperInterface)
+                .WithTriviaFrom(node);
+        }
+
+        var newRoot = root.ReplaceNode(node, replacement);
         return Task.FromResult(document.WithSyntaxRoot(newRoot));
     }
 
