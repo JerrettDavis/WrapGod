@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.Text.Json;
 using WrapGod.Abstractions.Diagnostics;
 using WrapGod.Manifest;
@@ -29,9 +28,9 @@ internal static class AnalyzeCommand
             warningsAsErrorsOption
         };
 
-        command.SetHandler(async (FileInfo manifestPath, FileInfo? config, bool warningsAsErrors, InvocationContext context) =>
+        command.SetHandler(async (FileInfo manifestPath, FileInfo? config, bool warningsAsErrors) =>
             {
-                context.ExitCode = await HandleAsync(manifestPath, config, warningsAsErrors);
+                Environment.ExitCode = await HandleAsync(manifestPath, config, warningsAsErrors);
             },
             manifestPathArg,
             configOption,
