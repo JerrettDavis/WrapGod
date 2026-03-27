@@ -36,10 +36,10 @@ public class ConfigIngestionTests
     public void AttributeConfigReaderBuildsTypeAndMemberRules()
     {
         var config = AttributeConfigReader.ReadFromAssembly(typeof(AttributedWrapper).Assembly);
-        var type = Assert.Single(config.Types.Where(t => t.SourceType == "Vendor.Client"));
+        var type = Assert.Single(config.Types, t => t.SourceType == "Vendor.Client");
 
         Assert.Equal("IClient", type.TargetName);
-        var member = Assert.Single(type.Members.Where(m => m.SourceMember == "GetUser"));
+        var member = Assert.Single(type.Members, m => m.SourceMember == "GetUser");
         Assert.Equal("FetchUser", member.TargetName);
     }
 
@@ -90,6 +90,6 @@ public class ConfigIngestionTests
     private sealed class AttributedWrapper
     {
         [WrapMember("GetUser", TargetName = "FetchUser")]
-        public string GetUser(string id) => id;
+        public static string GetUser(string id) => id;
     }
 }
