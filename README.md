@@ -24,6 +24,7 @@ WrapGod helps teams:
 - `WrapGod.Runtime` - optional runtime helpers/adapters
 - `WrapGod.Tests` - unit/integration/snapshot tests
 
-## Initial Milestones
+## Engineering
 
-See `docs/PLAN.md` and `docs/WORK-BREAKDOWN.md`.
+- SDK + build conventions: `docs/ENGINEERING.md`
+- Initial milestones: `docs/PLAN.md` and `docs/WORK-BREAKDOWN.md`
