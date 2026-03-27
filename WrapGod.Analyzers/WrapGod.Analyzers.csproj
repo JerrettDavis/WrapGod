@@ -3,12 +3,13 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <!-- Release tracking not needed for alpha; suppress RS2008 -->
-    <NoWarn>$(NoWarn);RS2008</NoWarn>
+    <!-- RS2008: release tracking not needed for alpha
+         RS1038: Workspaces ref needed for CodeFixProvider (MVP; split later) -->
+    <NoWarn>$(NoWarn);RS2008;RS1038</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
