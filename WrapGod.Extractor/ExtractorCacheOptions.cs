@@ -8,6 +8,6 @@ public sealed class ExtractorCacheOptions
     public string? ProjectCacheIndexRoot { get; init; }
     public string? SharedCacheRoot { get; init; }
     public bool PublicOnly { get; init; } = true;
-    public bool IncludeObsoleteDetails { get; init; } = false;
+    public bool IncludeObsoleteDetails { get; init; }
     public IReadOnlyDictionary<string, string?> Custom { get; init; } = new Dictionary<string, string?>();
 }
