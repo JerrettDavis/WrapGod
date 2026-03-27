@@ -1,13 +1,20 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- Release tracking not needed for alpha; suppress RS2008 -->
+    <NoWarn>$(NoWarn);RS2008</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" PrivateAssets="all" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
     <ProjectReference Include="..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
     <ProjectReference Include="..\WrapGod.TypeMap\WrapGod.TypeMap.csproj" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-  </PropertyGroup>
 
 </Project>
