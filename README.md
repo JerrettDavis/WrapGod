@@ -1,30 +1,59 @@
 # WrapGod
 
-WrapGod is a .NET platform for generating wrapper interfaces, facades, adapters, and migration tooling over third-party APIs.
+WrapGod is a .NET platform for generating wrapper interfaces, facades, adapters, and migration tooling over third-party APIs. It gives teams a systematic way to decouple application code from vendor libraries so that upgrades, swaps, and multi-version support become manageable.
 
-## Vision
+## Features
 
-WrapGod helps teams:
+- **Manifest extraction** -- interrogate any .NET assembly and produce a complete JSON manifest of its public API surface (types, members, generics, parameters).
+- **Multi-version support** -- extract and merge manifests from multiple assembly versions with automatic diffing, breaking-change detection, and version presence metadata.
+- **Three configuration surfaces** -- define wrapper rules via JSON config files, C# attributes (`[WrapType]`, `[WrapMember]`), or a fluent DSL, with configurable merge precedence when combining sources.
+- **Incremental source generation** -- a Roslyn incremental generator reads `*.wrapgod.json` manifests and emits `IWrapped{Type}` interfaces and `{Type}Facade` delegating classes at build time.
+- **Compatibility modes** -- control the generated surface with LCD (lowest common denominator), Targeted (single version), or Adaptive (runtime version guards) modes.
+- **Roslyn analyzers and code fixes** -- detect direct usage of wrapped third-party types (`WG2001`) and methods (`WG2002`), then auto-migrate call sites with one-click or Fix All support.
+- **Type mapping** -- plan source-to-destination type transformations for generated wrapper signatures.
 
-- extract full API manifests from external assemblies (including multiple versions)
-- define mapping rules via attributes, fluent config, and JSON
-- source-generate wrappers/facades/proxies onto internal contracts
-- auto-migrate direct third-party usages via Roslyn analyzers + code fixes
-- map third-party types to internal types with generated mappers
+## Quick start
 
-## Solution Structure
+```bash
+# Install packages
+dotnet add package WrapGod.Extractor
+dotnet add package WrapGod.Generator
 
-- `WrapGod.Abstractions` - public attributes and contracts
-- `WrapGod.Manifest` - manifest schema + version/diff models
-- `WrapGod.Extractor` - assembly interrogation + manifest generation
-- `WrapGod.Generator` - incremental source generator for wrappers/facades
-- `WrapGod.TypeMap` - type mapping contracts and mapping planner
-- `WrapGod.Analyzers` - diagnostics and code fixes for migrations
-- `WrapGod.Fluent` - fluent configuration DSL
-- `WrapGod.Runtime` - optional runtime helpers/adapters
-- `WrapGod.Tests` - unit/integration/snapshot tests
+# Extract a manifest
+# (see docs/QUICKSTART.md for the full C# walkthrough)
+```
+
+See the [Quick Start Guide](docs/QUICKSTART.md) for a complete walkthrough
+covering extraction, configuration, generation, and migration.
+
+## Solution structure
+
+| Project | Description |
+|---------|-------------|
+| `WrapGod.Abstractions` | Public attributes (`[WrapType]`, `[WrapMember]`) and config contracts |
+| `WrapGod.Manifest` | Manifest schema, serialization, JSON config loader, attribute reader, merge engine |
+| `WrapGod.Extractor` | Assembly interrogation, single- and multi-version manifest extraction |
+| `WrapGod.Generator` | Roslyn incremental source generator for wrapper interfaces and facades |
+| `WrapGod.TypeMap` | Type mapping contracts and mapping planner |
+| `WrapGod.Analyzers` | Roslyn diagnostics (WG2001, WG2002) and automatic code fixes |
+| `WrapGod.Fluent` | Fluent configuration DSL |
+| `WrapGod.Runtime` | Optional runtime helpers and adapters |
+| `WrapGod.Tests` | Unit, integration, and snapshot tests |
+
+## Documentation
+
+- [Quick Start Guide](docs/QUICKSTART.md) -- end-to-end onboarding walkthrough
+- [Manifest Format Reference](docs/MANIFEST.md) -- schema, type/member nodes, version metadata
+- [Configuration Guide](docs/CONFIGURATION.md) -- JSON, attributes, fluent DSL, merge precedence
+- [Compatibility Modes](docs/COMPATIBILITY.md) -- LCD, Targeted, and Adaptive modes
+- [Analyzer Diagnostics Reference](docs/ANALYZERS.md) -- WG2001, WG2002, code fixes, suppression
 
 ## Engineering
 
-- SDK + build conventions: `docs/ENGINEERING.md`
-- Initial milestones: `docs/PLAN.md` and `docs/WORK-BREAKDOWN.md`
+- SDK and build conventions: [`docs/ENGINEERING.md`](docs/ENGINEERING.md)
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Initial milestones: [`docs/PLAN.md`](docs/PLAN.md) and [`docs/WORK-BREAKDOWN.md`](docs/WORK-BREAKDOWN.md)
+
+## License
+
+MIT
