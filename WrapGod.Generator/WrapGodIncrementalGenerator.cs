@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using Microsoft.CodeAnalysis;
@@ -18,9 +19,18 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Step 1: Filter AdditionalFiles to *.wrapgod.json manifests
+        // Step 1a: Filter AdditionalFiles to *.wrapgod.json manifests
+        //          (but NOT *.wrapgod.config.json -- those are config files)
         var manifestTexts = context.AdditionalTextsProvider
-            .Where(static file => file.Path.EndsWith(".wrapgod.json", StringComparison.OrdinalIgnoreCase))
+            .Where(static file =>
+                file.Path.EndsWith(".wrapgod.json", StringComparison.OrdinalIgnoreCase)
+                && !file.Path.EndsWith(".wrapgod.config.json", StringComparison.OrdinalIgnoreCase))
+            .Select(static (file, ct) => file.GetText(ct)?.ToString() ?? string.Empty)
+            .Where(static text => text.Length > 0);
+
+        // Step 1b: Filter AdditionalFiles to *.wrapgod.config.json config files
+        var configTexts = context.AdditionalTextsProvider
+            .Where(static file => file.Path.EndsWith(".wrapgod.config.json", StringComparison.OrdinalIgnoreCase))
             .Select(static (file, ct) => file.GetText(ct)?.ToString() ?? string.Empty)
             .Where(static text => text.Length > 0);
 
@@ -30,12 +40,22 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
             .Where(static plan => plan is not null)
             .Select(static (plan, _) => plan!);
 
-        // Step 3: Collect all plans and register output
-        var collectedPlans = plans.Collect();
+        // Step 3: Parse config files into ConfigPlan models
+        var configs = configTexts
+            .Select(static (text, _) => ParseConfig(text))
+            .Where(static config => config is not null)
+            .Select(static (config, _) => config!);
 
-        context.RegisterSourceOutput(collectedPlans, static (spc, plans) =>
+        // Step 4: Collect plans + configs and apply config rules before emission
+        var collectedPlans = plans.Collect();
+        var collectedConfigs = configs.Collect();
+
+        var combined = collectedPlans.Combine(collectedConfigs);
+
+        context.RegisterSourceOutput(combined, static (spc, pair) =>
         {
-            EmitSources(spc, plans);
+            var filteredPlans = ApplyConfig(pair.Left, pair.Right);
+            EmitSources(spc, filteredPlans);
         });
     }
 
@@ -79,6 +99,182 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Parses a <c>*.wrapgod.config.json</c> file into a lightweight <see cref="ConfigPlan"/>.
+    /// Returns null if the JSON is invalid.
+    /// </summary>
+    internal static ConfigPlan? ParseConfig(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var types = new List<ConfigTypePlan>();
+
+            if (root.TryGetProperty("types", out var typesEl) && typesEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var typeEl in typesEl.EnumerateArray())
+                {
+                    string sourceType = GetStringProperty(typeEl, "sourceType");
+                    if (string.IsNullOrEmpty(sourceType))
+                        continue;
+
+                    bool include = true;
+                    if (typeEl.TryGetProperty("include", out var inclEl) &&
+                        (inclEl.ValueKind == JsonValueKind.True || inclEl.ValueKind == JsonValueKind.False))
+                    {
+                        include = inclEl.GetBoolean();
+                    }
+
+                    string? targetName = null;
+                    if (typeEl.TryGetProperty("targetName", out var tnEl) && tnEl.ValueKind == JsonValueKind.String)
+                    {
+                        targetName = tnEl.GetString();
+                    }
+
+                    var members = new List<ConfigMemberPlan>();
+                    if (typeEl.TryGetProperty("members", out var membersEl) && membersEl.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var memberEl in membersEl.EnumerateArray())
+                        {
+                            string sourceMember = GetStringProperty(memberEl, "sourceMember");
+                            if (string.IsNullOrEmpty(sourceMember))
+                                continue;
+
+                            bool memberInclude = true;
+                            if (memberEl.TryGetProperty("include", out var mInclEl) &&
+                                (mInclEl.ValueKind == JsonValueKind.True || mInclEl.ValueKind == JsonValueKind.False))
+                            {
+                                memberInclude = mInclEl.GetBoolean();
+                            }
+
+                            string? memberTargetName = null;
+                            if (memberEl.TryGetProperty("targetName", out var mTnEl) && mTnEl.ValueKind == JsonValueKind.String)
+                            {
+                                memberTargetName = mTnEl.GetString();
+                            }
+
+                            members.Add(new ConfigMemberPlan(sourceMember, memberInclude, memberTargetName));
+                        }
+                    }
+
+                    types.Add(new ConfigTypePlan(sourceType, include, targetName, members));
+                }
+            }
+
+            return new ConfigPlan(types);
+        }
+#pragma warning disable CA1031 // Do not catch general exception types -- generator must not crash
+        catch
+#pragma warning restore CA1031
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Applies all config rules from every loaded config file to the generation plans.
+    /// Types excluded by config are removed; surviving types/members get their target names applied.
+    /// </summary>
+    internal static ImmutableArray<GenerationPlan> ApplyConfig(
+        ImmutableArray<GenerationPlan> plans,
+        ImmutableArray<ConfigPlan> configs)
+    {
+        if (configs.Length == 0)
+            return plans;
+
+        // Merge all config files into a single lookup by source type (full name).
+        // Later config files override earlier ones for the same key.
+        var typeRules = new Dictionary<string, ConfigTypePlan>(StringComparer.Ordinal);
+        foreach (var config in configs)
+        {
+            foreach (var typeRule in config.Types)
+            {
+                typeRules[typeRule.SourceType] = typeRule;
+            }
+        }
+
+        var result = ImmutableArray.CreateBuilder<GenerationPlan>(plans.Length);
+
+        foreach (var plan in plans)
+        {
+            var filteredTypes = new List<TypePlan>();
+
+            foreach (var type in plan.Types)
+            {
+                if (typeRules.TryGetValue(type.FullName, out var rule))
+                {
+                    // Type excluded
+                    if (!rule.Include)
+                        continue;
+
+                    // Build member lookup
+                    var memberRules = new Dictionary<string, ConfigMemberPlan>(StringComparer.Ordinal);
+                    foreach (var mr in rule.Members)
+                    {
+                        memberRules[mr.SourceMember] = mr;
+                    }
+
+                    // Filter and rename members
+                    var filteredMembers = new List<MemberPlan>();
+                    foreach (var member in type.Members)
+                    {
+                        if (memberRules.TryGetValue(member.Name, out var memberRule))
+                        {
+                            if (!memberRule.Include)
+                                continue;
+
+                            // Apply member rename
+                            if (!string.IsNullOrEmpty(memberRule.TargetName))
+                            {
+                                filteredMembers.Add(new MemberPlan(
+                                    member.Name,
+                                    member.Kind,
+                                    member.ReturnType,
+                                    member.Parameters,
+                                    member.HasGetter,
+                                    member.HasSetter,
+                                    member.IsStatic,
+                                    member.GenericParameters,
+                                    targetName: memberRule.TargetName,
+                                    introducedIn: member.IntroducedIn,
+                                    removedIn: member.RemovedIn));
+                            }
+                            else
+                            {
+                                filteredMembers.Add(member);
+                            }
+                        }
+                        else
+                        {
+                            filteredMembers.Add(member);
+                        }
+                    }
+
+                    // Apply type rename
+                    filteredTypes.Add(new TypePlan(
+                        type.FullName,
+                        type.Name,
+                        type.Namespace,
+                        filteredMembers,
+                        targetName: !string.IsNullOrEmpty(rule.TargetName) ? rule.TargetName : type.TargetName,
+                        introducedIn: type.IntroducedIn,
+                        removedIn: type.RemovedIn));
+                }
+                else
+                {
+                    // No config rule for this type -- include as-is
+                    filteredTypes.Add(type);
+                }
+            }
+
+            result.Add(new GenerationPlan(plan.AssemblyName, filteredTypes));
+        }
+
+        return result.ToImmutable();
     }
 
     private static TypePlan? ParseTypePlan(JsonElement typeEl)
@@ -183,12 +379,12 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
             {
                 string interfaceSource = SourceEmitter.EmitInterface(type);
                 spc.AddSource(
-                    "IWrapped" + type.Name + ".g.cs",
+                    "IWrapped" + type.EffectiveName + ".g.cs",
                     SourceText.From(interfaceSource, Encoding.UTF8));
 
                 string facadeSource = SourceEmitter.EmitFacade(type);
                 spc.AddSource(
-                    type.Name + "Facade.g.cs",
+                    type.EffectiveName + "Facade.g.cs",
                     SourceText.From(facadeSource, Encoding.UTF8));
             }
         }
