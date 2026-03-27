@@ -7,9 +7,9 @@ using Xunit.Abstractions;
 namespace WrapGod.Tests;
 
 [Feature("Configuration ingestion")]
-public partial class ConfigIngestionTests : TinyBddXunitBase
+public sealed class ConfigIngestionTests(ITestOutputHelper output) : TinyBddXunitBase(output)
 {
-    public ConfigIngestionTests(ITestOutputHelper output) : base(output) { }
+    // ── Helpers ──────────────────────────────────────────────────────
 
     private static readonly string SampleJson = """
         {
@@ -59,66 +59,51 @@ public partial class ConfigIngestionTests : TinyBddXunitBase
         });
     }
 
-    [Scenario("JSON config loader parses type and member rules")]
-    [Fact]
-    public async Task JsonConfigLoaderParsesTypeAndMemberRules()
-    {
-        await Flow.Given("a JSON config string", LoadSampleJson)
-            .Then("one type rule is parsed", config => Assert.Single(config.Types))
-            .And("the source type is correct", config =>
-                Assert.Equal("Vendor.Client", config.Types[0].SourceType))
-            .And("one member rule is parsed with correct source", config =>
-            {
-                Assert.Single(config.Types[0].Members);
-                Assert.Equal("GetUser", config.Types[0].Members[0].SourceMember);
-            })
-            .AssertPassed();
-    }
-
-    [Scenario("Attribute config reader builds type and member rules")]
-    [Fact]
-    public async Task AttributeConfigReaderBuildsTypeAndMemberRules()
-    {
-        await Flow.Given("an assembly with WrapType and WrapMember attributes", ReadAttributeConfig)
-            .Then("the Vendor.Client type rule has target name IClient", config =>
-            {
-                var type = Assert.Single(config.Types, t => t.SourceType == "Vendor.Client");
-                Assert.Equal("IClient", type.TargetName);
-            })
-            .And("the GetUser member rule has target name FetchUser", config =>
-            {
-                var type = Assert.Single(config.Types, t => t.SourceType == "Vendor.Client");
-                var member = Assert.Single(type.Members, m => m.SourceMember == "GetUser");
-                Assert.Equal("FetchUser", member.TargetName);
-            })
-            .AssertPassed();
-    }
-
-    [Scenario("Merge engine uses configured precedence and emits diagnostics on conflict")]
-    [Fact]
-    public async Task MergeEngineUsesConfiguredPrecedenceAndEmitsDiagnosticsOnConflict()
-    {
-        await Flow.Given("conflicting JSON and attribute configs", MergeWithAttributePrecedence)
-            .Then("attribute config wins for type-level settings", mergeResult =>
-            {
-                var type = Assert.Single(mergeResult.Config.Types);
-                Assert.False(type.Include);
-                Assert.Equal("AttrClient", type.TargetName);
-            })
-            .And("attribute config wins for member-level settings", mergeResult =>
-            {
-                var type = Assert.Single(mergeResult.Config.Types);
-                Assert.Equal("AttrGetUser", Assert.Single(type.Members).TargetName);
-            })
-            .And("diagnostics are emitted for the conflict", mergeResult =>
-                Assert.NotEmpty(mergeResult.Diagnostics))
-            .AssertPassed();
-    }
-
     [WrapType("Vendor.Client", TargetName = "IClient")]
     private sealed class AttributedWrapper
     {
         [WrapMember("GetUser", TargetName = "FetchUser")]
         public static string GetUser(string id) => id;
     }
+
+    // ── Scenarios ────────────────────────────────────────────────────
+
+    [Scenario("JSON config loader parses type and member rules")]
+    [Fact]
+    public Task JsonConfigLoaderParsesTypeAndMemberRules()
+        => Given("a JSON config string", LoadSampleJson)
+            .Then("one type rule is parsed", config => config.Types.Count == 1)
+            .And("the source type is correct", config =>
+                config.Types[0].SourceType == "Vendor.Client")
+            .And("one member rule is parsed", config =>
+                config.Types[0].Members.Count == 1)
+            .And("the member source is correct", config =>
+                config.Types[0].Members[0].SourceMember == "GetUser")
+            .AssertPassed();
+
+    [Scenario("Attribute config reader builds type and member rules")]
+    [Fact]
+    public Task AttributeConfigReaderBuildsTypeAndMemberRules()
+        => Given("an assembly with WrapType and WrapMember attributes", ReadAttributeConfig)
+            .Then("the Vendor.Client type rule has target name IClient", config =>
+                config.Types.Single(t => t.SourceType == "Vendor.Client").TargetName == "IClient")
+            .And("the GetUser member rule has target name FetchUser", config =>
+                config.Types.Single(t => t.SourceType == "Vendor.Client")
+                    .Members.Single(m => m.SourceMember == "GetUser").TargetName == "FetchUser")
+            .AssertPassed();
+
+    [Scenario("Merge engine uses configured precedence and emits diagnostics on conflict")]
+    [Fact]
+    public Task MergeEngineUsesConfiguredPrecedenceAndEmitsDiagnosticsOnConflict()
+        => Given("conflicting JSON and attribute configs", MergeWithAttributePrecedence)
+            .Then("attribute config wins for type include", mergeResult =>
+                mergeResult.Config.Types.Count == 1 && mergeResult.Config.Types[0].Include == false)
+            .And("attribute config wins for type target name", mergeResult =>
+                mergeResult.Config.Types[0].TargetName == "AttrClient")
+            .And("attribute config wins for member target name", mergeResult =>
+                mergeResult.Config.Types[0].Members.Count == 1
+                && mergeResult.Config.Types[0].Members[0].TargetName == "AttrGetUser")
+            .And("diagnostics are emitted for the conflict", mergeResult =>
+                mergeResult.Diagnostics.Count > 0)
+            .AssertPassed();
 }

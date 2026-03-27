@@ -6,238 +6,237 @@ using Xunit.Abstractions;
 namespace WrapGod.Tests;
 
 [Feature("Fluent DSL configuration")]
-public partial class FluentDslTests : TinyBddXunitBase
+public sealed class FluentDslTests(ITestOutputHelper output) : TinyBddXunitBase(output)
 {
-    public FluentDslTests(ITestOutputHelper output) : base(output) { }
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    private static GenerationPlan BuildFullPlan() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("Vendor.Lib")
+            .WrapType("Vendor.Lib.HttpClient")
+                .As("IHttpClient")
+                .WrapMethod("SendAsync").As("SendRequestAsync")
+                .WrapProperty("Timeout")
+                .ExcludeMember("Dispose")
+            .WrapType("Vendor.Lib.Logger")
+                .As("ILogger")
+                .WrapAllPublicMembers()
+            .MapType("Vendor.Lib.Config", "MyApp.Config")
+            .ExcludeType("Vendor.Lib.Internal*")
+            .Build();
+
+    private static GenerationPlan BuildSingleWrappedType() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .WrapType("TestLib.Foo")
+                .As("IFoo")
+            .Build();
+
+    private static GenerationPlan BuildRenamedMethod() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .WrapType("TestLib.Svc")
+                .WrapMethod("DoWork").As("Execute")
+            .Build();
+
+    private static GenerationPlan BuildWrappedProperty() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .WrapType("TestLib.Svc")
+                .WrapProperty("Timeout")
+            .Build();
+
+    private static GenerationPlan BuildExcludedMembers() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .WrapType("TestLib.Svc")
+                .ExcludeMember("Dispose")
+                .ExcludeMember("Finalize")
+            .Build();
+
+    private static GenerationPlan BuildWrapAllPublic() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .WrapType("TestLib.Logger")
+                .WrapAllPublicMembers()
+            .Build();
+
+    private static GenerationPlan BuildTwoTypeMappings() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .MapType("TestLib.Config", "MyApp.Config")
+            .MapType("TestLib.Options", "MyApp.Options")
+            .Build();
+
+    private static GenerationPlan BuildTwoExclusionPatterns() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .ExcludeType("TestLib.Internal*")
+            .ExcludeType("TestLib.Debug*")
+            .Build();
+
+    private static GenerationPlan BuildStrictCompatibility() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .WithCompatibilityMode("strict")
+            .Build();
+
+    private static GenerationPlan BuildDefaultCompatibility() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("TestLib")
+            .Build();
+
+    private static GenerationPlan BuildMixedConfig() =>
+        WrapGodConfiguration.Create()
+            .ForAssembly("Vendor.Lib")
+            .WrapType("Vendor.Lib.HttpClient")
+                .As("IHttpClient")
+                .WrapMethod("SendAsync").As("SendRequestAsync")
+                .WrapProperty("Timeout")
+                .ExcludeMember("Dispose")
+            .WrapType("Vendor.Lib.Logger")
+                .As("ILogger")
+                .WrapAllPublicMembers()
+            .Build();
+
+    // ── Scenarios ────────────────────────────────────────────────────
 
     [Scenario("Full fluent configuration produces a valid generation plan")]
     [Fact]
-    public async Task Build_ProducesValidGenerationPlan()
-    {
-        await Flow.Given("a fully configured fluent plan", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("Vendor.Lib")
-                    .WrapType("Vendor.Lib.HttpClient")
-                        .As("IHttpClient")
-                        .WrapMethod("SendAsync").As("SendRequestAsync")
-                        .WrapProperty("Timeout")
-                        .ExcludeMember("Dispose")
-                    .WrapType("Vendor.Lib.Logger")
-                        .As("ILogger")
-                        .WrapAllPublicMembers()
-                    .MapType("Vendor.Lib.Config", "MyApp.Config")
-                    .ExcludeType("Vendor.Lib.Internal*")
-                    .Build())
-            .Then("the plan is not null", plan => Assert.NotNull(plan))
-            .And("the assembly name is correct", plan => Assert.Equal("Vendor.Lib", plan.AssemblyName))
-            .And("there are two type directives", plan => Assert.Equal(2, plan.TypeDirectives.Count))
-            .And("there is one type mapping", plan => Assert.Single(plan.TypeMappings))
-            .And("there is one exclusion pattern", plan => Assert.Single(plan.ExclusionPatterns))
+    public Task Build_ProducesValidGenerationPlan()
+        => Given("a fully configured fluent plan", BuildFullPlan)
+            .Then("the plan is not null", plan => plan is not null)
+            .And("the assembly name is correct", plan => plan.AssemblyName == "Vendor.Lib")
+            .And("there are two type directives", plan => plan.TypeDirectives.Count == 2)
+            .And("there is one type mapping", plan => plan.TypeMappings.Count == 1)
+            .And("there is one exclusion pattern", plan => plan.ExclusionPatterns.Count == 1)
             .AssertPassed();
-    }
 
     [Scenario("Type directives record source and target names")]
     [Fact]
-    public async Task TypeDirectives_RecordSourceAndTargetNames()
-    {
-        await Flow.Given("a plan with a single wrapped type", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .WrapType("TestLib.Foo")
-                        .As("IFoo")
-                    .Build())
-            .Then("the directive records the source type", plan =>
-            {
-                var directive = Assert.Single(plan.TypeDirectives);
-                Assert.Equal("TestLib.Foo", directive.SourceType);
-                Assert.Equal("IFoo", directive.TargetName);
-            })
+    public Task TypeDirectives_RecordSourceAndTargetNames()
+        => Given("a plan with a single wrapped type", BuildSingleWrappedType)
+            .Then("there is exactly one directive", plan => plan.TypeDirectives.Count == 1)
+            .And("the directive records the source type", plan =>
+                plan.TypeDirectives[0].SourceType == "TestLib.Foo")
+            .And("the directive records the target name", plan =>
+                plan.TypeDirectives[0].TargetName == "IFoo")
             .AssertPassed();
-    }
 
     [Scenario("Method wrapping records rename")]
     [Fact]
-    public async Task MethodWrapping_RecordedWithRename()
-    {
-        await Flow.Given("a plan with a renamed method", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .WrapType("TestLib.Svc")
-                        .WrapMethod("DoWork").As("Execute")
-                    .Build())
-            .Then("the member directive records source, target, and kind", plan =>
-            {
-                var directive = Assert.Single(plan.TypeDirectives);
-                var member = Assert.Single(directive.MemberDirectives);
-                Assert.Equal("DoWork", member.SourceName);
-                Assert.Equal("Execute", member.TargetName);
-                Assert.Equal(MemberDirectiveKind.Method, member.Kind);
-            })
+    public Task MethodWrapping_RecordedWithRename()
+        => Given("a plan with a renamed method", BuildRenamedMethod)
+            .Then("there is exactly one type directive", plan => plan.TypeDirectives.Count == 1)
+            .And("there is exactly one member directive", plan =>
+                plan.TypeDirectives[0].MemberDirectives.Count == 1)
+            .And("the member source name is correct", plan =>
+                plan.TypeDirectives[0].MemberDirectives[0].SourceName == "DoWork")
+            .And("the member target name is correct", plan =>
+                plan.TypeDirectives[0].MemberDirectives[0].TargetName == "Execute")
+            .And("the member kind is Method", plan =>
+                plan.TypeDirectives[0].MemberDirectives[0].Kind == MemberDirectiveKind.Method)
             .AssertPassed();
-    }
 
     [Scenario("Property wrapping is recorded")]
     [Fact]
-    public async Task PropertyWrapping_Recorded()
-    {
-        await Flow.Given("a plan with a wrapped property", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .WrapType("TestLib.Svc")
-                        .WrapProperty("Timeout")
-                    .Build())
-            .Then("the member directive records source name and property kind", plan =>
-            {
-                var directive = Assert.Single(plan.TypeDirectives);
-                var member = Assert.Single(directive.MemberDirectives);
-                Assert.Equal("Timeout", member.SourceName);
-                Assert.Null(member.TargetName);
-                Assert.Equal(MemberDirectiveKind.Property, member.Kind);
-            })
+    public Task PropertyWrapping_Recorded()
+        => Given("a plan with a wrapped property", BuildWrappedProperty)
+            .Then("there is exactly one member directive", plan =>
+                plan.TypeDirectives.Count == 1 && plan.TypeDirectives[0].MemberDirectives.Count == 1)
+            .And("the member source name is Timeout", plan =>
+                plan.TypeDirectives[0].MemberDirectives[0].SourceName == "Timeout")
+            .And("the member target name is null", plan =>
+                plan.TypeDirectives[0].MemberDirectives[0].TargetName is null)
+            .And("the member kind is Property", plan =>
+                plan.TypeDirectives[0].MemberDirectives[0].Kind == MemberDirectiveKind.Property)
             .AssertPassed();
-    }
 
     [Scenario("Excluded members are recorded")]
     [Fact]
-    public async Task ExcludeMember_Recorded()
-    {
-        await Flow.Given("a plan with excluded members", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .WrapType("TestLib.Svc")
-                        .ExcludeMember("Dispose")
-                        .ExcludeMember("Finalize")
-                    .Build())
+    public Task ExcludeMember_Recorded()
+        => Given("a plan with excluded members", BuildExcludedMembers)
             .Then("two members are excluded", plan =>
-            {
-                var directive = Assert.Single(plan.TypeDirectives);
-                Assert.Equal(2, directive.ExcludedMembers.Count);
-                Assert.Contains("Dispose", directive.ExcludedMembers);
-                Assert.Contains("Finalize", directive.ExcludedMembers);
-            })
+                plan.TypeDirectives.Count == 1 && plan.TypeDirectives[0].ExcludedMembers.Count == 2)
+            .And("Dispose is in the exclusion list", plan =>
+                plan.TypeDirectives[0].ExcludedMembers.Contains("Dispose"))
+            .And("Finalize is in the exclusion list", plan =>
+                plan.TypeDirectives[0].ExcludedMembers.Contains("Finalize"))
             .AssertPassed();
-    }
 
     [Scenario("WrapAllPublicMembers flag is set")]
     [Fact]
-    public async Task WrapAllPublicMembers_FlagSet()
-    {
-        await Flow.Given("a plan with WrapAllPublicMembers enabled", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .WrapType("TestLib.Logger")
-                        .WrapAllPublicMembers()
-                    .Build())
+    public Task WrapAllPublicMembers_FlagSet()
+        => Given("a plan with WrapAllPublicMembers enabled", BuildWrapAllPublic)
             .Then("the flag is true on the directive", plan =>
-            {
-                var directive = Assert.Single(plan.TypeDirectives);
-                Assert.True(directive.WrapAllPublicMembers);
-            })
+                plan.TypeDirectives.Count == 1 && plan.TypeDirectives[0].WrapAllPublicMembers)
             .AssertPassed();
-    }
 
     [Scenario("Type mappings are recorded")]
     [Fact]
-    public async Task TypeMappings_Recorded()
-    {
-        await Flow.Given("a plan with two type mappings", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .MapType("TestLib.Config", "MyApp.Config")
-                    .MapType("TestLib.Options", "MyApp.Options")
-                    .Build())
-            .Then("both mappings are recorded with correct source and destination", plan =>
-            {
-                Assert.Equal(2, plan.TypeMappings.Count);
-                Assert.Equal("TestLib.Config", plan.TypeMappings[0].SourceType);
-                Assert.Equal("MyApp.Config", plan.TypeMappings[0].DestinationType);
-                Assert.Equal("TestLib.Options", plan.TypeMappings[1].SourceType);
-                Assert.Equal("MyApp.Options", plan.TypeMappings[1].DestinationType);
-            })
+    public Task TypeMappings_Recorded()
+        => Given("a plan with two type mappings", BuildTwoTypeMappings)
+            .Then("two mappings are recorded", plan => plan.TypeMappings.Count == 2)
+            .And("first mapping source is correct", plan =>
+                plan.TypeMappings[0].SourceType == "TestLib.Config")
+            .And("first mapping destination is correct", plan =>
+                plan.TypeMappings[0].DestinationType == "MyApp.Config")
+            .And("second mapping source is correct", plan =>
+                plan.TypeMappings[1].SourceType == "TestLib.Options")
+            .And("second mapping destination is correct", plan =>
+                plan.TypeMappings[1].DestinationType == "MyApp.Options")
             .AssertPassed();
-    }
 
     [Scenario("Exclusion patterns are recorded")]
     [Fact]
-    public async Task ExclusionPatterns_Recorded()
-    {
-        await Flow.Given("a plan with two exclusion patterns", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .ExcludeType("TestLib.Internal*")
-                    .ExcludeType("TestLib.Debug*")
-                    .Build())
-            .Then("both patterns are recorded", plan =>
-            {
-                Assert.Equal(2, plan.ExclusionPatterns.Count);
-                Assert.Contains("TestLib.Internal*", plan.ExclusionPatterns);
-                Assert.Contains("TestLib.Debug*", plan.ExclusionPatterns);
-            })
+    public Task ExclusionPatterns_Recorded()
+        => Given("a plan with two exclusion patterns", BuildTwoExclusionPatterns)
+            .Then("two patterns are recorded", plan => plan.ExclusionPatterns.Count == 2)
+            .And("Internal pattern is present", plan =>
+                plan.ExclusionPatterns.Contains("TestLib.Internal*"))
+            .And("Debug pattern is present", plan =>
+                plan.ExclusionPatterns.Contains("TestLib.Debug*"))
             .AssertPassed();
-    }
 
     [Scenario("Compatibility mode is recorded")]
     [Fact]
-    public async Task CompatibilityMode_Recorded()
-    {
-        await Flow.Given("a plan with strict compatibility mode", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .WithCompatibilityMode("strict")
-                    .Build())
+    public Task CompatibilityMode_Recorded()
+        => Given("a plan with strict compatibility mode", BuildStrictCompatibility)
             .Then("the compatibility mode is strict", plan =>
-                Assert.Equal("strict", plan.CompatibilityMode))
+                plan.CompatibilityMode == "strict")
             .AssertPassed();
-    }
 
     [Scenario("Compatibility mode is null by default")]
     [Fact]
-    public async Task CompatibilityMode_NullByDefault()
-    {
-        await Flow.Given("a plan with no compatibility mode set", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("TestLib")
-                    .Build())
+    public Task CompatibilityMode_NullByDefault()
+        => Given("a plan with no compatibility mode set", BuildDefaultCompatibility)
             .Then("the compatibility mode is null", plan =>
-                Assert.Null(plan.CompatibilityMode))
+                plan.CompatibilityMode is null)
             .AssertPassed();
-    }
 
     [Scenario("Multiple types with mixed configuration")]
     [Fact]
-    public async Task MultipleTypes_WithMixedConfig()
-    {
-        await Flow.Given("a plan with two types having different configurations", () =>
-                WrapGodConfiguration.Create()
-                    .ForAssembly("Vendor.Lib")
-                    .WrapType("Vendor.Lib.HttpClient")
-                        .As("IHttpClient")
-                        .WrapMethod("SendAsync").As("SendRequestAsync")
-                        .WrapProperty("Timeout")
-                        .ExcludeMember("Dispose")
-                    .WrapType("Vendor.Lib.Logger")
-                        .As("ILogger")
-                        .WrapAllPublicMembers()
-                    .Build())
+    public Task MultipleTypes_WithMixedConfig()
+        => Given("a plan with two types having different configurations", BuildMixedConfig)
             .Then("there are two type directives", plan =>
-                Assert.Equal(2, plan.TypeDirectives.Count))
-            .And("the HTTP client directive is correct", plan =>
-            {
-                var http = plan.TypeDirectives[0];
-                Assert.Equal("Vendor.Lib.HttpClient", http.SourceType);
-                Assert.Equal("IHttpClient", http.TargetName);
-                Assert.Equal(2, http.MemberDirectives.Count);
-                Assert.Single(http.ExcludedMembers);
-                Assert.False(http.WrapAllPublicMembers);
-            })
-            .And("the Logger directive is correct", plan =>
-            {
-                var logger = plan.TypeDirectives[1];
-                Assert.Equal("Vendor.Lib.Logger", logger.SourceType);
-                Assert.Equal("ILogger", logger.TargetName);
-                Assert.True(logger.WrapAllPublicMembers);
-                Assert.Empty(logger.MemberDirectives);
-            })
+                plan.TypeDirectives.Count == 2)
+            .And("HTTP client source type is correct", plan =>
+                plan.TypeDirectives[0].SourceType == "Vendor.Lib.HttpClient")
+            .And("HTTP client target name is correct", plan =>
+                plan.TypeDirectives[0].TargetName == "IHttpClient")
+            .And("HTTP client has two member directives", plan =>
+                plan.TypeDirectives[0].MemberDirectives.Count == 2)
+            .And("HTTP client has one excluded member", plan =>
+                plan.TypeDirectives[0].ExcludedMembers.Count == 1)
+            .And("HTTP client does not wrap all public members", plan =>
+                !plan.TypeDirectives[0].WrapAllPublicMembers)
+            .And("Logger source type is correct", plan =>
+                plan.TypeDirectives[1].SourceType == "Vendor.Lib.Logger")
+            .And("Logger target name is correct", plan =>
+                plan.TypeDirectives[1].TargetName == "ILogger")
+            .And("Logger wraps all public members", plan =>
+                plan.TypeDirectives[1].WrapAllPublicMembers)
+            .And("Logger has no member directives", plan =>
+                plan.TypeDirectives[1].MemberDirectives.Count == 0)
             .AssertPassed();
-    }
 }
