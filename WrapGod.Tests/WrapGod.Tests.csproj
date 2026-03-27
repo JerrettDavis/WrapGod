@@ -15,6 +15,7 @@
     <PackageReference Include="coverlet.collector" Version="8.0.1" />
     <PackageReference Include="JsonSchema.Net" Version="9.1.3" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
     <PackageReference Include="TinyBDD" Version="0.19.9" />
     <PackageReference Include="TinyBDD.Xunit" Version="0.19.9" />
