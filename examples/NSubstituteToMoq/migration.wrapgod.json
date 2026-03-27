@@ -1,0 +1,39 @@
+{
+  "$schema": "../../schemas/wrapgod.manifest.v1.schema.json",
+  "name": "NSubstitute",
+  "version": "5.3.0",
+  "description": "Manifest defining the NSubstitute public API surface targeted for reverse migration to Moq.",
+  "types": [
+    {
+      "name": "NSubstitute.Substitute",
+      "namespace": "NSubstitute",
+      "kind": "Static",
+      "members": [
+        { "name": "For", "kind": "Method", "returnType": "T", "parameters": [] }
+      ]
+    },
+    {
+      "name": "NSubstitute.SubstituteExtensions",
+      "namespace": "NSubstitute",
+      "kind": "Static",
+      "members": [
+        { "name": "Returns", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "value", "type": "T" }] },
+        { "name": "Throws", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "exception", "type": "Exception" }] },
+        { "name": "Received", "kind": "Method", "returnType": "T", "parameters": [] },
+        { "name": "Received", "kind": "Method", "returnType": "T", "parameters": [{ "name": "requiredQuantity", "type": "int" }] },
+        { "name": "DidNotReceive", "kind": "Method", "returnType": "T", "parameters": [] },
+        { "name": "ReceivedWithAnyArgs", "kind": "Method", "returnType": "T", "parameters": [] }
+      ]
+    },
+    {
+      "name": "NSubstitute.Arg",
+      "namespace": "NSubstitute",
+      "kind": "Static",
+      "members": [
+        { "name": "Any", "kind": "Method", "returnType": "T", "parameters": [] },
+        { "name": "Is", "kind": "Method", "returnType": "T", "parameters": [{ "name": "predicate", "type": "Expression<Predicate<T>>" }] },
+        { "name": "Do", "kind": "Method", "returnType": "T", "parameters": [{ "name": "action", "type": "Action<T>" }] }
+      ]
+    }
+  ]
+}

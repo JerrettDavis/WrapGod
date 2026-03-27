@@ -1,0 +1,106 @@
+{
+  "migrationName": "NSubstitute-to-Moq",
+  "sourceLibrary": "NSubstitute",
+  "targetLibrary": "Moq",
+  "sourcePackage": "NSubstitute",
+  "targetPackage": "Moq",
+  "usingReplacements": {
+    "NSubstitute": "Moq"
+  },
+  "notes": "Reverse migration from NSubstitute to Moq. This direction introduces indirection (Mock<T> wrapper, .Object accessor) that does not exist in NSubstitute. Several NSubstitute patterns have no clean Moq equivalent.",
+  "mappings": [
+    {
+      "description": "Substitute creation",
+      "source": "Substitute.For<{T}>()",
+      "target": "new Mock<{T}>()",
+      "safety": "guided",
+      "notes": "Moq returns Mock<T> wrapper, not T directly. All usages of the variable must be updated: pass mock.Object where T is expected, and use mock.Setup/Verify for configuration."
+    },
+    {
+      "description": "Returns setup",
+      "source": "{sub}.{Method}({args}).Returns({value})",
+      "target": "{mock}.Setup(x => x.{Method}({args})).Returns({value})",
+      "safety": "guided",
+      "notes": "Moq requires wrapping in Setup lambda expression. Argument matchers must also be translated."
+    },
+    {
+      "description": "Throws setup",
+      "source": "{sub}.{Method}({args}).Throws({exception})",
+      "target": "{mock}.Setup(x => x.{Method}({args})).Throws({exception})",
+      "safety": "guided"
+    },
+    {
+      "description": "Received with count",
+      "source": "{sub}.Received({n}).{Method}({args})",
+      "target": "{mock}.Verify(x => x.{Method}({args}), Times.Exactly({n}))",
+      "safety": "safe"
+    },
+    {
+      "description": "Received once (no count)",
+      "source": "{sub}.Received().{Method}({args})",
+      "target": "{mock}.Verify(x => x.{Method}({args}), Times.AtLeastOnce)",
+      "safety": "safe"
+    },
+    {
+      "description": "Did not receive",
+      "source": "{sub}.DidNotReceive().{Method}({args})",
+      "target": "{mock}.Verify(x => x.{Method}({args}), Times.Never)",
+      "safety": "safe"
+    },
+    {
+      "description": "Argument matcher: any",
+      "source": "Arg.Any<{T}>()",
+      "target": "It.IsAny<{T}>()",
+      "safety": "safe"
+    },
+    {
+      "description": "Argument matcher: predicate",
+      "source": "Arg.Is<{T}>({predicate})",
+      "target": "It.Is<{T}>({predicate})",
+      "safety": "safe"
+    },
+    {
+      "description": "Argument callback (Arg.Do)",
+      "source": "Arg.Do<{T}>({action})",
+      "target": "// Moq: use Callback() on Setup -- structural rewrite required",
+      "safety": "manual",
+      "notes": "NSubstitute's Arg.Do captures argument inline; Moq requires .Callback() chained on Setup. No direct translation."
+    },
+    {
+      "description": "ReceivedWithAnyArgs",
+      "source": "{sub}.ReceivedWithAnyArgs().{Method}({args})",
+      "target": "{mock}.Verify(x => x.{Method}(It.IsAny<...>(), ...), Times.AtLeastOnce)",
+      "safety": "guided",
+      "notes": "Must replace each parameter with It.IsAny<T>(). No single Moq equivalent to ReceivedWithAnyArgs."
+    },
+    {
+      "description": "Returns from function",
+      "source": "{sub}.{Method}({args}).Returns(callInfo => {expression})",
+      "target": "{mock}.Setup(x => x.{Method}({args})).Returns({expression})",
+      "safety": "guided",
+      "notes": "Moq Returns also accepts Func<TResult> but the CallInfo parameter must be restructured or dropped."
+    }
+  ],
+  "asymmetries": [
+    {
+      "pattern": "Substitute is T directly",
+      "issue": "NSubstitute's substitute IS the interface. Moq wraps it in Mock<T> requiring .Object access everywhere the interface is passed. This is a pervasive structural change.",
+      "risk": "high"
+    },
+    {
+      "pattern": "Arg.Do inline capture",
+      "issue": "No Moq equivalent for inline argument capture. Must restructure to Setup().Callback().",
+      "risk": "medium"
+    },
+    {
+      "pattern": "ReceivedWithAnyArgs",
+      "issue": "Moq has no single-call equivalent. Must enumerate all parameters with It.IsAny<T>().",
+      "risk": "low"
+    },
+    {
+      "pattern": "When().Do() for void methods",
+      "issue": "NSubstitute's When().Do() pattern maps to Moq's Setup().Callback(), but the syntax is significantly different.",
+      "risk": "medium"
+    }
+  ]
+}
