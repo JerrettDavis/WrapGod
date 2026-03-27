@@ -122,6 +122,20 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
 
         bool hasGetter = GetBoolProperty(memberEl, "hasGetter");
         bool hasSetter = GetBoolProperty(memberEl, "hasSetter");
+        bool isStatic = GetBoolProperty(memberEl, "isStatic");
+
+        var genericParameters = new List<string>();
+        if (memberEl.TryGetProperty("genericParameters", out var gpEl) && gpEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var gp in gpEl.EnumerateArray())
+            {
+                string gpName = GetStringProperty(gp, "name");
+                if (!string.IsNullOrEmpty(gpName))
+                {
+                    genericParameters.Add(gpName);
+                }
+            }
+        }
 
         var parameters = new List<ParameterPlan>();
 
@@ -133,12 +147,20 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
                 string paramType = GetStringProperty(paramEl, "type");
                 if (!string.IsNullOrEmpty(paramName) && !string.IsNullOrEmpty(paramType))
                 {
-                    parameters.Add(new ParameterPlan(paramName, paramType));
+                    string modifier = "";
+                    if (GetBoolProperty(paramEl, "isOut"))
+                        modifier = "out";
+                    else if (GetBoolProperty(paramEl, "isRef"))
+                        modifier = "ref";
+                    else if (GetBoolProperty(paramEl, "isParams"))
+                        modifier = "params";
+
+                    parameters.Add(new ParameterPlan(paramName, paramType, modifier));
                 }
             }
         }
 
-        return new MemberPlan(name, kind, returnType, parameters, hasGetter, hasSetter);
+        return new MemberPlan(name, kind, returnType, parameters, hasGetter, hasSetter, isStatic, genericParameters);
     }
 
     private static string GetStringProperty(JsonElement el, string name, string defaultValue = "")
