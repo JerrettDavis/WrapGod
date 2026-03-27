@@ -47,6 +47,7 @@ covering extraction, configuration, generation, and migration.
 - [Configuration Guide](docs/CONFIGURATION.md) -- JSON, attributes, fluent DSL, merge precedence
 - [Compatibility Modes](docs/COMPATIBILITY.md) -- LCD, Targeted, and Adaptive modes
 - [Analyzer Diagnostics Reference](docs/ANALYZERS.md) -- WG2001, WG2002, code fixes, suppression
+- [Migration Playbook](docs/MIGRATION-PLAYBOOK.md) -- strategy selection, authoring mappings, safety model, validation checklist
 - [Examples](examples/README.md) -- runnable end-to-end workflow sample (extract -> config -> generate -> analyze -> fix)
 
 ## Engineering
