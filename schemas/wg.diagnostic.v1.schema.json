@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wrapgod.dev/schemas/wg.diagnostic.v1.json",
+  "title": "WrapGod Diagnostic v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "code",
+    "severity",
+    "stage",
+    "message",
+    "source",
+    "timestampUtc"
+  ],
+  "properties": {
+    "schema": { "const": "wg.diagnostic.v1" },
+    "code": { "type": "string", "pattern": "^WG[0-9]{4}$" },
+    "severity": { "enum": ["error", "warning", "note", "none"] },
+    "stage": {
+      "enum": ["extract", "plan", "generate", "analyze", "fix", "cli", "config"]
+    },
+    "category": { "type": "string" },
+    "message": { "type": "string", "minLength": 1 },
+    "source": {
+      "type": "object",
+      "required": ["tool"],
+      "properties": {
+        "tool": { "type": "string", "minLength": 1 },
+        "component": { "type": "string" },
+        "version": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "location": {
+      "type": ["object", "null"],
+      "properties": {
+        "uri": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 },
+        "endColumn": { "type": "integer", "minimum": 1 },
+        "symbol": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "relatedLocations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/location" }
+    },
+    "helpUri": { "type": ["string", "null"], "format": "uri" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "fingerprint": { "type": "string" },
+    "properties": { "type": "object", "additionalProperties": true },
+    "suppression": {
+      "type": ["object", "null"],
+      "properties": {
+        "kind": { "enum": ["editorconfig", "pragma", "global", "cli", "baseline"] },
+        "justification": { "type": "string" },
+        "source": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "timestampUtc": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "location": {
+      "type": "object",
+      "properties": {
+        "uri": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 },
+        "endLine": { "type": "integer", "minimum": 1 },
+        "endColumn": { "type": "integer", "minimum": 1 },
+        "symbol": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
