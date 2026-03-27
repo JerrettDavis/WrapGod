@@ -1,33 +1,50 @@
 using System.Text.Json;
 using Json.Schema;
+using TinyBDD;
+using TinyBDD.Xunit;
+using Xunit.Abstractions;
 
 namespace WrapGod.Tests;
 
-public class ManifestSchemaTests
+[Feature("Manifest JSON schema validation")]
+public partial class ManifestSchemaTests : TinyBddXunitBase
 {
     private static readonly string RepoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../"));
     private static readonly JsonSchema Schema = JsonSchema.FromText(
         File.ReadAllText(Path.Combine(RepoRoot, "schemas", "wrapgod.manifest.v1.schema.json")));
 
-    [Fact]
-    public void ManifestSchemaValidExamplePassesValidation()
+    public ManifestSchemaTests(ITestOutputHelper output) : base(output) { }
+
+    private static EvaluationResults EvaluateFile(string relativePath)
     {
-        var validText = File.ReadAllText(Path.Combine(RepoRoot, "schemas", "examples", "manifest.valid.json"));
-
-        using var validDoc = JsonDocument.Parse(validText);
-        var result = Schema.Evaluate(validDoc.RootElement);
-
-        Assert.True(result.IsValid, "Expected valid manifest example to pass schema validation.");
+        var text = File.ReadAllText(Path.Combine(RepoRoot, relativePath));
+        using var doc = JsonDocument.Parse(text);
+        return Schema.Evaluate(doc.RootElement);
     }
 
+    private static EvaluationResults EvaluateValidManifest() =>
+        EvaluateFile("schemas/examples/manifest.valid.json");
+
+    private static EvaluationResults EvaluateInvalidManifest() =>
+        EvaluateFile("schemas/examples/manifest.invalid.missing-assembly.json");
+
+    [Scenario("Valid manifest example passes schema validation")]
     [Fact]
-    public void ManifestSchemaInvalidExampleFailsValidation()
+    public async Task ManifestSchemaValidExamplePassesValidation()
     {
-        var invalidText = File.ReadAllText(Path.Combine(RepoRoot, "schemas", "examples", "manifest.invalid.missing-assembly.json"));
+        await Flow.Given("the valid manifest evaluated against the schema", EvaluateValidManifest)
+            .Then("the validation passes", result =>
+                Assert.True(result.IsValid, "Expected valid manifest example to pass schema validation."))
+            .AssertPassed();
+    }
 
-        using var invalidDoc = JsonDocument.Parse(invalidText);
-        var result = Schema.Evaluate(invalidDoc.RootElement);
-
-        Assert.False(result.IsValid, "Expected invalid manifest example to fail schema validation.");
+    [Scenario("Invalid manifest example fails schema validation")]
+    [Fact]
+    public async Task ManifestSchemaInvalidExampleFailsValidation()
+    {
+        await Flow.Given("the invalid manifest evaluated against the schema", EvaluateInvalidManifest)
+            .Then("the validation fails", result =>
+                Assert.False(result.IsValid, "Expected invalid manifest example to fail schema validation."))
+            .AssertPassed();
     }
 }
