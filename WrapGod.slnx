@@ -9,4 +9,5 @@
   <Project Path="WrapGod.Tests/WrapGod.Tests.csproj" />
   <Project Path="WrapGod.TypeMap/WrapGod.TypeMap.csproj" />
   <Project Path="WrapGod.Cli/WrapGod.Cli.csproj" />
+  <Project Path="WrapGod.Benchmarks/WrapGod.Benchmarks.csproj" />
 </Solution>
