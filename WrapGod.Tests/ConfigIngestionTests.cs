@@ -1,15 +1,17 @@
-using System.Reflection;
+using TinyBDD;
+using TinyBDD.Xunit;
 using WrapGod.Abstractions.Config;
 using WrapGod.Manifest.Config;
+using Xunit.Abstractions;
 
 namespace WrapGod.Tests;
 
-public class ConfigIngestionTests
+[Feature("Configuration ingestion")]
+public partial class ConfigIngestionTests : TinyBddXunitBase
 {
-    [Fact]
-    public void JsonConfigLoaderParsesTypeAndMemberRules()
-    {
-        const string json = """
+    public ConfigIngestionTests(ITestOutputHelper output) : base(output) { }
+
+    private static readonly string SampleJson = """
         {
           "types": [
             {
@@ -24,66 +26,93 @@ public class ConfigIngestionTests
         }
         """;
 
-        var config = JsonConfigLoader.LoadFromJson(json);
+    private static WrapGodConfig LoadSampleJson() => JsonConfigLoader.LoadFromJson(SampleJson);
 
-        Assert.Single(config.Types);
-        Assert.Equal("Vendor.Client", config.Types[0].SourceType);
-        Assert.Single(config.Types[0].Members);
-        Assert.Equal("GetUser", config.Types[0].Members[0].SourceMember);
-    }
+    private static WrapGodConfig ReadAttributeConfig() =>
+        AttributeConfigReader.ReadFromAssembly(typeof(AttributedWrapper).Assembly);
 
-    [Fact]
-    public void AttributeConfigReaderBuildsTypeAndMemberRules()
+    private static ConfigMergeResult MergeWithAttributePrecedence()
     {
-        var config = AttributeConfigReader.ReadFromAssembly(typeof(AttributedWrapper).Assembly);
-        var type = Assert.Single(config.Types, t => t.SourceType == "Vendor.Client");
-
-        Assert.Equal("IClient", type.TargetName);
-        var member = Assert.Single(type.Members, m => m.SourceMember == "GetUser");
-        Assert.Equal("FetchUser", member.TargetName);
-    }
-
-    [Fact]
-    public void MergeEngineUsesConfiguredPrecedenceAndEmitsDiagnosticsOnConflict()
-    {
-        var jsonConfig = new WrapGodConfig
+        var jsonConfig = new WrapGodConfig();
+        jsonConfig.Types.Add(new TypeConfig
         {
-            Types =
-            {
-                new TypeConfig
-                {
-                    SourceType = "Vendor.Client",
-                    Include = true,
-                    TargetName = "JsonClient",
-                    Members = { new MemberConfig { SourceMember = "GetUser", Include = true, TargetName = "JsonGetUser" } },
-                },
-            },
-        };
+            SourceType = "Vendor.Client",
+            Include = true,
+            TargetName = "JsonClient",
+        });
+        jsonConfig.Types[0].Members.Add(
+            new MemberConfig { SourceMember = "GetUser", Include = true, TargetName = "JsonGetUser" });
 
-        var attrConfig = new WrapGodConfig
+        var attrConfig = new WrapGodConfig();
+        attrConfig.Types.Add(new TypeConfig
         {
-            Types =
-            {
-                new TypeConfig
-                {
-                    SourceType = "Vendor.Client",
-                    Include = false,
-                    TargetName = "AttrClient",
-                    Members = { new MemberConfig { SourceMember = "GetUser", Include = false, TargetName = "AttrGetUser" } },
-                },
-            },
-        };
+            SourceType = "Vendor.Client",
+            Include = false,
+            TargetName = "AttrClient",
+        });
+        attrConfig.Types[0].Members.Add(
+            new MemberConfig { SourceMember = "GetUser", Include = false, TargetName = "AttrGetUser" });
 
-        var result = ConfigMergeEngine.Merge(jsonConfig, attrConfig, new ConfigMergeOptions
+        return ConfigMergeEngine.Merge(jsonConfig, attrConfig, new ConfigMergeOptions
         {
             HigherPrecedence = ConfigSource.Attributes,
         });
+    }
 
-        var type = Assert.Single(result.Config.Types);
-        Assert.False(type.Include);
-        Assert.Equal("AttrClient", type.TargetName);
-        Assert.Equal("AttrGetUser", Assert.Single(type.Members).TargetName);
-        Assert.NotEmpty(result.Diagnostics);
+    [Scenario("JSON config loader parses type and member rules")]
+    [Fact]
+    public async Task JsonConfigLoaderParsesTypeAndMemberRules()
+    {
+        await Flow.Given("a JSON config string", LoadSampleJson)
+            .Then("one type rule is parsed", config => Assert.Single(config.Types))
+            .And("the source type is correct", config =>
+                Assert.Equal("Vendor.Client", config.Types[0].SourceType))
+            .And("one member rule is parsed with correct source", config =>
+            {
+                Assert.Single(config.Types[0].Members);
+                Assert.Equal("GetUser", config.Types[0].Members[0].SourceMember);
+            })
+            .AssertPassed();
+    }
+
+    [Scenario("Attribute config reader builds type and member rules")]
+    [Fact]
+    public async Task AttributeConfigReaderBuildsTypeAndMemberRules()
+    {
+        await Flow.Given("an assembly with WrapType and WrapMember attributes", ReadAttributeConfig)
+            .Then("the Vendor.Client type rule has target name IClient", config =>
+            {
+                var type = Assert.Single(config.Types, t => t.SourceType == "Vendor.Client");
+                Assert.Equal("IClient", type.TargetName);
+            })
+            .And("the GetUser member rule has target name FetchUser", config =>
+            {
+                var type = Assert.Single(config.Types, t => t.SourceType == "Vendor.Client");
+                var member = Assert.Single(type.Members, m => m.SourceMember == "GetUser");
+                Assert.Equal("FetchUser", member.TargetName);
+            })
+            .AssertPassed();
+    }
+
+    [Scenario("Merge engine uses configured precedence and emits diagnostics on conflict")]
+    [Fact]
+    public async Task MergeEngineUsesConfiguredPrecedenceAndEmitsDiagnosticsOnConflict()
+    {
+        await Flow.Given("conflicting JSON and attribute configs", MergeWithAttributePrecedence)
+            .Then("attribute config wins for type-level settings", mergeResult =>
+            {
+                var type = Assert.Single(mergeResult.Config.Types);
+                Assert.False(type.Include);
+                Assert.Equal("AttrClient", type.TargetName);
+            })
+            .And("attribute config wins for member-level settings", mergeResult =>
+            {
+                var type = Assert.Single(mergeResult.Config.Types);
+                Assert.Equal("AttrGetUser", Assert.Single(type.Members).TargetName);
+            })
+            .And("diagnostics are emitted for the conflict", mergeResult =>
+                Assert.NotEmpty(mergeResult.Diagnostics))
+            .AssertPassed();
     }
 
     [WrapType("Vendor.Client", TargetName = "IClient")]
