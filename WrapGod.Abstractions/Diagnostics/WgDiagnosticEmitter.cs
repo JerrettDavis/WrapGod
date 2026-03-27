@@ -124,7 +124,7 @@ public static class WgDiagnosticEmitter
             relatedLocations = BuildRelatedLocations(diagnostic.RelatedLocations),
             fingerprints = string.IsNullOrWhiteSpace(diagnostic.Fingerprint)
                 ? null
-                : new Dictionary<string, string> { ["wrapgodFingerprint"] = diagnostic.Fingerprint },
+                : new Dictionary<string, string> { ["wrapgodFingerprint"] = diagnostic.Fingerprint! },
             suppressions = BuildSuppressions(diagnostic.Suppression),
             properties = BuildResultProperties(diagnostic),
         };
@@ -140,7 +140,7 @@ public static class WgDiagnosticEmitter
         return new[] { BuildSarifLocation(location) };
     }
 
-    private static object[]? BuildRelatedLocations(IReadOnlyCollection<WgDiagnosticLocation>? locations)
+    private static object[]? BuildRelatedLocations(List<WgDiagnosticLocation>? locations)
     {
         if (locations is null || locations.Count == 0)
         {
@@ -198,7 +198,7 @@ public static class WgDiagnosticEmitter
         };
     }
 
-    private static object? BuildResultProperties(WgDiagnosticV1 diagnostic)
+    private static Dictionary<string, object?> BuildResultProperties(WgDiagnosticV1 diagnostic)
     {
         var baseProperties = new Dictionary<string, object?>
         {
