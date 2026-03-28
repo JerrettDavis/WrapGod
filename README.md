@@ -71,6 +71,23 @@ wrap-god analyze manifest.wrapgod.json --warnings-as-errors
 - CI/workflow readiness (`.github/workflows` and build/test steps)
 
 ```bash
+wrap-god doctor --path .
+wrap-god doctor --path . --format json
+wrap-god doctor --path . --warnings-as-errors
+```
+
+Doctor emits dependency-linked warnings to #123 and #124 when convention source
+discovery / lockfile assumptions are not yet satisfied.
+
+## CLI doctor (setup and health validation)
+
+`wrap-god doctor` validates repository health in three areas:
+
+- SDK/tooling prerequisites (`dotnet --version`, `global.json` integrity)
+- Source/config and lockfile state (`*.wrapgod.json`, `wrapgod.lock.json`)
+- CI/workflow readiness (`.github/workflows` and build/test steps)
+
+```bash
 # Human-readable output
 wrap-god doctor --path .
 
