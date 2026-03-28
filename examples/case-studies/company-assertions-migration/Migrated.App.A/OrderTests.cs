@@ -1,4 +1,4 @@
-using Shouldly;
+using Company.Assertions;
 using Xunit;
 
 namespace Migrated.App.A;

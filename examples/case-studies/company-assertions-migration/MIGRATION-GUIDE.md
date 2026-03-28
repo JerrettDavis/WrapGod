@@ -73,11 +73,15 @@ AssertionHelpers.AssertIsTrue(payment.IsRefunded);
 
 ### What It Provides
 
-`Company.Assertions` is a thin class library that:
+`Company.Assertions` is a WrapGod-generated facade library that:
 
-1. References Shouldly 4.3.0 as its sole dependency
-2. Re-exports the Shouldly namespace via `global using Shouldly;`
-3. Exposes all Shouldly assertion methods to consumers
+1. References Shouldly 4.3.0 internally as its implementation dependency
+2. **Generates wrapper extension methods** under the `Company.Assertions` namespace
+   that fully wrap the Shouldly public API surface
+3. Consumers use `using Company.Assertions;` exclusively — never `using Shouldly;`
+
+This is exactly what WrapGod's generation pipeline produces: a complete facade namespace
+that decouples consumer code from the underlying assertion library.
 
 ```xml
 <!-- Company.Assertions.csproj -->
@@ -94,33 +98,43 @@ AssertionHelpers.AssertIsTrue(payment.IsRefunded);
 ```
 
 ```csharp
-// AssertionExtensions.cs -- the Shouldly dependency flows transitively
-// to any project that references Company.Assertions. Company-specific
-// helpers can be added here in the Company.Assertions namespace.
-using Shouldly;
-
+// AssertionExtensions.cs — WrapGod-generated facade over Shouldly.
+// Each method delegates to the underlying Shouldly implementation.
 namespace Company.Assertions;
 
 public static class AssertionExtensions
 {
-    public static void ShouldBeInRange<T>(this T actual, T low, T high)
-        where T : IComparable<T>
-    {
-        actual.ShouldBeGreaterThanOrEqualTo(low);
-        actual.ShouldBeLessThanOrEqualTo(high);
-    }
+    public static void ShouldBe<T>(this T actual, T expected)
+        => Shouldly.ShouldBeTestExtensions.ShouldBe(actual, expected);
+
+    public static void ShouldNotBeNull<T>(this T? actual) where T : class
+        => Shouldly.ShouldBeNullExtensions.ShouldNotBeNull(actual);
+
+    public static void ShouldBeTrue(this bool actual)
+        => Shouldly.ShouldBeBooleanExtensions.ShouldBeTrue(actual);
+
+    // ... full Shouldly API surface wrapped under Company.Assertions
+}
+
+// Static assertion facade — wraps Shouldly.Should
+public static class Should
+{
+    public static TException Throw<TException>(Action actual) where TException : Exception
+        => Shouldly.Should.Throw<TException>(actual);
 }
 ```
 
 ### Why This Convention Scales
 
+- **Complete decoupling**: Consumer code only knows the `Company.Assertions` namespace.
+  The Shouldly dependency is an implementation detail, not a consumer concern.
 - **Single dependency**: Every test project references `Company.Assertions` instead of
   Shouldly directly. One place to update the version.
-- **Version pinning**: Upgrading Shouldly (or swapping to another library) is a single
-  `Company.Assertions.csproj` change, not N projects.
-- **Migration path**: If the enterprise later decides to switch from Shouldly to another
-  library, only `Company.Assertions` needs to change. All consumers remain untouched.
-- **Governance**: Package approval processes only need to vet one assertion dependency.
+- **Swappable implementation**: If the enterprise later switches from Shouldly to another
+  library, only `Company.Assertions` regenerates. All consumer code is untouched.
+- **WrapGod pipeline**: The generation is automated — run the extractor on Shouldly,
+  generate facades via WrapGod, and the `Company.Assertions` namespace is ready.
+- **Governance**: Package approval processes only vet one assertion dependency.
 
 ### Consumer Setup
 
@@ -132,10 +146,10 @@ public static class AssertionExtensions
 ```
 
 ```csharp
-using Shouldly;              // Shouldly flows transitively from Company.Assertions
-using Company.Assertions;   // Optional: for company-specific helpers like ShouldBeInRange
+using Company.Assertions;    // The ONLY using needed — full assertion API available
 
-result.ShouldBe(42);        // Shouldly API available
+result.ShouldBe(42);         // Delegated to Shouldly internally
+Should.Throw<Exception>(act); // Static facade, also delegated
 ```
 
 ---
@@ -172,11 +186,11 @@ Search and replace across the project:
 
 ```
 Replace:  using FluentAssertions;
-With:     using Shouldly;
+With:     using Company.Assertions;
 ```
 
-The Shouldly namespace is available transitively through the Company.Assertions project
-reference. Optionally add `using Company.Assertions;` for company-specific helpers.
+The `Company.Assertions` namespace provides the full wrapped API surface.
+Consumer code never references `Shouldly` directly.
 
 #### Step 4: Run WrapGod analyzer + code fixes
 
@@ -228,7 +242,7 @@ dotnet format LegacyApp.D/LegacyApp.D.csproj --diagnostics WG2001 --severity inf
 **Migrated.App.A** (was FA v6):
 
 ```csharp
-using Shouldly;
+using Company.Assertions;
 
 total.ShouldBe(39.49m);
 order.ShouldNotBeNull();
@@ -239,9 +253,9 @@ Should.Throw<ArgumentException>(() => CreateOrder(""));
 **Migrated.App.B** (was mixed FA + Shouldly):
 
 ```csharp
-using Shouldly;
+using Company.Assertions;
 
-// All assertions now use the same Shouldly API
+// All assertions now use the Company.Assertions facade
 user.Name.ShouldNotBeNullOrEmpty();
 user.Email.ShouldContain("@");
 user.Age.ShouldBeGreaterThan(0);
@@ -251,15 +265,15 @@ user.DisplayName.ShouldBe("frank");
 **Migrated.App.C** (was Shouldly 4.1):
 
 ```csharp
-using Shouldly;   // Same API, now pinned to 4.3.0 via Company.Assertions
+using Company.Assertions;   // Same API surface, now through centralized facade
 
-result.ShouldBe(5);         // Identical API, now pinned to 4.3.0
+result.ShouldBe(5);         // Delegates to Shouldly 4.3.0 internally
 ```
 
 **Migrated.App.D** (was FA v5 + custom helpers):
 
 ```csharp
-using Shouldly;
+using Company.Assertions;
 
 payment.Amount.ShouldBeGreaterThan(0);
 payment.Tags.ShouldContain("Online");
@@ -304,10 +318,10 @@ All 76 tests (duplicated across Before and After projects) should pass.
 | File | Key Changes |
 |------|-------------|
 | `*.csproj` | `FluentAssertions`/`Shouldly` package refs replaced with `Company.Assertions` project ref |
-| `*.cs` | `using FluentAssertions;` replaced with `using Shouldly;` (transitive from Company.Assertions) |
+| `*.cs` | `using FluentAssertions;` replaced with `using Company.Assertions;` (WrapGod-generated facade) |
 | `OrderTests.cs` | `.Should().X()` calls replaced with `.ShouldX()` |
 | `UserTests.cs` | Mixed FA/Shouldly unified to Shouldly-only via Company.Assertions |
-| `CalculatorTests.cs` | `using Shouldly;` replaced with `using Company.Assertions;` (API unchanged) |
+| `CalculatorTests.cs` | `using Shouldly;` replaced with `using Company.Assertions;` (same API through facade) |
 | `PaymentTests.cs` | FA calls replaced + `AssertionHelpers` class removed |
 
 ---
