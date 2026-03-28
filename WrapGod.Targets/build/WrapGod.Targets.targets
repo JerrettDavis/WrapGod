@@ -1,0 +1,7 @@
+<Project>
+  <!--
+    WrapGod.Targets.targets — Auto-imported when the WrapGod.Targets NuGet package
+    is referenced. Delegates to the main WrapGod.targets file.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)..\WrapGod.targets" />
+</Project>

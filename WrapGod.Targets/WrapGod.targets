@@ -1,0 +1,108 @@
+<Project>
+  <!--
+    WrapGod.targets — MSBuild targets for zero-touch WrapGod pipeline integration.
+    Provides restore, extract, and generate steps that run automatically during build.
+  -->
+
+  <!-- ============================================================
+       WrapGodRestore — Resolves NuGet packages listed as WrapGodPackage items.
+       Runs before the standard Restore target.
+       ============================================================ -->
+  <Target Name="WrapGodRestore"
+          BeforeTargets="Restore"
+          Condition="'$(EnableWrapGod)' == 'true' AND '@(WrapGodPackage)' != ''">
+
+    <Message Importance="normal" Text="WrapGod: Resolving packages for wrapping..." />
+
+    <!-- Ensure cache directory exists -->
+    <MakeDir Directories="$(WrapGodCacheDir)" Condition="!Exists('$(WrapGodCacheDir)')" />
+
+    <!-- Resolve each WrapGodPackage to a local path via dotnet restore -->
+    <Exec Command="dotnet restore &quot;$(MSBuildProjectFullPath)&quot; --packages &quot;$(WrapGodCacheDir)\packages&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          StandardOutputImportance="low"
+          StandardErrorImportance="high"
+          IgnoreExitCode="false" />
+
+    <Message Importance="normal" Text="WrapGod: Package resolution complete." />
+  </Target>
+
+  <!-- ============================================================
+       WrapGodExtract — Extracts manifests from resolved assemblies.
+       Runs before CoreCompile so generated code is available for compilation.
+       Uses incremental build: skips if inputs haven't changed.
+       ============================================================ -->
+  <Target Name="WrapGodExtract"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="WrapGodRestore"
+          Condition="'$(EnableWrapGod)' == 'true' AND '@(WrapGodPackage)' != ''"
+          Inputs="@(WrapGodPackage);$(WrapGodConfigPath)"
+          Outputs="$(WrapGodManifestPath);$(_WrapGodHashFile)">
+
+    <Message Importance="normal" Text="WrapGod: Extracting manifest from resolved assemblies..." />
+
+    <!-- Build list of assembly paths from resolved packages -->
+    <ItemGroup>
+      <_WrapGodResolvedAssembly Include="$(WrapGodCacheDir)\packages\**\lib\**\%(WrapGodPackage.Identity).dll" />
+    </ItemGroup>
+
+    <!-- Compute a hash of inputs to detect changes -->
+    <Hash ItemsToHash="@(_WrapGodResolvedAssembly);$(WrapGodConfigPath)">
+      <Output TaskParameter="HashResult" PropertyName="_WrapGodCurrentHash" />
+    </Hash>
+
+    <!-- Read the previous hash if it exists -->
+    <ReadLinesFromFile File="$(_WrapGodHashFile)" Condition="Exists('$(_WrapGodHashFile)')">
+      <Output TaskParameter="Lines" PropertyName="_WrapGodPreviousHash" />
+    </ReadLinesFromFile>
+
+    <!-- Only extract if the hash has changed -->
+    <Exec Command="dotnet wrap-god extract &quot;@(_WrapGodResolvedAssembly)&quot; --config &quot;$(WrapGodConfigPath)&quot; --output &quot;$(WrapGodManifestPath)&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          StandardOutputImportance="low"
+          StandardErrorImportance="high"
+          IgnoreExitCode="false"
+          Condition="'$(_WrapGodCurrentHash)' != '$(_WrapGodPreviousHash)'" />
+
+    <!-- Write the new hash -->
+    <WriteLinesToFile File="$(_WrapGodHashFile)"
+                     Lines="$(_WrapGodCurrentHash)"
+                     Overwrite="true"
+                     Condition="'$(_WrapGodCurrentHash)' != '$(_WrapGodPreviousHash)'" />
+
+    <Message Importance="normal" Text="WrapGod: Manifest extraction complete." />
+  </Target>
+
+  <!-- ============================================================
+       WrapGodGenerate — Feeds manifest + config as AdditionalFiles
+       so the Roslyn source generator can pick them up.
+       ============================================================ -->
+  <Target Name="WrapGodGenerate"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="WrapGodExtract"
+          Condition="'$(EnableWrapGod)' == 'true'">
+
+    <Message Importance="normal" Text="WrapGod: Registering manifest and config as AdditionalFiles..." />
+
+    <!-- Add manifest as an AdditionalFile for the source generator -->
+    <ItemGroup Condition="Exists('$(WrapGodManifestPath)')">
+      <AdditionalFiles Include="$(WrapGodManifestPath)" />
+    </ItemGroup>
+
+    <!-- Add config as an AdditionalFile for the source generator -->
+    <ItemGroup Condition="Exists('$(WrapGodConfigPath)')">
+      <AdditionalFiles Include="$(WrapGodConfigPath)" />
+    </ItemGroup>
+
+    <Message Importance="normal" Text="WrapGod: AdditionalFiles registered. Source generator will run during compile." />
+  </Target>
+
+  <!-- ============================================================
+       Clean integration — remove cached artifacts on Clean
+       ============================================================ -->
+  <Target Name="WrapGodClean" AfterTargets="Clean" Condition="'$(EnableWrapGod)' == 'true'">
+    <RemoveDir Directories="$(WrapGodCacheDir)" Condition="Exists('$(WrapGodCacheDir)')" />
+    <Message Importance="normal" Text="WrapGod: Cache cleaned." />
+  </Target>
+
+</Project>

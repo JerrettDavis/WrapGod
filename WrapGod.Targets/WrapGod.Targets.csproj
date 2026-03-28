@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+
+    <PackageId>WrapGod.Targets</PackageId>
+    <Description>MSBuild props and targets for zero-touch WrapGod build integration. Automatically restores, extracts manifests, and feeds source generators during build.</Description>
+    <PackageTags>wrapgod;msbuild;codegen;source-generator;build-automation</PackageTags>
+    <DevelopmentDependency>true</DevelopmentDependency>
+  </PropertyGroup>
+
+  <!-- Package the .props and .targets files for NuGet distribution -->
+  <ItemGroup>
+    <None Include="build\WrapGod.Targets.props" Pack="true" PackagePath="build\" />
+    <None Include="build\WrapGod.Targets.targets" Pack="true" PackagePath="build\" />
+    <None Include="WrapGod.props" Pack="true" PackagePath="build\" />
+    <None Include="WrapGod.targets" Pack="true" PackagePath="build\" />
+  </ItemGroup>
+
+</Project>
