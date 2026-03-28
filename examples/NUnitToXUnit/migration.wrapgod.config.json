@@ -1,0 +1,234 @@
+{
+  "migrationName": "NUnit-to-xUnit",
+  "sourceLibrary": "NUnit",
+  "targetLibrary": "xUnit",
+  "sourcePackage": "NUnit",
+  "targetPackage": "xunit",
+  "usingReplacements": {
+    "NUnit.Framework": "Xunit"
+  },
+  "mappings": [
+    {
+      "description": "Test class attribute",
+      "source": "[TestFixture]",
+      "target": "// Remove -- xUnit discovers test classes implicitly",
+      "safety": "safe"
+    },
+    {
+      "description": "Simple test method",
+      "source": "[Test]",
+      "target": "[Fact]",
+      "safety": "safe"
+    },
+    {
+      "description": "Skipped test",
+      "source": "[Test]\n[Ignore(\"{reason}\")]",
+      "target": "[Fact(Skip = \"{reason}\")]",
+      "safety": "safe",
+      "notes": "NUnit uses separate [Ignore] attribute; xUnit embeds skip reason in [Fact]."
+    },
+    {
+      "description": "Parameterized test with inline data",
+      "source": "[TestCase({args})]",
+      "target": "[Theory]\n[InlineData({args})]",
+      "safety": "safe",
+      "notes": "Add [Theory] once per method; convert each [TestCase] to [InlineData]."
+    },
+    {
+      "description": "Test case source (method/property)",
+      "source": "[TestCaseSource(nameof({member}))]",
+      "target": "[Theory]\n[MemberData(nameof({member}))]",
+      "safety": "safe"
+    },
+    {
+      "description": "Test case source (class)",
+      "source": "[TestCaseSource(typeof({class}))]",
+      "target": "[Theory]\n[ClassData(typeof({class}))]",
+      "safety": "safe"
+    },
+    {
+      "description": "Category attribute",
+      "source": "[Category(\"{value}\")]",
+      "target": "[Trait(\"Category\", \"{value}\")]",
+      "safety": "safe"
+    },
+    {
+      "description": "Property attribute",
+      "source": "[Property(\"{name}\", \"{value}\")]",
+      "target": "[Trait(\"{name}\", \"{value}\")]",
+      "safety": "safe"
+    },
+    {
+      "description": "Equality assertion",
+      "source": "Assert.That({actual}, Is.EqualTo({expected}))",
+      "target": "Assert.Equal({expected}, {actual})",
+      "safety": "safe",
+      "notes": "Note parameter order change: NUnit is (actual, constraint), xUnit is (expected, actual)."
+    },
+    {
+      "description": "Inequality assertion",
+      "source": "Assert.That({actual}, Is.Not.EqualTo({expected}))",
+      "target": "Assert.NotEqual({expected}, {actual})",
+      "safety": "safe"
+    },
+    {
+      "description": "Boolean true",
+      "source": "Assert.That({condition}, Is.True)",
+      "target": "Assert.True({condition})",
+      "safety": "safe"
+    },
+    {
+      "description": "Boolean false",
+      "source": "Assert.That({condition}, Is.False)",
+      "target": "Assert.False({condition})",
+      "safety": "safe"
+    },
+    {
+      "description": "Null check",
+      "source": "Assert.That({value}, Is.Null)",
+      "target": "Assert.Null({value})",
+      "safety": "safe"
+    },
+    {
+      "description": "Not-null check",
+      "source": "Assert.That({value}, Is.Not.Null)",
+      "target": "Assert.NotNull({value})",
+      "safety": "safe"
+    },
+    {
+      "description": "Exception assertion",
+      "source": "Assert.Throws<{T}>({action})",
+      "target": "Assert.Throws<{T}>({action})",
+      "safety": "safe",
+      "notes": "API is identical; only the using/namespace changes."
+    },
+    {
+      "description": "Async exception assertion",
+      "source": "Assert.ThrowsAsync<{T}>({asyncAction})",
+      "target": "await Assert.ThrowsAsync<{T}>({asyncAction})",
+      "safety": "safe",
+      "notes": "xUnit ThrowsAsync returns Task and should be awaited."
+    },
+    {
+      "description": "String contains",
+      "source": "Assert.That({actual}, Does.Contain(\"{substring}\"))",
+      "target": "Assert.Contains(\"{substring}\", {actual})",
+      "safety": "safe"
+    },
+    {
+      "description": "String does not contain",
+      "source": "Assert.That({actual}, Does.Not.Contain(\"{substring}\"))",
+      "target": "Assert.DoesNotContain(\"{substring}\", {actual})",
+      "safety": "safe"
+    },
+    {
+      "description": "Collection contains",
+      "source": "Assert.That({collection}, Does.Contain({item}))",
+      "target": "Assert.Contains({item}, {collection})",
+      "safety": "safe"
+    },
+    {
+      "description": "Collection does not contain",
+      "source": "Assert.That({collection}, Does.Not.Contain({item}))",
+      "target": "Assert.DoesNotContain({item}, {collection})",
+      "safety": "safe"
+    },
+    {
+      "description": "Empty collection",
+      "source": "Assert.That({collection}, Is.Empty)",
+      "target": "Assert.Empty({collection})",
+      "safety": "safe"
+    },
+    {
+      "description": "Non-empty collection",
+      "source": "Assert.That({collection}, Is.Not.Empty)",
+      "target": "Assert.NotEmpty({collection})",
+      "safety": "safe"
+    },
+    {
+      "description": "Exact type check",
+      "source": "Assert.That({value}, Is.TypeOf<{T}>())",
+      "target": "Assert.IsType<{T}>({value})",
+      "safety": "safe"
+    },
+    {
+      "description": "Assignable-from type check",
+      "source": "Assert.That({value}, Is.AssignableFrom<{T}>())",
+      "target": "Assert.IsAssignableFrom<{T}>({value})",
+      "safety": "safe"
+    },
+    {
+      "description": "Range assertion",
+      "source": "Assert.That({actual}, Is.InRange({low}, {high}))",
+      "target": "Assert.InRange({actual}, {low}, {high})",
+      "safety": "safe"
+    },
+    {
+      "description": "All elements match predicate",
+      "source": "Assert.That({collection}, Has.All.Matches<{T}>({predicate}))",
+      "target": "Assert.All({collection}, {action})",
+      "safety": "guided",
+      "notes": "NUnit uses a predicate; xUnit uses an Action<T>. Structural rewrite required."
+    },
+    {
+      "description": "Single element count",
+      "source": "Assert.That({collection}, Has.Count.EqualTo(1))",
+      "target": "Assert.Single({collection})",
+      "safety": "safe",
+      "notes": "xUnit Assert.Single also returns the element, enabling chained assertions."
+    },
+    {
+      "description": "String starts with",
+      "source": "Assert.That({actual}, Does.StartWith(\"{expected}\"))",
+      "target": "Assert.StartsWith(\"{expected}\", {actual})",
+      "safety": "safe"
+    },
+    {
+      "description": "String ends with",
+      "source": "Assert.That({actual}, Does.EndWith(\"{expected}\"))",
+      "target": "Assert.EndsWith(\"{expected}\", {actual})",
+      "safety": "safe"
+    },
+    {
+      "description": "Regex match",
+      "source": "Assert.That({actual}, Does.Match({pattern}))",
+      "target": "Assert.Matches({pattern}, {actual})",
+      "safety": "safe"
+    },
+    {
+      "description": "Per-test setup",
+      "source": "[SetUp] public void SetUp() { /* setup */ }",
+      "target": "public {ClassName}() { /* setup */ }",
+      "safety": "guided",
+      "notes": "NUnit reuses instances with [SetUp]; xUnit creates new instance per test (constructor = setup)."
+    },
+    {
+      "description": "Per-test teardown",
+      "source": "[TearDown] public void TearDown() { /* teardown */ }",
+      "target": "IDisposable.Dispose() { /* teardown */ }",
+      "safety": "guided",
+      "notes": "Add IDisposable to the class and move teardown logic to Dispose()."
+    },
+    {
+      "description": "One-time class setup/teardown",
+      "source": "[OneTimeSetUp] / [OneTimeTearDown]",
+      "target": "IClassFixture<{T}>",
+      "safety": "guided",
+      "notes": "Extract shared state into a fixture class implementing IDisposable. Inject via constructor."
+    },
+    {
+      "description": "Namespace-level shared state",
+      "source": "[SetUpFixture]",
+      "target": "ICollectionFixture<{T}> + [Collection(\"{name}\")]",
+      "safety": "manual",
+      "notes": "Fundamentally different pattern. NUnit uses namespace-scoped setup; xUnit uses collection definitions."
+    },
+    {
+      "description": "Test output",
+      "source": "TestContext.Out.WriteLine({message})",
+      "target": "ITestOutputHelper.WriteLine({message})",
+      "safety": "safe",
+      "notes": "Add ITestOutputHelper as constructor parameter; replace static TestContext.Out usage."
+    }
+  ]
+}

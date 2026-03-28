@@ -9,3 +9,29 @@ dotnet_diagnostic.CA1716.severity = none
 
 # CA1822: Test methods should not be required to be static (xUnit convention)
 dotnet_diagnostic.CA1822.severity = none
+
+# CA1304/CA1305/CA1307/CA1310: Example code doesn't need locale-aware overloads
+dotnet_diagnostic.CA1304.severity = none
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1307.severity = none
+dotnet_diagnostic.CA1310.severity = none
+
+# CA1861: Prefer static readonly arrays in example test data
+dotnet_diagnostic.CA1861.severity = none
+
+# CA2211: Non-constant fields in example code
+dotnet_diagnostic.CA2211.severity = none
+
+# CA1311: Locale-dependent string operations in examples
+dotnet_diagnostic.CA1311.severity = none
+
+# CA1711: Example types may end in 'Collection' for xUnit fixtures
+dotnet_diagnostic.CA1711.severity = none
+
+# CA1816: Example Dispose implementations don't need SuppressFinalize
+dotnet_diagnostic.CA1816.severity = none
+
+# xUnit analyzer warnings — examples demonstrate patterns, not production code
+dotnet_diagnostic.xUnit1004.severity = none
+dotnet_diagnostic.xUnit1042.severity = none
+dotnet_diagnostic.xUnit2020.severity = none

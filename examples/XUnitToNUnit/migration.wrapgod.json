@@ -1,0 +1,112 @@
+{
+  "$schema": "../../schemas/wrapgod.manifest.v1.schema.json",
+  "name": "xUnit",
+  "version": "2.9.3",
+  "description": "Manifest defining the xUnit public API surface targeted for migration to NUnit.",
+  "types": [
+    {
+      "name": "Xunit.FactAttribute",
+      "namespace": "Xunit",
+      "kind": "Class",
+      "members": [
+        { "name": "Skip", "kind": "Property", "returnType": "string?" }
+      ]
+    },
+    {
+      "name": "Xunit.TheoryAttribute",
+      "namespace": "Xunit",
+      "kind": "Class",
+      "members": [
+        { "name": "Skip", "kind": "Property", "returnType": "string?" }
+      ]
+    },
+    {
+      "name": "Xunit.InlineDataAttribute",
+      "namespace": "Xunit",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "data", "type": "params object[]" }] }
+      ]
+    },
+    {
+      "name": "Xunit.MemberDataAttribute",
+      "namespace": "Xunit",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "memberName", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "Xunit.ClassDataAttribute",
+      "namespace": "Xunit",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "class", "type": "Type" }] }
+      ]
+    },
+    {
+      "name": "Xunit.TraitAttribute",
+      "namespace": "Xunit",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "name", "type": "string" }, { "name": "value", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "Xunit.CollectionAttribute",
+      "namespace": "Xunit",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "name", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "Xunit.Assert",
+      "namespace": "Xunit",
+      "kind": "Static",
+      "members": [
+        { "name": "Equal", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expected", "type": "T" }, { "name": "actual", "type": "T" }] },
+        { "name": "NotEqual", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expected", "type": "T" }, { "name": "actual", "type": "T" }] },
+        { "name": "True", "kind": "Method", "returnType": "void", "parameters": [{ "name": "condition", "type": "bool" }] },
+        { "name": "False", "kind": "Method", "returnType": "void", "parameters": [{ "name": "condition", "type": "bool" }] },
+        { "name": "Null", "kind": "Method", "returnType": "void", "parameters": [{ "name": "object", "type": "object?" }] },
+        { "name": "NotNull", "kind": "Method", "returnType": "void", "parameters": [{ "name": "object", "type": "object?" }] },
+        { "name": "Throws", "kind": "Method", "returnType": "T", "parameters": [{ "name": "testCode", "type": "Action" }] },
+        { "name": "ThrowsAsync", "kind": "Method", "returnType": "Task<T>", "parameters": [{ "name": "testCode", "type": "Func<Task>" }] },
+        { "name": "Contains", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expected", "type": "string" }, { "name": "actual", "type": "string" }] },
+        { "name": "DoesNotContain", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expected", "type": "string" }, { "name": "actual", "type": "string" }] },
+        { "name": "Empty", "kind": "Method", "returnType": "void", "parameters": [{ "name": "collection", "type": "IEnumerable" }] },
+        { "name": "NotEmpty", "kind": "Method", "returnType": "void", "parameters": [{ "name": "collection", "type": "IEnumerable" }] },
+        { "name": "IsType", "kind": "Method", "returnType": "T", "parameters": [{ "name": "object", "type": "object" }] },
+        { "name": "IsAssignableFrom", "kind": "Method", "returnType": "T", "parameters": [{ "name": "object", "type": "object" }] },
+        { "name": "InRange", "kind": "Method", "returnType": "void", "parameters": [{ "name": "actual", "type": "T" }, { "name": "low", "type": "T" }, { "name": "high", "type": "T" }] },
+        { "name": "Collection", "kind": "Method", "returnType": "void", "parameters": [{ "name": "collection", "type": "IEnumerable<T>" }, { "name": "inspectors", "type": "params Action<T>[]" }] },
+        { "name": "All", "kind": "Method", "returnType": "void", "parameters": [{ "name": "collection", "type": "IEnumerable<T>" }, { "name": "action", "type": "Action<T>" }] },
+        { "name": "Single", "kind": "Method", "returnType": "T", "parameters": [{ "name": "collection", "type": "IEnumerable<T>" }] },
+        { "name": "StartsWith", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expected", "type": "string" }, { "name": "actual", "type": "string" }] },
+        { "name": "EndsWith", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expected", "type": "string" }, { "name": "actual", "type": "string" }] },
+        { "name": "Matches", "kind": "Method", "returnType": "void", "parameters": [{ "name": "pattern", "type": "string" }, { "name": "actual", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "Xunit.IClassFixture`1",
+      "namespace": "Xunit",
+      "kind": "Interface",
+      "genericParameters": ["T"]
+    },
+    {
+      "name": "Xunit.ICollectionFixture`1",
+      "namespace": "Xunit",
+      "kind": "Interface",
+      "genericParameters": ["T"]
+    },
+    {
+      "name": "Xunit.Abstractions.ITestOutputHelper",
+      "namespace": "Xunit.Abstractions",
+      "kind": "Interface",
+      "members": [
+        { "name": "WriteLine", "kind": "Method", "returnType": "void", "parameters": [{ "name": "message", "type": "string" }] }
+      ]
+    }
+  ]
+}
