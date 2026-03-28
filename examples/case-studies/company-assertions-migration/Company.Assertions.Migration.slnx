@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/Company.Assertions/">
+    <Project Path="Company.Assertions/Company.Assertions.csproj" />
+  </Folder>
+  <Folder Name="/Before/">
+    <Project Path="LegacyApp.A/LegacyApp.A.csproj" />
+    <Project Path="LegacyApp.B/LegacyApp.B.csproj" />
+    <Project Path="LegacyApp.C/LegacyApp.C.csproj" />
+    <Project Path="LegacyApp.D/LegacyApp.D.csproj" />
+  </Folder>
+  <Folder Name="/After/">
+    <Project Path="Migrated.App.A/Migrated.App.A.csproj" />
+    <Project Path="Migrated.App.B/Migrated.App.B.csproj" />
+    <Project Path="Migrated.App.C/Migrated.App.C.csproj" />
+    <Project Path="Migrated.App.D/Migrated.App.D.csproj" />
+  </Folder>
+</Solution>
