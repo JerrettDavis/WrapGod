@@ -194,7 +194,7 @@ public sealed class CoverageFinalPushTests(ITestOutputHelper output) : TinyBddXu
     {
         var m1 = new MemberPlan("M", "method", "void", new List<ParameterPlan>(), false, false);
         var m2 = new MemberPlan("M", "method", "void", new List<ParameterPlan>(), false, false,
-            genericParameters: new List<string> { "T" });
+            genericParameters: new List<GenericTypeParameterPlan> { new("T", Array.Empty<string>()) });
 
         return Given("MemberPlans with different generic param counts", () => (m1, m2))
             .Then("not equal", pair => !pair.m1.Equals(pair.m2))

@@ -95,7 +95,8 @@ internal static class CompatibilityFilter
             }
         }
 
-        return new TypePlan(type.FullName, type.Name, type.Namespace, filteredMembers, type.IntroducedIn, type.RemovedIn);
+        return new TypePlan(type.FullName, type.Name, type.Namespace, filteredMembers,
+            isStatic: type.IsStatic, introducedIn: type.IntroducedIn, removedIn: type.RemovedIn);
     }
 
     /// <summary>

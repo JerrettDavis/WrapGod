@@ -1,0 +1,11 @@
+{
+  "outputNamespace": "Company.Assertions",
+  "types": [
+    { "sourceType": "Shouldly.ShouldBeTestExtensions", "include": true },
+    { "sourceType": "Shouldly.ShouldBeStringTestExtensions", "include": true },
+    { "sourceType": "Shouldly.ShouldBeBooleanExtensions", "include": true },
+    { "sourceType": "Shouldly.ShouldBeNullExtensions", "include": true },
+    { "sourceType": "Shouldly.ShouldBeEnumerableTestExtensions", "include": true },
+    { "sourceType": "Shouldly.Should", "include": true }
+  ]
+}
