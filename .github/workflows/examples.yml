@@ -53,6 +53,12 @@ jobs:
       - name: Build WrapGod.Examples
         run: dotnet build examples/WrapGod.Examples.slnx --nologo
 
+      - name: Test Serilog <-> NLog parity
+        run: dotnet test examples/migrations/serilog-nlog-bidirectional/ParityTests/ParityTests.csproj --nologo
+
+      - name: Test AutoMapper <-> Mapster parity
+        run: dotnet test examples/migrations/automapper-mapster-bidirectional/ParityTests/ParityTests.csproj --nologo
+
   nuget-version-matrix:
     name: nuget-version-matrix (${{ matrix.sample }})
     runs-on: ubuntu-latest
