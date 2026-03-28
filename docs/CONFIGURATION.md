@@ -86,6 +86,16 @@ public interface IHttpClientWrapper { }
 | `Include` | `bool` | Include this type in generation (default `true`). |
 | `TargetName` | `string?` | Rename the generated wrapper. |
 
+Source resolution for `[WrapType]` follows a deterministic discovery order:
+
+1. Convention match in `WrapGodPackage`
+2. Convention match in referenced packages/assemblies (first declared package reference wins)
+3. `@self` (the attributed type itself)
+4. Explicit metadata name from `sourceType`
+
+If no source can be found, WrapGod emits an actionable diagnostic with
+remediation hints.
+
 Can be applied to classes, interfaces, and structs.
 
 ### `[WrapMember]`
@@ -181,28 +191,41 @@ The `GenerationPlan` contains:
 
 ## Merge precedence
 
-When both JSON and attribute configuration exist for the same type or
-member, the `ConfigMergeEngine` merges them using a configurable
-precedence rule.
+WrapGod supports a deterministic precedence chain:
+
+1. Defaults
+2. Root JSON
+3. Project JSON
+4. Attributes
+5. Fluent
+
+Later layers always win.
 
 ```csharp
-using WrapGod.Abstractions.Config;
 using WrapGod.Manifest.Config;
 
-var result = ConfigMergeEngine.Merge(jsonConfig, attributeConfig, new ConfigMergeOptions
+var result = ConfigPrecedenceEngine.Merge(new ConfigSourceLayers
 {
-    HigherPrecedence = ConfigSource.Attributes  // default
+    Defaults = defaults,
+    RootJson = rootJson,
+    ProjectJson = projectJson,
+    Attributes = attributes,
+    Fluent = fluent
 });
 
 WrapGodConfig merged = result.Config;
 List<ConfigDiagnostic> conflicts = result.Diagnostics;
 ```
 
+For backward compatibility, `ConfigMergeEngine.Merge(json, attributes)`
+remains available for two-source merges.
+
 ### Precedence rules
 
-- **`ConfigSource.Attributes`** (default): attribute-defined values win
-  over JSON values when both are present.
-- **`ConfigSource.Json`**: JSON-defined values win.
+- Multi-source merges are deterministic and ordered.
+- Two-source merges still support:
+  - **`ConfigSource.Attributes`** (default): attribute values win.
+  - **`ConfigSource.Json`**: JSON values win.
 
 When a conflict is detected (both sources define a different value for the
 same setting), a `ConfigDiagnostic` is emitted:

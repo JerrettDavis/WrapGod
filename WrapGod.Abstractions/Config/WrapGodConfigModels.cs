@@ -39,8 +39,12 @@ public sealed class MemberConfig
 
 public enum ConfigSource
 {
+    Defaults,
+    RootJson,
+    ProjectJson,
     Json,
     Attributes,
+    Fluent,
 }
 
 public sealed class ConfigMergeResult
@@ -59,4 +63,40 @@ public sealed class ConfigDiagnostic
 public sealed class ConfigMergeOptions
 {
     public ConfigSource HigherPrecedence { get; set; } = ConfigSource.Attributes;
+}
+
+public sealed class ConfigPrecedenceOptions
+{
+    public IReadOnlyList<ConfigSource> SourceOrder { get; set; } =
+    [
+        ConfigSource.Defaults,
+        ConfigSource.RootJson,
+        ConfigSource.ProjectJson,
+        ConfigSource.Attributes,
+        ConfigSource.Fluent,
+    ];
+}
+
+public sealed class ConfigSourceLayers
+{
+    public WrapGodConfig? Defaults { get; set; }
+    public WrapGodConfig? RootJson { get; set; }
+    public WrapGodConfig? ProjectJson { get; set; }
+    public WrapGodConfig? Attributes { get; set; }
+    public WrapGodConfig? Fluent { get; set; }
+}
+
+public sealed class SourceDiscoveryInput
+{
+    public string? WrapGodPackage { get; set; }
+    public IReadOnlyList<string> PackageReferences { get; set; } = Array.Empty<string>();
+    public bool HasSelfSource { get; set; }
+    public string? ExplicitSource { get; set; }
+}
+
+public sealed class SourceDiscoveryResult
+{
+    public string? Source { get; set; }
+    public string Strategy { get; set; } = string.Empty;
+    public List<ConfigDiagnostic> Diagnostics { get; set; } = new();
 }
