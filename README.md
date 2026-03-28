@@ -15,6 +15,9 @@ WrapGod is a .NET platform for generating wrapper interfaces, facades, adapters,
 ## Quick start
 
 ```bash
+# Bootstrap baseline files in your repo
+wrap-god init --include-samples --include-ci
+
 # Install packages
 dotnet add package WrapGod.Extractor
 dotnet add package WrapGod.Generator
@@ -26,9 +29,27 @@ dotnet add package WrapGod.Generator
 See the [Quick Start Guide](docs/QUICKSTART.md) for a complete walkthrough
 covering extraction, configuration, generation, and migration.
 
+## `wrap-god init` bootstrap command
+
+Use `wrap-god init` to scaffold baseline files in an existing repository.
+
+```bash
+# Preview changes only
+wrap-god init --dry-run
+
+# Scaffold baseline + sample mapping seeds + CI starter workflow
+wrap-god init --include-samples --include-ci
+```
+
+Behavior:
+
+- **Idempotent by default**: existing files are never overwritten
+- **Safe to rerun**: reports created vs skipped files each run
+- **Dry-run support**: prints planned files without writing to disk
+
 ## CLI diagnostics gate and exit codes
 
-`wrap-god analyze` follows the RFC-0054 diagnostics gate policy:
+`wrap-god analyze` and `wrap-god doctor` follow the RFC-0054 diagnostics gate policy:
 
 - `0`: success (no effective errors)
 - `1`: command/runtime failure (bad input, deserialize/IO failure, exception)
@@ -40,6 +61,31 @@ Use `--warnings-as-errors` to promote warning diagnostics to a failing gate:
 ```bash
 wrap-god analyze manifest.wrapgod.json --warnings-as-errors
 ```
+
+## CLI doctor (setup and health validation)
+
+`wrap-god doctor` validates repository health in three areas:
+
+- SDK/tooling prerequisites (`dotnet --version`, `global.json` integrity)
+- Source/config and lockfile state (`*.wrapgod.json`, `wrapgod.lock.json`)
+- CI/workflow readiness (`.github/workflows` and build/test steps)
+
+```bash
+# Human-readable output
+wrap-god doctor --path .
+
+# CI-friendly output
+wrap-god doctor --path . --format json
+
+# Fail the gate on warnings
+wrap-god doctor --path . --warnings-as-errors
+```
+
+During the current rollout, doctor emits dependency-tagged warnings linked to
+[#123](https://github.com/JerrettDavis/WrapGod/issues/123) and
+[#124](https://github.com/JerrettDavis/WrapGod/issues/124) when source discovery
+and lockfile assumptions are not yet available.
+
 
 ## Solution structure
 

@@ -9,7 +9,19 @@ call sites with the built-in analyzers.
 - .NET 10 SDK (or later, per `global.json` rollForward policy)
 - The third-party assembly you want to wrap (e.g. `Vendor.Lib.dll`)
 
-## 1. Install packages
+## 1. Bootstrap baseline files (optional but recommended)
+
+```bash
+# Creates wrapgod.root.json, wrapgod.project.json, wrapgod-types.txt, and docs/wrapgod-init.md
+wrap-god init
+
+# Preview only
+wrap-god init --dry-run
+```
+
+The command is idempotent: existing files are not overwritten, so you can rerun it safely.
+
+## 2. Install packages
 
 Add the WrapGod packages to your project. All packages share a version and
 are published from this repository.
@@ -152,7 +164,7 @@ var plan = WrapGodConfiguration.Create()
     .Build();
 ```
 
-## 4. Generate wrappers
+## 5. Generate wrappers
 
 The source generator runs automatically during the build. It reads
 `*.wrapgod.json` manifest files included as **AdditionalFiles** in your
@@ -233,6 +245,21 @@ You can apply fixes one at a time or use **Fix All** (in your IDE or via
 ```bash
 # Apply all WrapGod code fixes across the solution
 dotnet format analyzers --diagnostics WG2001 WG2002
+```
+
+## 7. Validate environment health (`wrap-god doctor`)
+
+Before wiring into CI, run doctor locally to verify prerequisites and setup:
+
+```bash
+wrap-god doctor
+```
+
+Machine-readable modes are available for pipeline integration:
+
+```bash
+wrap-god doctor --format json
+wrap-god doctor --format sarif
 ```
 
 ## Next steps
