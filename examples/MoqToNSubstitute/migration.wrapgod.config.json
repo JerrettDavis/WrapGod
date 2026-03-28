@@ -30,9 +30,56 @@
       "notes": "NSubstitute chains Returns directly on the method call."
     },
     {
+      "description": "Setup with computed returns",
+      "source": "{mock}.Setup(x => x.{Method}({args})).Returns(({paramTypes}) => {expression})",
+      "target": "{mock}.{Method}({args}).Returns(ci => {expression})",
+      "safety": "guided",
+      "notes": "Moq passes matched args directly; NSubstitute uses CallInfo (ci.Arg<T>() or ci.ArgAt<T>(n))."
+    },
+    {
+      "description": "Setup with ReturnsAsync",
+      "source": "{mock}.Setup(x => x.{Method}({args})).ReturnsAsync({value})",
+      "target": "{mock}.{Method}({args}).Returns({value})",
+      "safety": "safe",
+      "notes": "NSubstitute wraps in Task automatically when the method returns Task<T>."
+    },
+    {
       "description": "Setup with throws",
       "source": "{mock}.Setup(x => x.{Method}({args})).Throws({exception})",
       "target": "{mock}.{Method}({args}).Throws({exception})",
+      "safety": "safe"
+    },
+    {
+      "description": "Setup with ThrowsAsync",
+      "source": "{mock}.Setup(x => x.{Method}({args})).ThrowsAsync({exception})",
+      "target": "{mock}.{Method}({args}).ThrowsAsync({exception})",
+      "safety": "safe",
+      "notes": "Requires NSubstitute.ExceptionExtensions using directive."
+    },
+    {
+      "description": "SetupSequence (sequential returns)",
+      "source": "{mock}.SetupSequence(x => x.{Method}({args})).Returns({v1}).Returns({v2})",
+      "target": "{mock}.{Method}({args}).Returns({v1}, {v2})",
+      "safety": "safe",
+      "notes": "NSubstitute supports multiple return values as params array in a single Returns call."
+    },
+    {
+      "description": "Setup with Callback",
+      "source": "{mock}.Setup(x => x.{Method}({args})).Callback<{T}>({action})",
+      "target": "{mock}.When(x => x.{Method}({args})).Do(ci => {action})",
+      "safety": "guided",
+      "notes": "NSubstitute uses When().Do() for void method callbacks. Access args via ci.Arg<T>() or ci.ArgAt<T>(n)."
+    },
+    {
+      "description": "Setup property get",
+      "source": "{mock}.Setup(x => x.{Property}).Returns({value})",
+      "target": "{mock}.{Property}.Returns({value})",
+      "safety": "safe"
+    },
+    {
+      "description": "Verify property set",
+      "source": "{mock}.VerifySet(x => x.{Property} = {value})",
+      "target": "{mock}.Received().{Property} = {value}",
       "safety": "safe"
     },
     {
@@ -73,11 +120,25 @@
       "safety": "safe"
     },
     {
-      "description": "Callback on setup",
-      "source": "{mock}.Setup(x => x.{Method}({args})).Callback({action})",
-      "target": "{mock}.{Method}({args}).Returns(x => { {action}; return default; })",
+      "description": "Argument matcher: range",
+      "source": "It.IsInRange<{T}>({from}, {to}, Range.Inclusive)",
+      "target": "Arg.Is<{T}>(x => x >= {from} && x <= {to})",
+      "safety": "safe",
+      "notes": "NSubstitute has no built-in range matcher; use predicate."
+    },
+    {
+      "description": "Out parameter: It.Ref<T>.IsAny",
+      "source": "It.Ref<{T}>.IsAny",
+      "target": "Arg.Any<{T}>()",
       "safety": "guided",
-      "notes": "NSubstitute callbacks are expressed via Returns lambda. Structural rewrite required."
+      "notes": "NSubstitute uses Arg.Any for out params; set via ci[index] = value in Returns lambda."
+    },
+    {
+      "description": "Event raising",
+      "source": "{mock}.Raise(x => x.{Event} += null, {args})",
+      "target": "{mock}.{Event} += Raise.EventWith({args})",
+      "safety": "safe",
+      "notes": "NSubstitute raises events by assigning Raise.EventWith to the event."
     },
     {
       "description": "MockBehavior.Strict",
