@@ -1,243 +1,296 @@
 # Quick Start Guide
 
-This guide walks you through the core WrapGod workflow: extracting an API
-manifest, configuring wrappers, generating code, and migrating existing
-call sites with the built-in analyzers.
+Get from zero to wrapped in under five minutes. Pick the path that fits
+your workflow -- all three produce the same result: your code talks to
+generated interfaces instead of raw vendor types, and library upgrades
+become version-number bumps.
 
 ## Prerequisites
 
-- .NET 10 SDK (or later, per `global.json` rollForward policy)
-- The third-party assembly you want to wrap (e.g. `Vendor.Lib.dll`)
+- .NET 10 SDK (or later)
+- A third-party library you want to wrap (we'll use [Shouldly](https://github.com/shouldly/shouldly) as the running example)
 
-## 1. Install packages
+---
 
-Add the WrapGod packages to your project. All packages share a version and
-are published from this repository.
+## Path A: Zero-Touch MSBuild (Recommended)
+
+The fastest path. Add packages, declare what to wrap, build. Done.
+
+### 1. Add WrapGod packages
 
 ```bash
-# Core manifest + extractor
-dotnet add package WrapGod.Manifest
-dotnet add package WrapGod.Extractor
-
-# Source generator (added as an analyzer)
 dotnet add package WrapGod.Generator
-
-# Analyzers + code fixes for migration
 dotnet add package WrapGod.Analyzers
-
-# Optional: fluent configuration DSL
-dotnet add package WrapGod.Fluent
-
-# Optional: attribute-based configuration
-dotnet add package WrapGod.Abstractions
+dotnet add package WrapGod.Targets
 ```
 
-## 2. Extract a manifest from an assembly
+### 2. Declare the package to wrap
 
-Use `AssemblyExtractor` to produce a JSON manifest describing the public
-API surface of a third-party assembly.
-
-```csharp
-using WrapGod.Extractor;
-using WrapGod.Manifest;
-
-// Single-version extraction
-ApiManifest manifest = AssemblyExtractor.Extract(@"path\to\Vendor.Lib.dll");
-
-// Serialize to JSON
-string json = ManifestSerializer.Serialize(manifest);
-File.WriteAllText("vendor-lib.wrapgod.json", json);
-```
-
-The manifest captures every public type, member, parameter, and generic
-constraint. See [MANIFEST.md](MANIFEST.md) for the full schema reference.
-
-### Multi-version extraction
-
-When you need to support multiple versions of the same library, extract
-each version and merge them into a single manifest with version presence
-metadata:
-
-```csharp
-using WrapGod.Extractor;
-
-var result = MultiVersionExtractor.Extract(new[]
-{
-    new MultiVersionExtractor.VersionInput("1.0.0", @"v1\Vendor.Lib.dll"),
-    new MultiVersionExtractor.VersionInput("2.0.0", @"v2\Vendor.Lib.dll"),
-});
-
-ApiManifest merged = result.MergedManifest;
-VersionDiff  diff  = result.Diff;
-```
-
-The merged manifest annotates each type and member with `presence` metadata
-(`introducedIn`, `removedIn`) so the generator knows which API elements
-are version-specific. The `VersionDiff` report lists added, removed, and
-changed members plus classified breaking changes.
-
-## 3. Configure wrappers
-
-WrapGod supports three configuration surfaces that can be used independently
-or combined (see [CONFIGURATION.md](CONFIGURATION.md) for full details):
-
-### JSON configuration
-
-Create a `wrapgod.config.json` alongside your project:
-
-```json
-{
-  "types": [
-    {
-      "sourceType": "Vendor.Lib.HttpClient",
-      "include": true,
-      "targetName": "IHttpClient",
-      "members": [
-        { "sourceMember": "SendAsync", "include": true, "targetName": "SendRequestAsync" },
-        { "sourceMember": "Dispose", "include": false }
-      ]
-    }
-  ]
-}
-```
-
-Load it at build time with:
-
-```csharp
-using WrapGod.Manifest.Config;
-
-WrapGodConfig config = JsonConfigLoader.LoadFromFile("wrapgod.config.json");
-```
-
-### Attribute-based configuration
-
-Annotate your wrapper contracts directly in C#:
-
-```csharp
-using WrapGod.Abstractions.Config;
-
-[WrapType("Vendor.Lib.HttpClient", TargetName = "IHttpClient")]
-public interface IHttpClientWrapper
-{
-    [WrapMember("SendAsync", TargetName = "SendRequestAsync")]
-    Task<Response> SendRequestAsync(Request request);
-}
-```
-
-Read attribute config with:
-
-```csharp
-WrapGodConfig attrConfig = AttributeConfigReader.ReadFromAssembly(typeof(IHttpClientWrapper).Assembly);
-```
-
-### Fluent DSL
-
-Build configuration programmatically:
-
-```csharp
-using WrapGod.Fluent;
-
-var plan = WrapGodConfiguration.Create()
-    .ForAssembly("Vendor.Lib")
-    .WrapType("Vendor.Lib.HttpClient")
-        .As("IHttpClient")
-        .WrapMethod("SendAsync").As("SendRequestAsync")
-        .WrapProperty("Timeout")
-        .ExcludeMember("Dispose")
-    .WrapType("Vendor.Lib.Logger")
-        .As("ILogger")
-        .WrapAllPublicMembers()
-    .MapType("Vendor.Lib.Config", "MyApp.Config")
-    .ExcludeType("Vendor.Lib.Internal*")
-    .Build();
-```
-
-## 4. Generate wrappers
-
-The source generator runs automatically during the build. It reads
-`*.wrapgod.json` manifest files included as **AdditionalFiles** in your
-project.
-
-### Project setup
-
-Add the manifest to your `.csproj`:
+Open your `.csproj` and add a `WrapGodPackage` item for the library you
+want to wrap:
 
 ```xml
-<ItemGroup>
-  <!-- The extracted manifest -->
-  <AdditionalFiles Include="vendor-lib.wrapgod.json" />
-</ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
 
-<ItemGroup>
-  <!-- Reference the generator -->
-  <PackageReference Include="WrapGod.Generator"
-                    OutputItemType="Analyzer"
-                    ReferenceOutputAssembly="false" />
-</ItemGroup>
+  <ItemGroup>
+    <!-- WrapGod packages -->
+    <PackageReference Include="WrapGod.Generator"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <PackageReference Include="WrapGod.Analyzers"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <PackageReference Include="WrapGod.Targets"
+                      Version="0.1.0-alpha"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The library to wrap -->
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <WrapGodPackage Include="Shouldly" />
+  </ItemGroup>
+</Project>
 ```
 
-Build the project:
+### 3. Build
 
 ```bash
 dotnet build
 ```
 
-The generator emits two files per wrapped type:
+That's it. Three MSBuild targets fire automatically:
 
-- `IWrapped{TypeName}.g.cs` -- the wrapper interface
-- `{TypeName}Facade.g.cs` -- a facade class that delegates to the original type
+| Target | What it does |
+|--------|--------------|
+| `WrapGodRestore` | Resolves the Shouldly NuGet package into a local cache |
+| `WrapGodExtract` | Reads the Shouldly DLL and produces `manifest.wrapgod.json` |
+| `WrapGodGenerate` | Registers the manifest as an `AdditionalFile` so the Roslyn source generator emits wrappers |
 
-Generated code lands in the `WrapGod.Generated` namespace.
+### 4. See what was generated
 
-## 5. Run analyzers to find direct usage
-
-The WrapGod analyzer package detects call sites that reference the
-original third-party type directly instead of the generated wrapper.
-
-### Mapping file
-
-Create a `*.wrapgod-types.txt` file listing the type mappings. Each line
-uses the format:
+After the build, look in your `obj/` directory:
 
 ```
-Vendor.Lib.HttpClient -> IWrappedHttpClient, HttpClientFacade
+obj/
+  generated/
+    WrapGod.Generator/
+      WrapGod.Generator.WrapGodIncrementalGenerator/
+        IWrappedShould.g.cs          # Wrapper interface
+        ShouldFacade.g.cs            # Facade that delegates to the real type
+        IWrappedShouldlyExtensions.g.cs
+        ShouldlyExtensionsFacade.g.cs
 ```
 
-Include it as an additional file:
+Each wrapped type gets two files:
+- **`IWrapped*.g.cs`** -- an interface your code programs against
+- **`*Facade.g.cs`** -- a concrete class that delegates every call to the
+  original Shouldly type
 
-```xml
-<ItemGroup>
-  <AdditionalFiles Include="vendor-lib.wrapgod-types.txt" />
-</ItemGroup>
+### 5. See the analyzer in action
+
+If your code uses Shouldly directly, you'll see warnings:
+
+```
+warning WG2001: Direct usage of 'Shouldly.Should' which has a generated
+               wrapper interface 'IWrappedShould'. Use the wrapper instead.
+warning WG2002: Direct method call on 'Shouldly.Should.Equal' which has a
+               generated facade 'ShouldFacade'. Use the facade instead.
 ```
 
-### Diagnostics
-
-| ID     | Severity | Description |
-|--------|----------|-------------|
-| WG2001 | Warning  | Direct usage of a type that has a generated wrapper interface |
-| WG2002 | Warning  | Direct method call on a type that has a generated facade |
-
-See [ANALYZERS.md](ANALYZERS.md) for the full diagnostics reference.
-
-## 6. Apply code fixes
-
-Both diagnostics ship with automatic code fixes:
-
-- **WG2001** -- replaces the type reference with the wrapper interface name
-- **WG2002** -- replaces the receiver expression with the facade type
-
-You can apply fixes one at a time or use **Fix All** (in your IDE or via
-`dotnet format`) to migrate an entire project in one pass.
+Fix them all at once:
 
 ```bash
-# Apply all WrapGod code fixes across the solution
 dotnet format analyzers --diagnostics WG2001 WG2002
 ```
 
-## Next steps
+Every `Shouldly.Should` reference is now `IWrappedShould`. Next time
+Shouldly ships a breaking change, you update the version number, rebuild,
+and the wrappers regenerate. Your code never notices.
 
-- [MANIFEST.md](MANIFEST.md) -- manifest format reference
-- [CONFIGURATION.md](CONFIGURATION.md) -- configuration guide (JSON, attributes, fluent, merge rules)
-- [COMPATIBILITY.md](COMPATIBILITY.md) -- compatibility modes (LCD, Targeted, Adaptive)
-- [ANALYZERS.md](ANALYZERS.md) -- analyzer diagnostics reference
+---
+
+## Path B: CLI Extraction + Build-Time Generation
+
+More control over the extraction step. Useful when you want to inspect or
+version-control the manifest before wiring it into the build.
+
+### 1. Install the CLI
+
+```bash
+dotnet tool install --global WrapGod.Cli
+```
+
+### 2. Extract a manifest
+
+```bash
+wrap-god extract --nuget Shouldly@4.3.0 -o shouldly.wrapgod.json
+```
+
+Output:
+
+```
+Extracting: Shouldly 4.3.0
+  Source: nuget.org
+  Framework: net10.0
+  Types: 12
+  Members: 87
+Written: shouldly.wrapgod.json (SHA-256: a1b2c3...)
+```
+
+The manifest is a JSON file describing every public type, method,
+property, and generic constraint in Shouldly's API surface. You can
+inspect it, diff it between versions, or check it into source control.
+
+### 3. Add the manifest to your project
+
+```xml
+<ItemGroup>
+  <!-- The extracted manifest -->
+  <AdditionalFiles Include="shouldly.wrapgod.json" />
+</ItemGroup>
+
+<ItemGroup>
+  <!-- Source generator + analyzers -->
+  <PackageReference Include="WrapGod.Generator"
+                    OutputItemType="Analyzer"
+                    ReferenceOutputAssembly="false" />
+  <PackageReference Include="WrapGod.Analyzers"
+                    OutputItemType="Analyzer"
+                    ReferenceOutputAssembly="false" />
+</ItemGroup>
+```
+
+### 4. Build and migrate
+
+```bash
+dotnet build
+```
+
+Same result as Path A -- interfaces and facades are generated, analyzers
+flag direct usage, code fixes rewrite your call sites.
+
+### 5. Multi-version extraction
+
+Need to support Shouldly 3.x and 4.x simultaneously? Extract both:
+
+```bash
+wrap-god extract --nuget Shouldly@3.0.0 --nuget Shouldly@4.3.0 -o shouldly.wrapgod.json
+```
+
+The CLI merges both versions into a single manifest with
+`introducedIn`/`removedIn` metadata on each member. The generator uses
+this to produce version-aware wrappers. See [COMPATIBILITY.md](COMPATIBILITY.md)
+for LCD, Targeted, and Adaptive modes.
+
+---
+
+## Path C: Programmatic API
+
+For advanced users who want to integrate extraction into custom tooling,
+CI pipelines, or code-generation workflows.
+
+### Extract
+
+```csharp
+using WrapGod.Extractor;
+using WrapGod.Manifest;
+
+// Extract from a DLL on disk
+ApiManifest manifest = AssemblyExtractor.Extract(@"path\to\Shouldly.dll");
+```
+
+### Serialize
+
+```csharp
+string json = ManifestSerializer.Serialize(manifest);
+File.WriteAllText("shouldly.wrapgod.json", json);
+```
+
+### Multi-version extract
+
+```csharp
+var result = MultiVersionExtractor.Extract(new[]
+{
+    new MultiVersionExtractor.VersionInput("3.0.0", @"v3\Shouldly.dll"),
+    new MultiVersionExtractor.VersionInput("4.3.0", @"v4\Shouldly.dll"),
+});
+
+ApiManifest merged = result.MergedManifest;
+VersionDiff diff = result.Diff; // Added, removed, changed members
+```
+
+### Configure with the Fluent DSL
+
+```csharp
+using WrapGod.Fluent;
+
+var plan = WrapGodConfiguration.Create()
+    .ForAssembly("Shouldly")
+    .WrapType("Shouldly.Should")
+        .As("IShouldAssertions")
+        .WrapAllPublicMembers()
+    .ExcludeType("Shouldly.Internal*")
+    .Build();
+```
+
+The manifest JSON and `GenerationPlan` are the same data structures used
+by the source generator and MSBuild targets -- the programmatic API gives
+you direct access to them.
+
+---
+
+## What Just Happened?
+
+Regardless of which path you chose, WrapGod executed the same four-stage
+pipeline:
+
+```
+1. EXTRACT        2. PLAN           3. GENERATE       4. ANALYZE + FIX
+   Assembly DLL      Merge configs     Emit source       Flag direct usage
+   ──────────►       ──────────►       ──────────►       ──────────►
+   ApiManifest       TypeMappingPlan   IWrapped*.g.cs    WG2001 / WG2002
+   (JSON)            GenerationPlan    *Facade.g.cs      Code-fix rewrites
+```
+
+**Stage 1 -- Extract.** WrapGod reads the public API surface of the
+target assembly using `MetadataLoadContext` (no code is executed). Every
+public type, member, parameter, and generic constraint is captured in a
+deterministic JSON manifest with a SHA-256 hash for drift detection.
+
+**Stage 2 -- Plan.** Configuration from JSON files, `[WrapType]`
+attributes, and the Fluent DSL is merged through `ConfigMergeEngine`.
+Conflicts are resolved by precedence rules and reported as diagnostics.
+The output is a `TypeMappingPlan` and `GenerationPlan` that describe
+exactly what to generate.
+
+**Stage 3 -- Generate.** The Roslyn incremental source generator reads
+the manifest from `AdditionalFiles` and emits `IWrapped*` interfaces and
+`*Facade` proxy classes. Generated code is partitioned per type, so only
+changed types trigger regeneration. Output lands in the
+`WrapGod.Generated` namespace.
+
+**Stage 4 -- Analyze + Fix.** The Roslyn analyzer scans your code for
+direct references to the original types (`WG2001`) and direct method
+calls (`WG2002`). Each diagnostic includes an automatic code fix that
+rewrites the reference to use the generated wrapper. Apply them all with
+`dotnet format` or one at a time in your IDE.
+
+The net effect: your application code depends only on generated
+interfaces. The vendor library is an implementation detail behind the
+facade. When the library changes, you update the version, rebuild, and
+the pipeline regenerates everything. Your code stays the same.
+
+---
+
+## Next Steps
+
+- [CONFIGURATION.md](CONFIGURATION.md) -- JSON, attribute, and Fluent DSL configuration
+- [COMPATIBILITY.md](COMPATIBILITY.md) -- LCD, Targeted, and Adaptive compatibility modes
+- [AUTOMATION.md](AUTOMATION.md) -- end-to-end automation for upgrades and library swaps
+- [ANALYZERS.md](ANALYZERS.md) -- full diagnostics reference (WG2001--WG6004)
+- [MSBUILD-INTEGRATION.md](MSBUILD-INTEGRATION.md) -- MSBuild targets deep dive
+- [MANIFEST.md](MANIFEST.md) -- manifest schema reference
