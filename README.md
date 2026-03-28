@@ -49,7 +49,7 @@ Then build:
 dotnet build  # wrappers generated automatically
 ```
 
-For the full walkthrough — extracting manifests, configuring rules, running analyzers — see the [Quick Start Guide](docs/QUICKSTART.md).
+For the full walkthrough — extracting manifests, configuring rules, running analyzers — see the [Quick Start Guide](docs/guide/quickstart.md).
 
 ## CLI
 
@@ -62,7 +62,7 @@ For the full walkthrough — extracting manifests, configuring rules, running an
 
 Install: `dotnet tool install -g WrapGod.Cli`
 
-See [CLI Reference](docs/CLI.md) for full usage and options.
+See [CLI Reference](docs/guide/cli.md) for full usage and options.
 
 ## The Pipeline
 
@@ -94,7 +94,7 @@ WrapGod works in four stages, all wired into your build automatically:
 | **Targeted** | Pinned to a single version's API surface | You target one specific vendor version |
 | **Adaptive** | Runtime version guards for members that differ between versions | Multi-version deployments where different services run different versions |
 
-See [Compatibility Modes](docs/COMPATIBILITY.md) for configuration details.
+See [Compatibility Modes](docs/guide/compatibility.md) for configuration details.
 
 ## Examples
 
@@ -117,16 +117,16 @@ See [examples/README.md](examples/README.md) for the full catalog.
 
 ## Documentation
 
-- [Quick Start Guide](docs/QUICKSTART.md) — end-to-end onboarding walkthrough
-- [CLI Reference](docs/CLI.md) — command-line tool usage and options
+- [Quick Start Guide](docs/guide/quickstart.md) — end-to-end onboarding walkthrough
+- [CLI Reference](docs/guide/cli.md) — command-line tool usage and options
 - [MSBuild Integration](docs/MSBUILD-INTEGRATION.md) — zero-touch build automation
-- [Manifest Format](docs/MANIFEST.md) — schema, type/member nodes, version metadata
-- [Configuration Guide](docs/CONFIGURATION.md) — JSON, attributes, fluent DSL, merge precedence
-- [Compatibility Modes](docs/COMPATIBILITY.md) — LCD, Targeted, and Adaptive modes
-- [Analyzer Diagnostics](docs/ANALYZERS.md) — WG2001, WG2002, code fixes, suppression
-- [Migration Playbook](docs/MIGRATION-PLAYBOOK.md) — strategy selection, authoring mappings, safety model
-- [Architecture](docs/ARCHITECTURE.md) — pipeline internals and design decisions
-- [Engineering](docs/ENGINEERING.md) — SDK, build conventions, contribution guidelines
+- [Manifest Format](docs/guide/manifest.md) — schema, type/member nodes, version metadata
+- [Configuration Guide](docs/guide/configuration.md) — JSON, attributes, fluent DSL, merge precedence
+- [Compatibility Modes](docs/guide/compatibility.md) — LCD, Targeted, and Adaptive modes
+- [Analyzer Diagnostics](docs/guide/analyzers.md) — WG2001, WG2002, code fixes, suppression
+- [Migration Playbook](docs/migration/playbook.md) — strategy selection, authoring mappings, safety model
+- [Architecture](docs/guide/architecture.md) — pipeline internals and design decisions
+- [Engineering](docs/engineering/engineering.md) — SDK, build conventions, contribution guidelines
 
 ## Solution Structure
 
@@ -146,7 +146,7 @@ See [examples/README.md](examples/README.md) for the full catalog.
 
 ## Contributing
 
-Contributions are welcome. See [ENGINEERING.md](docs/ENGINEERING.md) for build setup, coding conventions, and the test strategy. The project uses .NET 10 SDK and targets `net10.0`.
+Contributions are welcome. See [ENGINEERING.md](docs/engineering/engineering.md) for build setup, coding conventions, and the test strategy. The project uses .NET 10 SDK and targets `net10.0`.
 
 Open an issue first for anything beyond trivial fixes — it helps coordinate effort and avoids wasted work.
 

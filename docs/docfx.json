@@ -34,6 +34,7 @@
           "api/.manifest",
           "active/**",
           "ops/**",
+          "rfc/**",
           "PLAN.md",
           "WORK-BREAKDOWN.md"
         ]

@@ -10,7 +10,7 @@ public sealed class QualityMatrixTests(ITestOutputHelper output) : TinyBddXunitB
     [Scenario("quality matrix document exists")]
     [Fact]
     public Task QualityMatrixDocumentExists()
-        => Given("the quality matrix path", () => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../docs/QUALITY-MATRIX.md")))
+        => Given("the quality matrix path", () => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../docs/engineering/quality-matrix.md")))
             .Then("the file exists", File.Exists)
             .AssertPassed();
 }
