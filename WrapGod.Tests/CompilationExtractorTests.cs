@@ -170,7 +170,8 @@ namespace Widgets
             .Then("the emitter produces a valid interface", plan =>
             {
                 var interfaceSource = SourceEmitter.EmitInterface(plan);
-                return interfaceSource.Contains("public interface IWrappedWidget")
+                return interfaceSource != null
+                    && interfaceSource.Contains("public interface IWrappedWidget")
                     && interfaceSource.Contains("void Activate()")
                     && interfaceSource.Contains("IsActive");
             })
