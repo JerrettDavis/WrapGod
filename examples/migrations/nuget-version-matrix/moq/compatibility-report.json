@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0",
+  "package": {
+    "name": "Moq",
+    "versions": ["v4.10", "v4.16", "v4.20"]
+  },
+  "versionMatrix": {
+    "baseline": "v4.10",
+    "latest": "v4.20",
+    "intermediate": ["v4.16"]
+  },
+  "summary": {
+    "totalDeltas": 3,
+    "introducedMembers": 4,
+    "removedMembers": 0,
+    "changedMembers": 1
+  },
+  "deltas": [
+    {
+      "id": "delta-1",
+      "title": "Protected mocking type-safety",
+      "severity": "review",
+      "migrationRecommendation": "Use Protected().As<TAnalog>() when minimum supported version is >= 4.15; keep string-based fallback for LCD.",
+      "members": {
+        "introduced": [
+          {
+            "kind": "method",
+            "displayName": "IProtectedMock<T>.As<TAnalog>()",
+            "version": "v4.15"
+          }
+        ],
+        "removed": [],
+        "changed": []
+      }
+    },
+    {
+      "id": "delta-2",
+      "title": "Event subscription setup APIs",
+      "severity": "review",
+      "migrationRecommendation": "Gate SetupAdd/SetupRemove and VerifyAdd/VerifyRemove behind >= 4.13 in adaptive wrappers.",
+      "members": {
+        "introduced": [
+          {
+            "kind": "method",
+            "displayName": "Mock<T>.SetupAdd(...)",
+            "version": "v4.13"
+          },
+          {
+            "kind": "method",
+            "displayName": "Mock<T>.SetupRemove(...)",
+            "version": "v4.13"
+          }
+        ],
+        "removed": [],
+        "changed": []
+      }
+    },
+    {
+      "id": "delta-3",
+      "title": "Verifiable Times overload",
+      "severity": "safe",
+      "migrationRecommendation": "Expose Verifiable(Times) only for targeted v4.20+ strategy and omit from LCD.",
+      "members": {
+        "introduced": [
+          {
+            "kind": "method",
+            "displayName": "ISetup.Verifiable(Times)",
+            "version": "v4.20"
+          }
+        ],
+        "removed": [],
+        "changed": [
+          {
+            "kind": "method",
+            "displayName": "ISetup.Verifiable()",
+            "version": "v4.20",
+            "changeSummary": "New overload supports setup-time invocation count expectations."
+          }
+        ]
+      }
+    }
+  ]
+}

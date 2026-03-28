@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0",
+  "package": {
+    "name": "FluentAssertions",
+    "versions": ["v5", "v6", "v8"]
+  },
+  "versionMatrix": {
+    "baseline": "v5",
+    "latest": "v8",
+    "intermediate": ["v6"]
+  },
+  "summary": {
+    "totalDeltas": 3,
+    "introducedMembers": 2,
+    "removedMembers": 1,
+    "changedMembers": 2
+  },
+  "deltas": [
+    {
+      "id": "delta-1",
+      "title": "AssertionScope async behavior improvements",
+      "severity": "review",
+      "migrationRecommendation": "Prefer async-safe assertion scope usage and update helper wrappers when targeting v8.",
+      "members": {
+        "introduced": [
+          {
+            "kind": "method",
+            "displayName": "FluentAssertions.Execution.AssertionScope.DisposeAsync()",
+            "version": "v8"
+          }
+        ],
+        "removed": [],
+        "changed": [
+          {
+            "kind": "method",
+            "displayName": "FluentAssertions.Execution.AssertionScope.Dispose()",
+            "version": "v8",
+            "changeSummary": "Async disposal path introduced alongside sync disposal semantics."
+          }
+        ]
+      }
+    },
+    {
+      "id": "delta-2",
+      "title": "Collection assertion API tightening",
+      "severity": "breaking",
+      "migrationRecommendation": "Adjust wrappers to the stricter generic constraints and expose LCD-only overloads for cross-version compatibility.",
+      "members": {
+        "introduced": [],
+        "removed": [
+          {
+            "kind": "method",
+            "displayName": "GenericCollectionAssertions<T>.ContainSingle(Expression<Func<T, bool>>)",
+            "version": "v8"
+          }
+        ],
+        "changed": [
+          {
+            "kind": "method",
+            "displayName": "GenericCollectionAssertions<T>.ContainSingle(...)",
+            "version": "v6",
+            "changeSummary": "Signature and overload shape evolved between v5-v8."
+          }
+        ]
+      }
+    },
+    {
+      "id": "delta-3",
+      "title": "Equivalency options extension points",
+      "severity": "safe",
+      "migrationRecommendation": "Expose new extension points in targeted/adaptive strategy while keeping LCD subset stable.",
+      "members": {
+        "introduced": [
+          {
+            "kind": "method",
+            "displayName": "EquivalencyOptions<T>.UsingRuntimeTyping()",
+            "version": "v6"
+          }
+        ],
+        "removed": [],
+        "changed": []
+      }
+    }
+  ]
+}

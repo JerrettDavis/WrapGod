@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "package": {
+    "name": "Sample.Pkg",
+    "versions": ["v1", "v2"]
+  },
+  "versionMatrix": {
+    "baseline": "v1",
+    "latest": "v2"
+  },
+  "deltas": [
+    {
+      "id": "delta-1",
+      "title": "Missing recommendation field",
+      "severity": "review",
+      "members": {
+        "introduced": [],
+        "removed": [],
+        "changed": []
+      }
+    }
+  ]
+}
