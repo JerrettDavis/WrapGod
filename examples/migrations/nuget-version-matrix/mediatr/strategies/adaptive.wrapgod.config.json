@@ -1,0 +1,84 @@
+{
+  "strategyName": "adaptive",
+  "description": "Generates wrappers with compile-time version detection using preprocessor directives and runtime capability checks. Exposes maximum API for the detected version while maintaining backward compatibility.",
+  "sourceLibrary": "MediatR",
+  "versionRange": {
+    "minimum": "10.0.1",
+    "maximum": "12.2.0"
+  },
+  "strategy": "adaptive",
+  "versionTiers": [
+    {
+      "tier": "baseline",
+      "versionRange": ">=10.0.1",
+      "description": "Core CQRS: IRequest<TResponse>, IRequestHandler<TRequest, TResponse> with strict IRequest<TResponse> constraint, INotification, INotificationHandler, IPipelineBehavior with strict constraint, Unit-returning void handlers",
+      "preprocessorSymbol": "MEDIATR_V10",
+      "includes": [
+        "MediatR.IRequest`1",
+        "MediatR.IRequest",
+        "MediatR.IBaseRequest",
+        "MediatR.IRequestHandler`2",
+        "MediatR.IRequestHandler`1",
+        "MediatR.INotification",
+        "MediatR.INotificationHandler`1",
+        "MediatR.IPipelineBehavior`2",
+        "MediatR.IMediator",
+        "MediatR.ISender",
+        "MediatR.IPublisher",
+        "MediatR.Unit",
+        "MediatR.RequestHandlerDelegate`1",
+        "MediatR.IRequestPreProcessor`1",
+        "MediatR.IRequestPostProcessor`2"
+      ]
+    },
+    {
+      "tier": "streaming",
+      "versionRange": ">=10.0.1",
+      "description": "Streaming support: IStreamRequest<TResponse>, IStreamRequestHandler, IStreamPipelineBehavior, StreamHandlerDelegate. Available from v10 but with strict IStreamRequest<TResponse> constraints.",
+      "preprocessorSymbol": "MEDIATR_STREAMING",
+      "includes": [
+        "MediatR.IStreamRequest`1",
+        "MediatR.IStreamRequestHandler`2",
+        "MediatR.IStreamPipelineBehavior`2",
+        "MediatR.StreamHandlerDelegate`1"
+      ]
+    },
+    {
+      "tier": "relaxed-constraints",
+      "versionRange": ">=12.0.0",
+      "description": "Relaxed generic constraints: pipeline behaviors use 'notnull' instead of IRequest<TResponse>. Enables open-generic pipeline registrations that were blocked in v10/v11.",
+      "preprocessorSymbol": "MEDIATR_V12",
+      "constraintOverrides": {
+        "MediatR.IPipelineBehavior`2.TRequest": "notnull",
+        "MediatR.IStreamPipelineBehavior`2.TRequest": "notnull",
+        "MediatR.IStreamRequestHandler`2.TRequest": "notnull",
+        "MediatR.IRequestHandler`2.TRequest": "notnull",
+        "MediatR.IRequestPreProcessor`1.TRequest": "notnull",
+        "MediatR.IRequestPostProcessor`2.TRequest": "notnull"
+      }
+    },
+    {
+      "tier": "void-simplification",
+      "versionRange": ">=12.0.0",
+      "description": "Void handler simplification: IRequestHandler<TRequest> returns Task directly instead of Task<Unit>. IRequest no longer inherits IRequest<Unit>.",
+      "preprocessorSymbol": "MEDIATR_V12",
+      "returnTypeOverrides": {
+        "MediatR.IRequestHandler`1.Handle": "Task"
+      },
+      "hierarchyOverrides": {
+        "MediatR.IRequest": { "baseTypes": ["MediatR.IBaseRequest"] }
+      }
+    },
+    {
+      "tier": "notification-publishers",
+      "versionRange": ">=12.0.0",
+      "description": "Custom notification publishing: INotificationPublisher, NotificationHandlerExecutor for custom dispatch strategies.",
+      "preprocessorSymbol": "MEDIATR_V12",
+      "includes": [
+        "MediatR.INotificationPublisher",
+        "MediatR.NotificationHandlerExecutor"
+      ]
+    }
+  ],
+  "notes": "Adaptive strategy provides maximum API coverage per consumer. v10/v11 consumers get strict constraints and Unit-based void handlers. v12 consumers additionally get relaxed constraints, Task-returning void handlers, and custom notification publishers."
+}

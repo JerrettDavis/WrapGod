@@ -1,0 +1,336 @@
+{
+  "$schema": "../../../../../schemas/wrapgod.manifest.v1.schema.json",
+  "name": "MediatR",
+  "version": "10.0.1",
+  "description": "MediatR v10 API surface. Introduced streaming support (IStreamRequest), stricter generic constraints on pipeline behaviors, and moved contracts to MediatR.Contracts package.",
+  "types": [
+    {
+      "name": "MediatR.IRequest`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TResponse", "variance": "out" }
+      ],
+      "baseTypes": ["MediatR.IBaseRequest"],
+      "members": [],
+      "notes": "Marker interface for requests returning TResponse. In v10, IRequest (non-generic) inherits IRequest<Unit>."
+    },
+    {
+      "name": "MediatR.IRequest",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "baseTypes": ["MediatR.IRequest`1<Unit>"],
+      "members": [],
+      "notes": "Non-generic IRequest inherits IRequest<Unit> in v10. Handlers must return Task<Unit>."
+    },
+    {
+      "name": "MediatR.IBaseRequest",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": [],
+      "notes": "Root marker interface. Moved to MediatR.Contracts package in v10."
+    },
+    {
+      "name": "MediatR.IRequestHandler`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["IRequest<TResponse>"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "Task<TResponse>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "Two-generic-param handler. TRequest constrained to IRequest<TResponse> in v10 (stricter than v9)."
+    },
+    {
+      "name": "MediatR.IRequestHandler`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["IRequest<Unit>"] }
+      ],
+      "baseTypes": ["MediatR.IRequestHandler`2<TRequest, Unit>"],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "Task<Unit>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "Single-generic-param handler for void requests. Returns Task<Unit> in v10. Derives from IRequestHandler<TRequest, Unit>."
+    },
+    {
+      "name": "MediatR.INotification",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": [],
+      "notes": "Marker interface for notification messages. Unchanged across v10-v12."
+    },
+    {
+      "name": "MediatR.INotificationHandler`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TNotification", "variance": "in", "constraints": ["INotification"] }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "notification", "type": "TNotification" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MediatR.IPipelineBehavior`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["IRequest<TResponse>"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "Task<TResponse>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "next", "type": "RequestHandlerDelegate<TResponse>" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "Pipeline behavior with STRICT constraint: where TRequest : IRequest<TResponse>. This prevents open-generic registration patterns that worked in v9. CancellationToken is LAST parameter (changed from v9 where it was second)."
+    },
+    {
+      "name": "MediatR.IStreamRequest`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TResponse", "variance": "out" }
+      ],
+      "baseTypes": ["MediatR.IBaseRequest"],
+      "members": [],
+      "notes": "NEW in v10. Marker interface for streaming requests that return IAsyncEnumerable<TResponse>."
+    },
+    {
+      "name": "MediatR.IStreamRequestHandler`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["IStreamRequest<TResponse>"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "IAsyncEnumerable<TResponse>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "NEW in v10. Handler for streaming requests. TRequest constrained to IStreamRequest<TResponse>."
+    },
+    {
+      "name": "MediatR.IStreamPipelineBehavior`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["IStreamRequest<TResponse>"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "IAsyncEnumerable<TResponse>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "next", "type": "StreamHandlerDelegate<TResponse>" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "NEW in v10. Pipeline behavior for streaming requests. Same strict constraint pattern as IPipelineBehavior."
+    },
+    {
+      "name": "MediatR.IMediator",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "baseTypes": ["MediatR.ISender", "MediatR.IPublisher"],
+      "members": [],
+      "notes": "Combines ISender and IPublisher. Unchanged across v10-v12."
+    },
+    {
+      "name": "MediatR.ISender",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": [
+        {
+          "name": "Send",
+          "kind": "Method",
+          "returnType": "Task<TResponse>",
+          "genericParameters": [
+            { "name": "TResponse", "variance": "none" }
+          ],
+          "parameters": [
+            { "name": "request", "type": "IRequest<TResponse>" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        },
+        {
+          "name": "Send",
+          "kind": "Method",
+          "returnType": "Task<object?>",
+          "parameters": [
+            { "name": "request", "type": "object" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        },
+        {
+          "name": "CreateStream",
+          "kind": "Method",
+          "returnType": "IAsyncEnumerable<TResponse>",
+          "genericParameters": [
+            { "name": "TResponse", "variance": "none" }
+          ],
+          "parameters": [
+            { "name": "request", "type": "IStreamRequest<TResponse>" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        },
+        {
+          "name": "CreateStream",
+          "kind": "Method",
+          "returnType": "IAsyncEnumerable<object?>",
+          "parameters": [
+            { "name": "request", "type": "object" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "Request sender. CreateStream methods NEW in v10 for streaming support."
+    },
+    {
+      "name": "MediatR.IPublisher",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": [
+        {
+          "name": "Publish",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "notification", "type": "object" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        },
+        {
+          "name": "Publish",
+          "kind": "Method",
+          "returnType": "Task",
+          "genericParameters": [
+            { "name": "TNotification", "variance": "none", "constraints": ["INotification"] }
+          ],
+          "parameters": [
+            { "name": "notification", "type": "TNotification" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MediatR.Unit",
+      "namespace": "MediatR",
+      "kind": "Struct",
+      "members": [
+        { "name": "Value", "kind": "Property", "returnType": "Unit", "isStatic": true },
+        { "name": "Task", "kind": "Property", "returnType": "Task<Unit>", "isStatic": true }
+      ],
+      "notes": "Void-equivalent return type. IRequest (non-generic) handlers return Task<Unit> in v10. Idiomatic return: Unit.Value or Unit.Task."
+    },
+    {
+      "name": "MediatR.RequestHandlerDelegate`1",
+      "namespace": "MediatR",
+      "kind": "Delegate",
+      "genericParameters": [
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "returnType": "Task<TResponse>",
+      "members": [],
+      "notes": "Pipeline continuation delegate. Invoked as 'await next()' in pipeline behaviors."
+    },
+    {
+      "name": "MediatR.StreamHandlerDelegate`1",
+      "namespace": "MediatR",
+      "kind": "Delegate",
+      "genericParameters": [
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "returnType": "IAsyncEnumerable<TResponse>",
+      "members": [],
+      "notes": "NEW in v10. Stream pipeline continuation delegate."
+    },
+    {
+      "name": "MediatR.IRequestPreProcessor`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["IBaseRequest"] }
+      ],
+      "members": [
+        {
+          "name": "Process",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MediatR.IRequestPostProcessor`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["IBaseRequest"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Process",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "response", "type": "TResponse" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ]
+    }
+  ]
+}

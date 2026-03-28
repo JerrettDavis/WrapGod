@@ -1,0 +1,46 @@
+{
+  "strategyName": "targeted-v12",
+  "description": "Generates wrappers targeting MediatR v12. Full API surface with relaxed generic constraints, Task-returning void handlers, and custom notification publishers. Best for greenfield projects or teams standardized on MediatR 12.x.",
+  "sourceLibrary": "MediatR",
+  "versionRange": {
+    "minimum": "12.0.0",
+    "maximum": "12.2.0"
+  },
+  "strategy": "full",
+  "rules": [
+    {
+      "description": "Include INotificationPublisher for custom publishing strategies",
+      "action": "include",
+      "target": "MediatR.INotificationPublisher",
+      "reason": "v12 custom notification publisher enables parallel, sequential, and fire-and-forget notification dispatch."
+    },
+    {
+      "description": "Include NotificationHandlerExecutor",
+      "action": "include",
+      "target": "MediatR.NotificationHandlerExecutor",
+      "reason": "Required companion type for INotificationPublisher implementations."
+    },
+    {
+      "description": "Use relaxed 'notnull' constraint on pipeline behaviors",
+      "action": "constrain",
+      "target": "MediatR.IPipelineBehavior`2",
+      "genericParameter": "TRequest",
+      "constraint": "notnull",
+      "reason": "v12 relaxed from IRequest<TResponse> to notnull. Enables open-generic pipeline registrations."
+    },
+    {
+      "description": "Void handlers return Task directly",
+      "action": "normalize",
+      "target": "MediatR.IRequestHandler`1",
+      "returnType": "Task",
+      "reason": "v12 void handlers return Task, not Task<Unit>. Cleaner API -- no Unit.Value/Unit.Task ceremony."
+    },
+    {
+      "description": "Include all streaming types",
+      "action": "include",
+      "target": "MediatR.IStreamRequest`1",
+      "reason": "Full streaming support with relaxed constraints."
+    }
+  ],
+  "notes": "Targeted v12 wrappers require MediatR >= 12.0.0. Provides the cleanest API surface with relaxed constraints and modern patterns. NOT backward-compatible with v10/v11."
+}
