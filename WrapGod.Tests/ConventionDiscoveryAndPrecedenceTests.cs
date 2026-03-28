@@ -22,6 +22,20 @@ public sealed class ConventionDiscoveryAndPrecedenceTests
     }
 
     [Fact]
+    public void SourceDiscovery_PackageReferences_UseDeclarationOrder()
+    {
+        var result = SourceDiscoveryEngine.Discover(new SourceDiscoveryInput
+        {
+            PackageReferences = ["Vendor.Secondary", "Vendor.Primary"],
+            HasSelfSource = true,
+            ExplicitSource = "Vendor.Explicit"
+        });
+
+        Assert.Equal("Vendor.Secondary", result.Source);
+        Assert.Equal("PackageReference", result.Strategy);
+    }
+
+    [Fact]
     public void SourceDiscovery_NoSource_EmitsActionableDiagnostic()
     {
         var result = SourceDiscoveryEngine.Discover(new SourceDiscoveryInput());
