@@ -10,6 +10,8 @@ namespace WrapGod.Tests;
 public sealed class CliTests(ITestOutputHelper output) : TinyBddXunitBase(output)
 {
     // Path to the solution root (repo root)
+    // AppContext.BaseDirectory = .../WrapGod.Tests/bin/Release/net10.0/
+    // Go up 4 levels: net10.0 → Release → bin → WrapGod.Tests → WrapGod (repo root)
     private static readonly string RepoRoot = Path.GetFullPath(
         Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
@@ -17,11 +19,14 @@ public sealed class CliTests(ITestOutputHelper output) : TinyBddXunitBase(output
         RepoRoot, "WrapGod.Cli", "bin", "Release", "net10.0", "WrapGod.Cli.dll");
 
     private static readonly string RuntimeDll = Path.Combine(
-        RepoRoot, "WrapGod.Runtime", "bin", "Release", "net10.0", "WrapGod.Runtime.dll");
+        RepoRoot, "WrapGod.Runtime", "bin", "Release", "netstandard2.0", "WrapGod.Runtime.dll");
 
     private static (int ExitCode, string StdOut, string StdErr) RunCli(
         string args, string? workingDir = null)
     {
+        if (!File.Exists(CliDll))
+            return (-1, "", $"CLI DLL not found: {CliDll}");
+
         var psi = new ProcessStartInfo("dotnet", $"\"{CliDll}\" {args}")
         {
             RedirectStandardOutput = true,
@@ -34,7 +39,7 @@ public sealed class CliTests(ITestOutputHelper output) : TinyBddXunitBase(output
         using var process = Process.Start(psi)!;
         var stdout = process.StandardOutput.ReadToEnd();
         var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
+        process.WaitForExit(30_000);
         return (process.ExitCode, stdout, stderr);
     }
 
