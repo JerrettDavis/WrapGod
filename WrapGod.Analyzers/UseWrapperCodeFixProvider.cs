@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -10,6 +12,7 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using WrapGod.Manifest.Config;
 
 namespace WrapGod.Analyzers;
 
@@ -44,6 +47,9 @@ public sealed class UseWrapperCodeFixProvider : CodeFixProvider
         if (root is null)
             return;
 
+        // Load migration policy from config to respect policy before offering fixes
+        var policy = LoadMigrationPolicy(context.Document.Project);
+
         foreach (var diagnostic in context.Diagnostics)
         {
             var span = diagnostic.Location.SourceSpan;
@@ -51,10 +57,16 @@ public sealed class UseWrapperCodeFixProvider : CodeFixProvider
 
             if (diagnostic.Id == "WG2001")
             {
+                var risk = ClassifyTypeReplacementRisk(node);
+                if (!MigrationPolicyEvaluator.ShouldOfferFix(policy, risk))
+                    continue;
                 RegisterTypeReplacementFix(context, diagnostic, root, node);
             }
             else if (diagnostic.Id == "WG2002")
             {
+                var risk = ClassifyMethodReplacementRisk(node);
+                if (!MigrationPolicyEvaluator.ShouldOfferFix(policy, risk))
+                    continue;
                 RegisterMethodReplacementFix(context, diagnostic, root, node);
             }
         }
@@ -155,6 +167,82 @@ public sealed class UseWrapperCodeFixProvider : CodeFixProvider
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
+
+    // ── Migration policy ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Loads the migration policy from the project's additional config files.
+    /// Defaults to <see cref="MigrationPolicyMode.Safe"/> if no config is found.
+    /// </summary>
+    private static MigrationPolicyMode LoadMigrationPolicy(Project project)
+    {
+        foreach (var doc in project.AdditionalDocuments)
+        {
+            var path = doc.FilePath;
+            if (path is null || !path.EndsWith(".wrapgod.config.json", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            try
+            {
+                var text = doc.GetTextAsync().Result;
+                if (text is null)
+                    continue;
+
+                using var jsonDoc = JsonDocument.Parse(text.ToString());
+                var root = jsonDoc.RootElement;
+
+                if (root.TryGetProperty("migrationPolicy", out var policyProp) ||
+                    root.TryGetProperty("MigrationPolicy", out policyProp))
+                {
+                    var value = policyProp.GetString();
+                    if (string.Equals(value, "assisted", StringComparison.OrdinalIgnoreCase))
+                        return MigrationPolicyMode.Assisted;
+                    if (string.Equals(value, "aggressive", StringComparison.OrdinalIgnoreCase))
+                        return MigrationPolicyMode.Aggressive;
+                }
+            }
+            catch
+            {
+                // Malformed config -- fall through to default
+            }
+        }
+
+        return MigrationPolicyMode.Safe;
+    }
+
+    /// <summary>
+    /// Classifies the risk level of a type replacement fix based on the syntax context.
+    /// </summary>
+    private static FixRiskLevel ClassifyTypeReplacementRisk(SyntaxNode node)
+    {
+        // typeof(T) or reflection patterns are risky
+        if (node.Parent is TypeOfExpressionSyntax)
+            return FixRiskLevel.Risky;
+
+        // Base type / interface implementation is assisted-level
+        if (node.Parent is BaseTypeSyntax)
+            return FixRiskLevel.Assisted;
+
+        // Generic constraints are assisted-level
+        if (node.Parent is TypeConstraintSyntax)
+            return FixRiskLevel.Assisted;
+
+        return FixRiskLevel.Safe;
+    }
+
+    /// <summary>
+    /// Classifies the risk level of a method replacement fix based on the syntax context.
+    /// </summary>
+    private static FixRiskLevel ClassifyMethodReplacementRisk(SyntaxNode node)
+    {
+        // If the member access is inside a nameof(), it's risky
+        if (node.Ancestors().OfType<InvocationExpressionSyntax>().Any(inv =>
+                inv.Expression is IdentifierNameSyntax id && id.Identifier.Text == "nameof"))
+            return FixRiskLevel.Risky;
+
+        // Default method calls are safe
+        return FixRiskLevel.Safe;
+    }
 
     /// <summary>
     /// Extracts a single-quoted argument from the diagnostic message by index.

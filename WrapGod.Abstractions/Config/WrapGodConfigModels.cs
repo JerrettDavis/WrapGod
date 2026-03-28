@@ -6,6 +6,12 @@ namespace WrapGod.Abstractions.Config;
 public sealed class WrapGodConfig
 {
     public List<TypeConfig> Types { get; set; } = new();
+
+    /// <summary>
+    /// Migration policy mode controlling how aggressive code fixes are.
+    /// Defaults to <c>"safe"</c>. Valid values: <c>"safe"</c>, <c>"assisted"</c>, <c>"aggressive"</c>.
+    /// </summary>
+    public string? MigrationPolicy { get; set; }
 }
 
 public sealed class TypeConfig
