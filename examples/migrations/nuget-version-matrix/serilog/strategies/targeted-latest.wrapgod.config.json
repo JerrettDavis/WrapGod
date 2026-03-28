@@ -1,9 +1,9 @@
 {
   "strategyName": "Targeted-Latest",
   "description": "Generate wrapper APIs targeting Serilog v4.x, leveraging all modern features including batched sinks, OpenTelemetry trace IDs, and case-insensitive level overrides.",
-  "sourcePackage": "Serilog",
+  "sourceLibrary": "Serilog",
   "targetVersionRange": ">=4.0.0 <5.0.0",
-  "approach": "targeted-latest",
+  "strategy": "targeted-latest",
   "mappings": [
     {
       "description": "Static Log.Information",

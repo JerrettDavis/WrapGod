@@ -6,7 +6,7 @@
     "minimum": "4.10.1",
     "maximum": "4.20.72"
   },
-  "behavior": "adaptive",
+  "strategy": "adaptive",
   "versionTiers": [
     {
       "tier": "baseline",

@@ -6,7 +6,7 @@
     "minimum": "4.20.0",
     "maximum": "4.20.72"
   },
-  "behavior": "full",
+  "strategy": "full",
   "rules": [
     {
       "description": "Include all v4.20 features",

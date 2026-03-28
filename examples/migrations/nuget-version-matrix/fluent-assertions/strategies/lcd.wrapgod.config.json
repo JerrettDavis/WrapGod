@@ -1,5 +1,5 @@
 {
-  "migrationName": "FluentAssertions-LCD",
+  "strategyName": "FluentAssertions-LCD",
   "description": "Lowest-common-denominator strategy: generates wrappers using only API surface common to FluentAssertions v5, v6, and v8.",
   "sourceLibrary": "FluentAssertions",
   "strategy": "lowest-common-denominator",

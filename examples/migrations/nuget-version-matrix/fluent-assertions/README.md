@@ -45,7 +45,7 @@ Each manifest captures the real FluentAssertions API surface for its major versi
 | `AssertionScope` | Constructor, BecauseOf | CallerIdentity property added | Same as v6 |
 | `AssertionChain` | N/A | N/A | New: GetOrCreate, BecauseOf |
 
-The `presence` field on types and members tracks when APIs were introduced, removed, or changed using `introducedIn`, `removedIn`, and `changedIn`.
+Version-tracking information (when APIs were introduced, removed, or changed) is documented in `diff-report.md`, not in the manifests themselves.
 
 ## Migration strategies
 

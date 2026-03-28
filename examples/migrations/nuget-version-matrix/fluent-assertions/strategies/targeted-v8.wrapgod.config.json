@@ -1,5 +1,5 @@
 {
-  "migrationName": "FluentAssertions-TargetV8",
+  "strategyName": "FluentAssertions-TargetV8",
   "description": "Targeted strategy: generates wrappers that map the full v8 API surface, enabling migration from v5 or v6 to v8.",
   "sourceLibrary": "FluentAssertions",
   "strategy": "targeted",

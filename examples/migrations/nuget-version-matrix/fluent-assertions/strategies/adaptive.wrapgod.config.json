@@ -1,5 +1,5 @@
 {
-  "migrationName": "FluentAssertions-Adaptive",
+  "strategyName": "FluentAssertions-Adaptive",
   "description": "Adaptive strategy: generates wrappers with runtime version detection that branch to the correct API surface based on the loaded FluentAssertions assembly version.",
   "sourceLibrary": "FluentAssertions",
   "strategy": "adaptive",

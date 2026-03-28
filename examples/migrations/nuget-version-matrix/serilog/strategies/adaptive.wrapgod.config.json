@@ -1,9 +1,9 @@
 {
   "strategyName": "Adaptive",
   "description": "Generate wrapper APIs that detect the installed Serilog version at runtime and adapt behavior accordingly. Uses compile-time #if directives for framework-dependent features and runtime checks for optional APIs.",
-  "sourcePackage": "Serilog",
+  "sourceLibrary": "Serilog",
   "targetVersionRange": ">=2.12.0 <5.0.0",
-  "approach": "adaptive",
+  "strategy": "adaptive",
   "compilationSymbols": {
     "SERILOG_V2": "Serilog >=2.0.0 <3.0.0",
     "SERILOG_V3": "Serilog >=3.0.0 <4.0.0",
