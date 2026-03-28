@@ -11,21 +11,22 @@ public sealed class NuGetExtractorTests(ITestOutputHelper output) : TinyBddXunit
 {
     // ── Helpers ──────────────────────────────────────────────────────
 
-    private static readonly string TestCacheRoot =
+    // Instance-level cache root so each test method gets an isolated directory.
+    private readonly string _testCacheRoot =
         Path.Combine(Path.GetTempPath(), "wrapgod-test-cache", Guid.NewGuid().ToString("N"));
 
     private static readonly byte[] MzHeaderStub = [0x4D, 0x5A];
     private static readonly string[] MockTfms = ["netstandard2.0", "netstandard2.1", "net8.0"];
 
-    private static NuGetPackageResolver CreateResolver() => new(TestCacheRoot);
+    private NuGetPackageResolver CreateResolver() => new(_testCacheRoot);
 
-    private static Task<string> ResolveNewtonsoftJson()
+    private Task<string> ResolveNewtonsoftJson()
     {
         var resolver = CreateResolver();
         return resolver.ResolveAsync("Newtonsoft.Json", "13.0.3");
     }
 
-    private static Task<ApiManifest> ExtractNewtonsoftJson()
+    private Task<ApiManifest> ExtractNewtonsoftJson()
     {
         var resolver = CreateResolver();
         var extractor = new NuGetExtractor(resolver);
