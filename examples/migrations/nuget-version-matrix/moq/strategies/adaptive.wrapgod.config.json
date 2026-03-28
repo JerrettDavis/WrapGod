@@ -1,0 +1,89 @@
+{
+  "strategyName": "adaptive",
+  "description": "Generates wrappers with compile-time version detection using preprocessor directives or runtime capability checks. Exposes maximum API per detected version while maintaining backward compatibility.",
+  "sourceLibrary": "Moq",
+  "versionRange": {
+    "minimum": "4.10.1",
+    "maximum": "4.20.72"
+  },
+  "behavior": "adaptive",
+  "versionTiers": [
+    {
+      "tier": "baseline",
+      "versionRange": ">=4.10.1",
+      "description": "Core mocking: Mock<T>, Setup, Verify, It matchers, MockBehavior, string-based protected mocking, sequential result setup",
+      "features": [
+        "Moq.Mock`1.Setup",
+        "Moq.Mock`1.Verify",
+        "Moq.Mock`1.SetupSequence(Expression<Func<T,TResult>>)",
+        "Moq.It.*",
+        "Moq.Times.*",
+        "Moq.MockBehavior.*",
+        "Moq.MockRepository.Create",
+        "Moq.IProtectedMock`1.Setup(string, object[])"
+      ]
+    },
+    {
+      "tier": "enhanced",
+      "versionRange": ">=4.13.0",
+      "description": "Event subscription mocking, void sequential setup, protected property setup",
+      "features": [
+        "Moq.Mock`1.SetupAdd",
+        "Moq.Mock`1.SetupRemove",
+        "Moq.Mock`1.VerifyAdd",
+        "Moq.Mock`1.VerifyRemove",
+        "Moq.Language.Flow.ISetupSequentialAction",
+        "Moq.IProtectedMock`1.SetupGet",
+        "Moq.IProtectedMock`1.SetupSet"
+      ]
+    },
+    {
+      "tier": "typesafe",
+      "versionRange": ">=4.15.0",
+      "description": "Type-safe protected mocking via analog interface, diagnostic switches",
+      "features": [
+        "Moq.IProtectedAsMock`2.Setup",
+        "Moq.IProtectedAsMock`2.Verify",
+        "Moq.Switches"
+      ]
+    },
+    {
+      "tier": "introspection",
+      "versionRange": ">=4.17.0",
+      "description": "Mock introspection: invocation list, setup list",
+      "features": [
+        "Moq.Mock`1.Invocations",
+        "Moq.Mock`1.Setups",
+        "Moq.IInvocationList"
+      ]
+    },
+    {
+      "tier": "modern",
+      "versionRange": ">=4.18.0",
+      "description": "Protected property mocking via analog, CallBase in sequences",
+      "features": [
+        "Moq.IProtectedAsMock`2.SetupGet",
+        "Moq.IProtectedAsMock`2.SetupSet",
+        "Moq.IProtectedAsMock`2.VerifyGet",
+        "Moq.IProtectedAsMock`2.VerifySet",
+        "Moq.Language.Flow.ISetupSequentialResult`1.CallBase"
+      ]
+    },
+    {
+      "tier": "latest",
+      "versionRange": ">=4.20.0",
+      "description": "Verifiable(Times), async event raising",
+      "features": [
+        "Moq.Language.Flow.ISetup`1.Verifiable(Times)",
+        "Moq.Mock`1.RaiseAsync"
+      ]
+    }
+  ],
+  "adaptiveStrategy": {
+    "detection": "compiletime",
+    "method": "Preprocessor directives using MOQ_V4_13, MOQ_V4_15, MOQ_V4_17, MOQ_V4_18, MOQ_V4_20 symbols. Define symbols via MSBuild based on resolved Moq package version.",
+    "fallback": "When a tier feature is unavailable, the wrapper omits the corresponding method rather than throwing NotSupportedException. Consumers see only the API their Moq version supports.",
+    "example": "#if MOQ_V4_20\n    public Task RaiseAsync(...) => _mock.RaiseAsync(...);\n#endif"
+  },
+  "notes": "Adaptive strategy is ideal for library authors or shared test infrastructure that must support multiple Moq versions across different consuming projects. Build complexity is higher but provides maximum API coverage per consumer."
+}

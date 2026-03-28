@@ -1,0 +1,51 @@
+{
+  "strategyName": "targeted-v4.20",
+  "description": "Generates wrappers targeting Moq v4.20 specifically. Full API surface with all modern features. Best for greenfield projects or teams that have standardized on latest Moq 4.x.",
+  "sourceLibrary": "Moq",
+  "versionRange": {
+    "minimum": "4.20.0",
+    "maximum": "4.20.72"
+  },
+  "behavior": "full",
+  "rules": [
+    {
+      "description": "Include all v4.20 features",
+      "action": "include",
+      "target": "*",
+      "reason": "Targeted strategy uses the complete API surface of the specified version."
+    },
+    {
+      "description": "Prefer type-safe protected mocking",
+      "action": "prefer",
+      "target": "Moq.IProtectedAsMock`2",
+      "over": "Moq.IProtectedMock`1.Setup(string, object[])",
+      "reason": "Protected().As<TAnalog>() provides compile-time safety over string-based Setup. Wrapper should expose the type-safe variant as the primary API."
+    },
+    {
+      "description": "Include Verifiable(Times) overloads",
+      "action": "include",
+      "target": "Moq.Language.Flow.ISetup`1.Verifiable(Times)",
+      "reason": "v4.20 feature allowing times specification at setup rather than at verify. Simplifies strict mock patterns."
+    },
+    {
+      "description": "Include RaiseAsync for async event testing",
+      "action": "include",
+      "target": "Moq.Mock`1.RaiseAsync",
+      "reason": "v4.20 feature for raising async events. Essential for testing async event handlers."
+    },
+    {
+      "description": "Include invocation/setup introspection",
+      "action": "include",
+      "target": "Moq.Mock`1.Invocations",
+      "reason": "Exposes recorded invocations for custom verification scenarios and diagnostics."
+    },
+    {
+      "description": "Full Callback arity up to 16 parameters",
+      "action": "include",
+      "target": "Moq.Language.Flow.ISetup`1.Callback",
+      "maxGenericArity": 16,
+      "reason": "v4.16+ supports Callback with up to 16 generic parameters."
+    }
+  ],
+  "notes": "Targeted v4.20 wrappers require Moq >= 4.20.0. This is the recommended strategy for new projects. Provides complete API coverage including async event raising, invocation introspection, and type-safe protected member mocking."
+}

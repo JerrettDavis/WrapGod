@@ -1,0 +1,170 @@
+{
+  "$schema": "../../../../../schemas/wrapgod.manifest.v1.schema.json",
+  "name": "Moq",
+  "version": "4.16.1",
+  "description": "Moq v4.16 API surface. Adds generic protected member mocking via As<T>(), improved SetupSequence, and Callback arity expansion to 16 parameters.",
+  "types": [
+    {
+      "name": "Moq.Mock`1",
+      "namespace": "Moq",
+      "kind": "Class",
+      "genericParameters": ["T"],
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [] },
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "behavior", "type": "MockBehavior" }] },
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "args", "type": "object[]" }] },
+        { "name": "Object", "kind": "Property", "returnType": "T" },
+        { "name": "Behavior", "kind": "Property", "returnType": "MockBehavior" },
+        { "name": "CallBase", "kind": "Property", "returnType": "bool" },
+        { "name": "DefaultValue", "kind": "Property", "returnType": "DefaultValue" },
+        { "name": "DefaultValueProvider", "kind": "Property", "returnType": "DefaultValueProvider", "presence": { "introducedIn": "4.11.0" } },
+        { "name": "Switches", "kind": "Property", "returnType": "Switches", "presence": { "introducedIn": "4.15.0" } },
+        { "name": "Setup", "kind": "Method", "returnType": "ISetup<T>", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }] },
+        { "name": "Setup", "kind": "Method", "returnType": "ISetup<T, TResult>", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TResult>>" }] },
+        { "name": "SetupGet", "kind": "Method", "returnType": "ISetupGetter<T, TProperty>", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TProperty>>" }] },
+        { "name": "SetupSet", "kind": "Method", "returnType": "ISetupSetter<T>", "parameters": [{ "name": "setterExpression", "type": "Action<T>" }] },
+        { "name": "SetupAdd", "kind": "Method", "returnType": "ISetup<T>", "parameters": [{ "name": "addExpression", "type": "Action<T>" }], "presence": { "introducedIn": "4.13.0" } },
+        { "name": "SetupRemove", "kind": "Method", "returnType": "ISetup<T>", "parameters": [{ "name": "removeExpression", "type": "Action<T>" }], "presence": { "introducedIn": "4.13.0" } },
+        { "name": "SetupSequence", "kind": "Method", "returnType": "ISetupSequentialResult<TResult>", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TResult>>" }] },
+        { "name": "SetupSequence", "kind": "Method", "returnType": "ISetupSequentialAction", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }], "presence": { "introducedIn": "4.12.0" } },
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }] },
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }, { "name": "times", "type": "Times" }] },
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }, { "name": "times", "type": "Times" }, { "name": "failMessage", "type": "string" }] },
+        { "name": "VerifyGet", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TProperty>>" }] },
+        { "name": "VerifyGet", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TProperty>>" }, { "name": "times", "type": "Times" }] },
+        { "name": "VerifySet", "kind": "Method", "returnType": "void", "parameters": [{ "name": "setterExpression", "type": "Action<T>" }] },
+        { "name": "VerifySet", "kind": "Method", "returnType": "void", "parameters": [{ "name": "setterExpression", "type": "Action<T>" }, { "name": "times", "type": "Times" }] },
+        { "name": "VerifyAdd", "kind": "Method", "returnType": "void", "parameters": [{ "name": "addExpression", "type": "Action<T>" }], "presence": { "introducedIn": "4.13.0" } },
+        { "name": "VerifyRemove", "kind": "Method", "returnType": "void", "parameters": [{ "name": "removeExpression", "type": "Action<T>" }], "presence": { "introducedIn": "4.13.0" } },
+        { "name": "VerifyAll", "kind": "Method", "returnType": "void", "parameters": [] },
+        { "name": "VerifyNoOtherCalls", "kind": "Method", "returnType": "void", "parameters": [] },
+        { "name": "Raise", "kind": "Method", "returnType": "void", "parameters": [{ "name": "eventExpression", "type": "Action<T>" }, { "name": "args", "type": "EventArgs" }] },
+        { "name": "SetupAllProperties", "kind": "Method", "returnType": "Mock<T>", "parameters": [] },
+        { "name": "As", "kind": "Method", "returnType": "Mock<TInterface>", "parameters": [] },
+        { "name": "Protected", "kind": "Method", "returnType": "IProtectedMock<T>", "parameters": [] }
+      ]
+    },
+    {
+      "name": "Moq.Language.Flow.ISetup`1",
+      "namespace": "Moq.Language.Flow",
+      "kind": "Interface",
+      "members": [
+        { "name": "Returns", "kind": "Method", "returnType": "IReturnsResult<T>", "parameters": [{ "name": "value", "type": "TResult" }] },
+        { "name": "Returns", "kind": "Method", "returnType": "IReturnsResult<T>", "parameters": [{ "name": "valueFunction", "type": "Func<TResult>" }] },
+        { "name": "ReturnsAsync", "kind": "Method", "returnType": "IReturnsResult<T>", "parameters": [{ "name": "value", "type": "TResult" }] },
+        { "name": "Throws", "kind": "Method", "returnType": "IThrowsResult", "parameters": [{ "name": "exception", "type": "Exception" }] },
+        { "name": "Throws", "kind": "Method", "returnType": "IThrowsResult", "parameters": [] },
+        { "name": "ThrowsAsync", "kind": "Method", "returnType": "IThrowsResult", "parameters": [{ "name": "exception", "type": "Exception" }] },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action" }] },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action<T1>" }] },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action<T1, T2>" }] },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action<T1, T2, T3>" }] },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action<T1, T2, T3, T4>" }] },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action<T1, T2, T3, T4, T5>" }], "presence": { "introducedIn": "4.11.0" } },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action<T1, T2, T3, T4, T5, T6, T7, T8>" }], "presence": { "introducedIn": "4.11.0" } },
+        { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action<T1, ..., T16>" }], "notes": "Expanded up to 16 generic params in 4.16", "presence": { "introducedIn": "4.16.0" } },
+        { "name": "Verifiable", "kind": "Method", "returnType": "void", "parameters": [] },
+        { "name": "Verifiable", "kind": "Method", "returnType": "void", "parameters": [{ "name": "failMessage", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "Moq.Language.Flow.ISetupSequentialResult`1",
+      "namespace": "Moq.Language.Flow",
+      "kind": "Interface",
+      "members": [
+        { "name": "Returns", "kind": "Method", "returnType": "ISetupSequentialResult<TResult>", "parameters": [{ "name": "value", "type": "TResult" }] },
+        { "name": "ReturnsAsync", "kind": "Method", "returnType": "ISetupSequentialResult<TResult>", "parameters": [{ "name": "value", "type": "TResult" }], "presence": { "introducedIn": "4.12.0" } },
+        { "name": "Throws", "kind": "Method", "returnType": "ISetupSequentialResult<TResult>", "parameters": [{ "name": "exception", "type": "Exception" }] },
+        { "name": "ThrowsAsync", "kind": "Method", "returnType": "ISetupSequentialResult<TResult>", "parameters": [{ "name": "exception", "type": "Exception" }], "presence": { "introducedIn": "4.12.0" } }
+      ]
+    },
+    {
+      "name": "Moq.Language.Flow.ISetupSequentialAction",
+      "namespace": "Moq.Language.Flow",
+      "kind": "Interface",
+      "presence": { "introducedIn": "4.12.0" },
+      "members": [
+        { "name": "Pass", "kind": "Method", "returnType": "ISetupSequentialAction", "parameters": [] },
+        { "name": "Throws", "kind": "Method", "returnType": "ISetupSequentialAction", "parameters": [{ "name": "exception", "type": "Exception" }] }
+      ]
+    },
+    {
+      "name": "Moq.Times",
+      "namespace": "Moq",
+      "kind": "Struct",
+      "members": [
+        { "name": "Once", "kind": "Method", "returnType": "Times", "parameters": [], "isStatic": true },
+        { "name": "Never", "kind": "Method", "returnType": "Times", "parameters": [], "isStatic": true },
+        { "name": "Exactly", "kind": "Method", "returnType": "Times", "parameters": [{ "name": "callCount", "type": "int" }], "isStatic": true },
+        { "name": "AtLeastOnce", "kind": "Method", "returnType": "Times", "parameters": [], "isStatic": true },
+        { "name": "AtLeast", "kind": "Method", "returnType": "Times", "parameters": [{ "name": "callCount", "type": "int" }], "isStatic": true },
+        { "name": "AtMostOnce", "kind": "Method", "returnType": "Times", "parameters": [], "isStatic": true },
+        { "name": "AtMost", "kind": "Method", "returnType": "Times", "parameters": [{ "name": "callCount", "type": "int" }], "isStatic": true },
+        { "name": "Between", "kind": "Method", "returnType": "Times", "parameters": [{ "name": "callCountFrom", "type": "int" }, { "name": "callCountTo", "type": "int" }, { "name": "rangeKind", "type": "Range" }], "isStatic": true }
+      ]
+    },
+    {
+      "name": "Moq.It",
+      "namespace": "Moq",
+      "kind": "Static",
+      "members": [
+        { "name": "IsAny", "kind": "Method", "returnType": "TValue", "parameters": [] },
+        { "name": "Is", "kind": "Method", "returnType": "TValue", "parameters": [{ "name": "match", "type": "Expression<Func<TValue, bool>>" }] },
+        { "name": "IsIn", "kind": "Method", "returnType": "TValue", "parameters": [{ "name": "items", "type": "IEnumerable<TValue>" }] },
+        { "name": "IsNotIn", "kind": "Method", "returnType": "TValue", "parameters": [{ "name": "items", "type": "IEnumerable<TValue>" }] },
+        { "name": "IsInRange", "kind": "Method", "returnType": "TValue", "parameters": [{ "name": "from", "type": "TValue" }, { "name": "to", "type": "TValue" }, { "name": "rangeKind", "type": "Range" }] },
+        { "name": "IsRegex", "kind": "Method", "returnType": "string", "parameters": [{ "name": "regex", "type": "string" }] },
+        { "name": "IsNotNull", "kind": "Method", "returnType": "TValue", "parameters": [], "presence": { "introducedIn": "4.14.0" } }
+      ]
+    },
+    {
+      "name": "Moq.MockBehavior",
+      "namespace": "Moq",
+      "kind": "Enum",
+      "members": [
+        { "name": "Strict", "kind": "Field", "returnType": "MockBehavior" },
+        { "name": "Loose", "kind": "Field", "returnType": "MockBehavior" },
+        { "name": "Default", "kind": "Field", "returnType": "MockBehavior" }
+      ]
+    },
+    {
+      "name": "Moq.MockRepository",
+      "namespace": "Moq",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "defaultBehavior", "type": "MockBehavior" }] },
+        { "name": "Create", "kind": "Method", "returnType": "Mock<T>", "parameters": [] },
+        { "name": "Create", "kind": "Method", "returnType": "Mock<T>", "parameters": [{ "name": "args", "type": "object[]" }] },
+        { "name": "Of", "kind": "Method", "returnType": "T", "parameters": [], "presence": { "introducedIn": "4.14.0" } },
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [] },
+        { "name": "VerifyAll", "kind": "Method", "returnType": "void", "parameters": [] }
+      ]
+    },
+    {
+      "name": "Moq.IProtectedMock`1",
+      "namespace": "Moq",
+      "kind": "Interface",
+      "members": [
+        { "name": "Setup", "kind": "Method", "returnType": "ISetup<T, TResult>", "parameters": [{ "name": "methodName", "type": "string" }, { "name": "args", "type": "object[]" }] },
+        { "name": "Setup", "kind": "Method", "returnType": "ISetup<T>", "parameters": [{ "name": "voidMethodName", "type": "string" }, { "name": "args", "type": "object[]" }] },
+        { "name": "SetupGet", "kind": "Method", "returnType": "ISetupGetter<T, TProperty>", "parameters": [{ "name": "propertyName", "type": "string" }], "presence": { "introducedIn": "4.12.0" } },
+        { "name": "SetupSet", "kind": "Method", "returnType": "ISetupSetter<T, TProperty>", "parameters": [{ "name": "propertyName", "type": "string" }, { "name": "value", "type": "object" }], "presence": { "introducedIn": "4.12.0" } },
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "methodName", "type": "string" }, { "name": "times", "type": "Times" }, { "name": "args", "type": "object[]" }] },
+        { "name": "As", "kind": "Method", "returnType": "IProtectedAsMock<T, TAnalog>", "parameters": [], "presence": { "introducedIn": "4.15.0" } }
+      ],
+      "notes": "v4.15 added Protected().As<TAnalog>() for type-safe protected member mocking."
+    },
+    {
+      "name": "Moq.IProtectedAsMock`2",
+      "namespace": "Moq",
+      "kind": "Interface",
+      "presence": { "introducedIn": "4.15.0" },
+      "members": [
+        { "name": "Setup", "kind": "Method", "returnType": "ISetup<T, TResult>", "parameters": [{ "name": "expression", "type": "Expression<Func<TAnalog, TResult>>" }] },
+        { "name": "Setup", "kind": "Method", "returnType": "ISetup<T>", "parameters": [{ "name": "expression", "type": "Expression<Action<TAnalog>>" }] },
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<TAnalog>>" }, { "name": "times", "type": "Times" }] }
+      ],
+      "notes": "Type-safe protected member mocking via analog interface. Replaces string-based Setup for protected members."
+    }
+  ]
+}
