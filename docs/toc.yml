@@ -16,6 +16,8 @@
       href: COMPATIBILITY.md
     - name: Analyzers
       href: ANALYZERS.md
+    - name: Doctor command
+      href: DOCTOR.md
     - name: Architecture
       href: ARCHITECTURE.md
     - name: Engineering

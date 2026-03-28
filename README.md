@@ -41,6 +41,30 @@ Use `--warnings-as-errors` to promote warning diagnostics to a failing gate:
 wrap-god analyze manifest.wrapgod.json --warnings-as-errors
 ```
 
+
+## CLI doctor (setup and health validation)
+
+`wrap-god doctor` validates repository health in three areas:
+
+- SDK/tooling prerequisites (`dotnet --version`, `global.json` integrity)
+- Source/config and lockfile state (`*.wrapgod.json`, `wrapgod.lock.json`)
+- CI/workflow readiness (`.github/workflows` and build/test steps)
+
+```bash
+# Human-readable output
+wrap-god doctor --path .
+
+# CI-friendly output
+wrap-god doctor --path . --format json
+
+# Fail the gate on warnings
+wrap-god doctor --path . --warnings-as-errors
+```
+
+During the current rollout, doctor emits dependency-tagged warnings linked to
+[#123](https://github.com/JerrettDavis/WrapGod/issues/123) and
+[#124](https://github.com/JerrettDavis/WrapGod/issues/124) when source discovery
+and lockfile assumptions are not yet available.
 ## Solution structure
 
 | Project | Description |
