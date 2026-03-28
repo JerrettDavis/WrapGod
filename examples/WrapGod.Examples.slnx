@@ -20,4 +20,9 @@
     <Project Path="migrations/serilog-nlog-bidirectional/NLogApp/NLogApp.csproj" />
     <Project Path="migrations/serilog-nlog-bidirectional/ParityTests/ParityTests.csproj" />
   </Folder>
+  <Folder Name="/migrations/automapper-mapster-bidirectional/">
+    <Project Path="migrations/automapper-mapster-bidirectional/AutoMapperApp/AutoMapperApp.csproj" />
+    <Project Path="migrations/automapper-mapster-bidirectional/MapsterApp/MapsterApp.csproj" />
+    <Project Path="migrations/automapper-mapster-bidirectional/ParityTests/ParityTests.csproj" />
+  </Folder>
 </Solution>
