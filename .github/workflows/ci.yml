@@ -27,3 +27,65 @@ jobs:
 
       - name: Test
         run: dotnet test WrapGod.slnx --configuration Release --no-build --verbosity normal
+
+      - name: Test with Coverage
+        run: |
+          dotnet test WrapGod.Tests/WrapGod.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --verbosity quiet \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults/coverage \
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+
+      - name: Coverage Gate
+        shell: bash
+        run: |
+          THRESHOLD=90
+          REPORT=$(find ./TestResults/coverage -name "coverage.cobertura.xml" -type f | head -1)
+
+          if [ -z "$REPORT" ]; then
+            echo "::error::No coverage report found."
+            exit 1
+          fi
+
+          echo "## Coverage Report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Package | Line Rate | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---------|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          FAILED=0
+
+          # Parse per-package line rates from cobertura XML.
+          # Each <package> element has a name and line-rate attribute.
+          while IFS= read -r line; do
+            PACKAGE_NAME=$(echo "$line" | sed -n 's/.*name="\([^"]*\)".*/\1/p')
+            LINE_RATE=$(echo "$line" | sed -n 's/.*line-rate="\([^"]*\)".*/\1/p')
+
+            if [ -z "$PACKAGE_NAME" ] || [ -z "$LINE_RATE" ]; then
+              continue
+            fi
+
+            # Convert rate (0.0-1.0) to percentage.
+            PCT=$(echo "$LINE_RATE * 100" | bc -l | xargs printf "%.1f")
+
+            if (( $(echo "$PCT < $THRESHOLD" | bc -l) )); then
+              STATUS="FAIL"
+              FAILED=1
+              echo "::error::Package '$PACKAGE_NAME' coverage ${PCT}% is below ${THRESHOLD}% threshold."
+            else
+              STATUS="PASS"
+            fi
+
+            echo "| $PACKAGE_NAME | ${PCT}% | $STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          done < <(grep '<package ' "$REPORT")
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Threshold: ${THRESHOLD}%" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo "::error::One or more packages failed the coverage gate."
+            exit 1
+          fi
+
+          echo "All packages meet the ${THRESHOLD}% coverage threshold."
