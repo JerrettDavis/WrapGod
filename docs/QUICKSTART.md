@@ -1,243 +1,191 @@
 # Quick Start Guide
 
-This guide walks you through the core WrapGod workflow: extracting an API
-manifest, configuring wrappers, generating code, and migrating existing
-call sites with the built-in analyzers.
+Get from zero to generated wrappers in under five minutes. Pick the path
+that fits your workflow -- they all produce the same output.
 
 ## Prerequisites
 
-- .NET 10 SDK (or later, per `global.json` rollForward policy)
-- The third-party assembly you want to wrap (e.g. `Vendor.Lib.dll`)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download) (or later)
+- A third-party library you want to wrap (we'll use Newtonsoft.Json as our example)
 
-## 1. Install packages
+---
 
-Add the WrapGod packages to your project. All packages share a version and
-are published from this repository.
+## Path A: CLI Fast Track (recommended)
+
+The fastest way to see WrapGod in action.
+
+### 1. Install the CLI tool
 
 ```bash
-# Core manifest + extractor
-dotnet add package WrapGod.Manifest
-dotnet add package WrapGod.Extractor
+dotnet tool install -g WrapGod.Cli
+```
 
-# Source generator (added as an analyzer)
+### 2. Extract a manifest from a NuGet package
+
+```bash
+wrap-god extract --nuget Newtonsoft.Json@13.0.3 -o newtonsoft.wrapgod.json
+```
+
+Expected output:
+
+```
+Extracting Newtonsoft.Json 13.0.3...
+  Types: 37
+Written to newtonsoft.wrapgod.json
+```
+
+The manifest is a JSON file describing every public type, method, property,
+and generic constraint in the package.
+
+### 3. Create a project and add WrapGod.Generator
+
+```bash
+dotnet new classlib -n MyApp
+cd MyApp
 dotnet add package WrapGod.Generator
-
-# Analyzers + code fixes for migration
-dotnet add package WrapGod.Analyzers
-
-# Optional: fluent configuration DSL
-dotnet add package WrapGod.Fluent
-
-# Optional: attribute-based configuration
-dotnet add package WrapGod.Abstractions
 ```
 
-## 2. Extract a manifest from an assembly
+### 4. Wire the manifest into your build
 
-Use `AssemblyExtractor` to produce a JSON manifest describing the public
-API surface of a third-party assembly.
-
-```csharp
-using WrapGod.Extractor;
-using WrapGod.Manifest;
-
-// Single-version extraction
-ApiManifest manifest = AssemblyExtractor.Extract(@"path\to\Vendor.Lib.dll");
-
-// Serialize to JSON
-string json = ManifestSerializer.Serialize(manifest);
-File.WriteAllText("vendor-lib.wrapgod.json", json);
-```
-
-The manifest captures every public type, member, parameter, and generic
-constraint. See [MANIFEST.md](MANIFEST.md) for the full schema reference.
-
-### Multi-version extraction
-
-When you need to support multiple versions of the same library, extract
-each version and merge them into a single manifest with version presence
-metadata:
-
-```csharp
-using WrapGod.Extractor;
-
-var result = MultiVersionExtractor.Extract(new[]
-{
-    new MultiVersionExtractor.VersionInput("1.0.0", @"v1\Vendor.Lib.dll"),
-    new MultiVersionExtractor.VersionInput("2.0.0", @"v2\Vendor.Lib.dll"),
-});
-
-ApiManifest merged = result.MergedManifest;
-VersionDiff  diff  = result.Diff;
-```
-
-The merged manifest annotates each type and member with `presence` metadata
-(`introducedIn`, `removedIn`) so the generator knows which API elements
-are version-specific. The `VersionDiff` report lists added, removed, and
-changed members plus classified breaking changes.
-
-## 3. Configure wrappers
-
-WrapGod supports three configuration surfaces that can be used independently
-or combined (see [CONFIGURATION.md](CONFIGURATION.md) for full details):
-
-### JSON configuration
-
-Create a `wrapgod.config.json` alongside your project:
-
-```json
-{
-  "types": [
-    {
-      "sourceType": "Vendor.Lib.HttpClient",
-      "include": true,
-      "targetName": "IHttpClient",
-      "members": [
-        { "sourceMember": "SendAsync", "include": true, "targetName": "SendRequestAsync" },
-        { "sourceMember": "Dispose", "include": false }
-      ]
-    }
-  ]
-}
-```
-
-Load it at build time with:
-
-```csharp
-using WrapGod.Manifest.Config;
-
-WrapGodConfig config = JsonConfigLoader.LoadFromFile("wrapgod.config.json");
-```
-
-### Attribute-based configuration
-
-Annotate your wrapper contracts directly in C#:
-
-```csharp
-using WrapGod.Abstractions.Config;
-
-[WrapType("Vendor.Lib.HttpClient", TargetName = "IHttpClient")]
-public interface IHttpClientWrapper
-{
-    [WrapMember("SendAsync", TargetName = "SendRequestAsync")]
-    Task<Response> SendRequestAsync(Request request);
-}
-```
-
-Read attribute config with:
-
-```csharp
-WrapGodConfig attrConfig = AttributeConfigReader.ReadFromAssembly(typeof(IHttpClientWrapper).Assembly);
-```
-
-### Fluent DSL
-
-Build configuration programmatically:
-
-```csharp
-using WrapGod.Fluent;
-
-var plan = WrapGodConfiguration.Create()
-    .ForAssembly("Vendor.Lib")
-    .WrapType("Vendor.Lib.HttpClient")
-        .As("IHttpClient")
-        .WrapMethod("SendAsync").As("SendRequestAsync")
-        .WrapProperty("Timeout")
-        .ExcludeMember("Dispose")
-    .WrapType("Vendor.Lib.Logger")
-        .As("ILogger")
-        .WrapAllPublicMembers()
-    .MapType("Vendor.Lib.Config", "MyApp.Config")
-    .ExcludeType("Vendor.Lib.Internal*")
-    .Build();
-```
-
-## 4. Generate wrappers
-
-The source generator runs automatically during the build. It reads
-`*.wrapgod.json` manifest files included as **AdditionalFiles** in your
-project.
-
-### Project setup
-
-Add the manifest to your `.csproj`:
+Add the manifest as an `AdditionalFiles` item in `MyApp.csproj`:
 
 ```xml
 <ItemGroup>
-  <!-- The extracted manifest -->
-  <AdditionalFiles Include="vendor-lib.wrapgod.json" />
-</ItemGroup>
-
-<ItemGroup>
-  <!-- Reference the generator -->
-  <PackageReference Include="WrapGod.Generator"
-                    OutputItemType="Analyzer"
-                    ReferenceOutputAssembly="false" />
+  <AdditionalFiles Include="..\newtonsoft.wrapgod.json" />
 </ItemGroup>
 ```
 
-Build the project:
+### 5. Build and see generated code
 
 ```bash
 dotnet build
 ```
 
-The generator emits two files per wrapped type:
+The source generator reads the manifest at compile time and emits:
 
-- `IWrapped{TypeName}.g.cs` -- the wrapper interface
-- `{TypeName}Facade.g.cs` -- a facade class that delegates to the original type
+- `IWrapped{TypeName}.g.cs` -- a wrapper interface for each public type
+- `{TypeName}Facade.g.cs` -- a facade that delegates to the original type
 
 Generated code lands in the `WrapGod.Generated` namespace.
 
-## 5. Run analyzers to find direct usage
+### 6. Use the generated types
 
-The WrapGod analyzer package detects call sites that reference the
-original third-party type directly instead of the generated wrapper.
+```csharp
+using WrapGod.Generated;
 
-### Mapping file
-
-Create a `*.wrapgod-types.txt` file listing the type mappings. Each line
-uses the format:
-
-```
-Vendor.Lib.HttpClient -> IWrappedHttpClient, HttpClientFacade
+// Program against the interface -- your code is decoupled from Newtonsoft
+IWrappedJsonConvert converter = new JsonConvertFacade();
+string json = converter.SerializeObject(new { Name = "WrapGod" });
 ```
 
-Include it as an additional file:
+---
+
+## Path B: MSBuild Zero-Touch
+
+The "I don't want to think about it" path. No CLI, no manual extraction --
+just declare what to wrap and build.
+
+### 1. Add WrapGod.Targets
+
+```bash
+dotnet add package WrapGod.Targets
+```
+
+### 2. Declare packages to wrap
+
+In your `.csproj`:
 
 ```xml
 <ItemGroup>
-  <AdditionalFiles Include="vendor-lib.wrapgod-types.txt" />
+  <WrapGodPackage Include="Newtonsoft.Json" />
 </ItemGroup>
 ```
 
-### Diagnostics
-
-| ID     | Severity | Description |
-|--------|----------|-------------|
-| WG2001 | Warning  | Direct usage of a type that has a generated wrapper interface |
-| WG2002 | Warning  | Direct method call on a type that has a generated facade |
-
-See [ANALYZERS.md](ANALYZERS.md) for the full diagnostics reference.
-
-## 6. Apply code fixes
-
-Both diagnostics ship with automatic code fixes:
-
-- **WG2001** -- replaces the type reference with the wrapper interface name
-- **WG2002** -- replaces the receiver expression with the facade type
-
-You can apply fixes one at a time or use **Fix All** (in your IDE or via
-`dotnet format`) to migrate an entire project in one pass.
+### 3. Build
 
 ```bash
-# Apply all WrapGod code fixes across the solution
-dotnet format analyzers --diagnostics WG2001 WG2002
+dotnet build
 ```
 
-## Next steps
+That's it. The MSBuild targets automatically:
 
-- [MANIFEST.md](MANIFEST.md) -- manifest format reference
-- [CONFIGURATION.md](CONFIGURATION.md) -- configuration guide (JSON, attributes, fluent, merge rules)
-- [COMPATIBILITY.md](COMPATIBILITY.md) -- compatibility modes (LCD, Targeted, Adaptive)
-- [ANALYZERS.md](ANALYZERS.md) -- analyzer diagnostics reference
+1. **Restore** -- resolve the NuGet package
+2. **Extract** -- produce the API manifest
+3. **Generate** -- feed the manifest to the source generator
+
+You get the same `IWrapped*` and `*Facade` files as Path A, with zero
+manual steps. Incremental builds skip extraction when inputs haven't changed.
+
+---
+
+## Path C: Programmatic API
+
+For tools, scripts, or custom pipelines that need to extract manifests in code:
+
+```csharp
+using WrapGod.Extractor;
+using WrapGod.Manifest;
+
+ApiManifest manifest = AssemblyExtractor.Extract(@"path\to\Vendor.Lib.dll");
+
+string json = ManifestSerializer.Serialize(manifest);
+File.WriteAllText("vendor-lib.wrapgod.json", json);
+```
+
+Multi-version extraction works the same way:
+
+```csharp
+var result = MultiVersionExtractor.Extract(new[]
+{
+    new MultiVersionExtractor.VersionInput("12.0.3", @"v12\Newtonsoft.Json.dll"),
+    new MultiVersionExtractor.VersionInput("13.0.3", @"v13\Newtonsoft.Json.dll"),
+});
+
+ApiManifest merged = result.MergedManifest;   // annotated with version presence
+VersionDiff  diff  = result.Diff;              // added, removed, changed members
+```
+
+---
+
+## Path D: NuGet Multi-Version
+
+Extract and diff multiple versions of a package in one command:
+
+```bash
+wrap-god extract --nuget Newtonsoft.Json@12.0.3 --nuget Newtonsoft.Json@13.0.3 \
+  -o newtonsoft-multi.wrapgod.json
+```
+
+The merged manifest annotates every type and member with `introducedIn` /
+`removedIn` metadata so the generator knows what's version-specific. The
+CLI also prints a diff summary of breaking changes.
+
+---
+
+## What Just Happened?
+
+Whichever path you chose, WrapGod ran a three-stage pipeline:
+
+1. **Extract** -- scanned the vendor assembly and produced a JSON manifest of
+   its entire public API surface
+2. **Generate** -- a Roslyn source generator read that manifest at build time
+   and emitted wrapper interfaces (`IWrapped*`) and facade classes (`*Facade`)
+3. **Compile** -- your project compiled against the generated types, fully
+   decoupled from the vendor's concrete classes
+
+Your code now depends on generated abstractions, not vendor internals. When
+the vendor ships a new version, WrapGod re-extracts, regenerates, and your
+code either compiles cleanly or the analyzer tells you exactly what changed.
+
+---
+
+## Next Steps
+
+- [CONFIGURATION.md](CONFIGURATION.md) -- JSON, attribute, and fluent
+  configuration options
+- [COMPATIBILITY.md](COMPATIBILITY.md) -- LCD, Targeted, and Adaptive
+  compatibility modes for multi-version support
+- [ANALYZERS.md](ANALYZERS.md) -- diagnostics that catch direct vendor usage
+  and offer automated code fixes
+- [AUTOMATION.md](AUTOMATION.md) -- how WrapGod eliminates vendor-upgrade
+  tech debt across your organization
