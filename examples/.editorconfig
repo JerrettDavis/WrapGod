@@ -21,3 +21,17 @@ dotnet_diagnostic.CA1861.severity = none
 
 # CA2211: Non-constant fields in example code
 dotnet_diagnostic.CA2211.severity = none
+
+# CA1311: Locale-dependent string operations in examples
+dotnet_diagnostic.CA1311.severity = none
+
+# CA1711: Example types may end in 'Collection' for xUnit fixtures
+dotnet_diagnostic.CA1711.severity = none
+
+# CA1816: Example Dispose implementations don't need SuppressFinalize
+dotnet_diagnostic.CA1816.severity = none
+
+# xUnit analyzer warnings — examples demonstrate patterns, not production code
+dotnet_diagnostic.xUnit1004.severity = none
+dotnet_diagnostic.xUnit1042.severity = none
+dotnet_diagnostic.xUnit2020.severity = none
