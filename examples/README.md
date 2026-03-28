@@ -10,6 +10,7 @@ This folder contains a runnable, end-to-end workflow demo for issue #43.
 - `migrations/nuget-version-matrix` — version-divergence example packs (FluentAssertions/Moq/Serilog) with compatibility reports and CI drift guards
 - `migrations/automapper-mapster-bidirectional` — bidirectional AutoMapper <-> Mapster integration pack with object-graph parity tests
 - `migrations/efcore-dapper-bidirectional` — bidirectional EF Core <-> Dapper service-boundary migration pack with parity tests
+- `migrations/mediatr-masstransit-mediator-bidirectional` — bidirectional MediatR <-> MassTransit Mediator pack with request/notification/pipeline parity tests
 
 ## What the demo does
 

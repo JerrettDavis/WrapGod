@@ -62,6 +62,9 @@ jobs:
       - name: Test EF Core <-> Dapper parity
         run: dotnet test examples/migrations/efcore-dapper-bidirectional/ParityTests/ParityTests.csproj --nologo
 
+      - name: Test MediatR <-> MassTransit Mediator parity
+        run: dotnet test examples/migrations/mediatr-masstransit-mediator-bidirectional/ParityTests/ParityTests.csproj --nologo
+
   nuget-version-matrix:
     name: nuget-version-matrix (${{ matrix.sample }})
     runs-on: ubuntu-latest
