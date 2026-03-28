@@ -7,4 +7,8 @@
   <Project Path="../WrapGod.TypeMap/WrapGod.TypeMap.csproj" />
   <Project Path="Acme.Lib/Acme.Lib.csproj" />
   <Project Path="WrapGod.WorkflowDemo/WrapGod.WorkflowDemo.csproj" />
+  <Project Path="XUnitToNUnit/SampleTests.Before/SampleTests.Before.csproj" />
+  <Project Path="XUnitToNUnit/SampleTests.After/SampleTests.After.csproj" />
+  <Project Path="NUnitToXUnit/SampleTests.Before/SampleTests.Before.csproj" />
+  <Project Path="NUnitToXUnit/SampleTests.After/SampleTests.After.csproj" />
 </Solution>

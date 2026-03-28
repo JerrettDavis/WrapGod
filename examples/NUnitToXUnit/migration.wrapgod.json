@@ -1,0 +1,138 @@
+{
+  "$schema": "../../schemas/wrapgod.manifest.v1.schema.json",
+  "name": "NUnit",
+  "version": "4.3.2",
+  "description": "Manifest defining the NUnit public API surface targeted for migration to xUnit.",
+  "types": [
+    {
+      "name": "NUnit.Framework.TestFixtureAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class"
+    },
+    {
+      "name": "NUnit.Framework.TestAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class"
+    },
+    {
+      "name": "NUnit.Framework.IgnoreAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "reason", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.TestCaseAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "args", "type": "params object[]" }] }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.TestCaseSourceAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "sourceName", "type": "string" }] },
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "sourceType", "type": "Type" }] }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.CategoryAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "name", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.PropertyAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class",
+      "members": [
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "name", "type": "string" }, { "name": "value", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.SetUpAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class"
+    },
+    {
+      "name": "NUnit.Framework.TearDownAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class"
+    },
+    {
+      "name": "NUnit.Framework.OneTimeSetUpAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class"
+    },
+    {
+      "name": "NUnit.Framework.OneTimeTearDownAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class"
+    },
+    {
+      "name": "NUnit.Framework.SetUpFixtureAttribute",
+      "namespace": "NUnit.Framework",
+      "kind": "Class"
+    },
+    {
+      "name": "NUnit.Framework.Assert",
+      "namespace": "NUnit.Framework",
+      "kind": "Static",
+      "members": [
+        { "name": "That", "kind": "Method", "returnType": "void", "parameters": [{ "name": "actual", "type": "object" }, { "name": "constraint", "type": "IConstraint" }] },
+        { "name": "Throws", "kind": "Method", "returnType": "T", "parameters": [{ "name": "code", "type": "TestDelegate" }] },
+        { "name": "ThrowsAsync", "kind": "Method", "returnType": "T", "parameters": [{ "name": "code", "type": "AsyncTestDelegate" }] }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.Is",
+      "namespace": "NUnit.Framework",
+      "kind": "Static",
+      "members": [
+        { "name": "EqualTo", "kind": "Method", "returnType": "EqualConstraint", "parameters": [{ "name": "expected", "type": "object" }] },
+        { "name": "True", "kind": "Property", "returnType": "TrueConstraint" },
+        { "name": "False", "kind": "Property", "returnType": "FalseConstraint" },
+        { "name": "Null", "kind": "Property", "returnType": "NullConstraint" },
+        { "name": "Empty", "kind": "Property", "returnType": "EmptyConstraint" },
+        { "name": "TypeOf", "kind": "Method", "returnType": "ExactTypeConstraint", "parameters": [] },
+        { "name": "AssignableFrom", "kind": "Method", "returnType": "AssignableFromConstraint", "parameters": [] },
+        { "name": "InRange", "kind": "Method", "returnType": "RangeConstraint", "parameters": [{ "name": "from", "type": "T" }, { "name": "to", "type": "T" }] }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.Does",
+      "namespace": "NUnit.Framework",
+      "kind": "Static",
+      "members": [
+        { "name": "Contain", "kind": "Method", "returnType": "ContainsConstraint", "parameters": [{ "name": "expected", "type": "string" }] },
+        { "name": "StartWith", "kind": "Method", "returnType": "StartsWithConstraint", "parameters": [{ "name": "expected", "type": "string" }] },
+        { "name": "EndWith", "kind": "Method", "returnType": "EndsWithConstraint", "parameters": [{ "name": "expected", "type": "string" }] },
+        { "name": "Match", "kind": "Method", "returnType": "RegexConstraint", "parameters": [{ "name": "pattern", "type": "string" }] }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.Has",
+      "namespace": "NUnit.Framework",
+      "kind": "Static",
+      "members": [
+        { "name": "Count", "kind": "Property", "returnType": "ConstraintExpression" },
+        { "name": "Length", "kind": "Property", "returnType": "ConstraintExpression" },
+        { "name": "All", "kind": "Property", "returnType": "ConstraintExpression" }
+      ]
+    },
+    {
+      "name": "NUnit.Framework.TestContext",
+      "namespace": "NUnit.Framework",
+      "kind": "Static",
+      "members": [
+        { "name": "Out", "kind": "Property", "returnType": "TextWriter" }
+      ]
+    }
+  ]
+}
