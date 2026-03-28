@@ -90,8 +90,8 @@ public sealed class AbstractionsCoverageBoostTests(ITestOutputHelper output) : T
     [Fact]
     public Task ConfigSource_Values()
         => Given("ConfigSource enum", () => true)
-            .Then("Json is defined", _ => Enum.IsDefined(typeof(ConfigSource), ConfigSource.Json))
-            .And("Attributes is defined", _ => Enum.IsDefined(typeof(ConfigSource), ConfigSource.Attributes))
+            .Then("Json is defined", _ => Enum.IsDefined(ConfigSource.Json))
+            .And("Attributes is defined", _ => Enum.IsDefined(ConfigSource.Attributes))
             .AssertPassed();
 
     [Scenario("ConfigMergeResult defaults")]
