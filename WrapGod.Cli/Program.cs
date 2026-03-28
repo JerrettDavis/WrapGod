@@ -6,7 +6,8 @@ var rootCommand = new RootCommand("WrapGod CLI -- extract manifests, generate wr
     InitCommand.Create(),
     ExtractCommand.Create(),
     GenerateCommand.Create(),
-    AnalyzeCommand.Create()
+    AnalyzeCommand.Create(),
+    DoctorCommand.Create()
 };
 
 return await rootCommand.InvokeAsync(args);
