@@ -19,6 +19,20 @@ public sealed class NuGetExtractorTests(ITestOutputHelper output) : TinyBddXunit
 
     private static NuGetPackageResolver CreateResolver() => new(TestCacheRoot);
 
+    private static void SeedMockPackage(NuGetPackageResolver resolver)
+    {
+        var pkgDir = resolver.GetPackageDirectory("MockPkg", "1.0.0");
+        foreach (var tfm in MockTfms)
+        {
+            var tfmDir = Path.Combine(pkgDir, "lib", tfm);
+            Directory.CreateDirectory(tfmDir);
+            File.WriteAllBytes(Path.Combine(tfmDir, "MockPkg.dll"), MzHeaderStub);
+        }
+
+        File.WriteAllText(Path.Combine(pkgDir, "MockPkg.1.0.0.nupkg"), "mock-nupkg-content");
+        File.WriteAllText(Path.Combine(pkgDir, ".extracted"), "done");
+    }
+
     private static Task<string> ResolveNewtonsoftJson()
     {
         var resolver = CreateResolver();
@@ -80,24 +94,37 @@ public sealed class NuGetExtractorTests(ITestOutputHelper output) : TinyBddXunit
         => Given("a mock package directory with multiple TFMs", () =>
             {
                 var resolver = CreateResolver();
-                var pkgDir = resolver.GetPackageDirectory("MockPkg", "1.0.0");
-
-                // Create mock lib structure with multiple TFMs.
-                foreach (var tfm in MockTfms)
-                {
-                    var tfmDir = Path.Combine(pkgDir, "lib", tfm);
-                    Directory.CreateDirectory(tfmDir);
-                    File.WriteAllBytes(Path.Combine(tfmDir, "MockPkg.dll"), MzHeaderStub);
-                }
-
-                // Write extraction marker.
-                File.WriteAllText(Path.Combine(pkgDir, ".extracted"), "done");
+                SeedMockPackage(resolver);
                 return resolver;
             })
             .Then("ResolveAsync selects net8.0", (Func<NuGetPackageResolver, Task<bool>>)(async resolver =>
             {
                 var path = await resolver.ResolveAsync("MockPkg", "1.0.0");
                 return path.Contains("net8.0", StringComparison.OrdinalIgnoreCase);
+            }))
+            .AssertPassed();
+
+    [Scenario("ResolveFromLock reports drift for mismatched identity")]
+    [Fact]
+    public Task ResolveFromLock_DetectsDrift()
+        => Given("a resolver with mock package", () =>
+            {
+                var resolver = CreateResolver();
+                SeedMockPackage(resolver);
+                return resolver;
+            })
+            .Then("mismatch hash throws drift", (Func<NuGetPackageResolver, Task<bool>>)(async resolver =>
+            {
+                var meta = await resolver.ResolveWithMetadataAsync("MockPkg", "1.0.0");
+                try
+                {
+                    await resolver.ResolveFromLockAsync(meta.PackageId, meta.Version, meta.SourceFeed, meta.PackageSha256, meta.TargetFramework, meta.DllRelativePath, new string('0', 64));
+                    return false;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return ex.Message.Contains("Lock drift detected", StringComparison.OrdinalIgnoreCase);
+                }
             }))
             .AssertPassed();
 
