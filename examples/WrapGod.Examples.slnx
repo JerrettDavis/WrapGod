@@ -30,4 +30,9 @@
     <Project Path="migrations/efcore-dapper-bidirectional/DapperApp/DapperApp.csproj" />
     <Project Path="migrations/efcore-dapper-bidirectional/ParityTests/ParityTests.csproj" />
   </Folder>
+  <Folder Name="/migrations/mediatr-masstransit-mediator-bidirectional/">
+    <Project Path="migrations/mediatr-masstransit-mediator-bidirectional/MediatRApp/MediatRApp.csproj" />
+    <Project Path="migrations/mediatr-masstransit-mediator-bidirectional/MassTransitMediatorApp/MassTransitMediatorApp.csproj" />
+    <Project Path="migrations/mediatr-masstransit-mediator-bidirectional/ParityTests/ParityTests.csproj" />
+  </Folder>
 </Solution>
