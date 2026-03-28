@@ -1,0 +1,22 @@
+<Project>
+  <!--
+    WrapGod.props — Default property definitions for WrapGod build integration.
+    Imported early so consuming projects can override values.
+  -->
+  <PropertyGroup>
+    <!-- Path to the WrapGod manifest file (*.wrapgod.json) -->
+    <WrapGodManifestPath Condition="'$(WrapGodManifestPath)' == ''">$(MSBuildProjectDirectory)\manifest.wrapgod.json</WrapGodManifestPath>
+
+    <!-- Path to the WrapGod configuration file -->
+    <WrapGodConfigPath Condition="'$(WrapGodConfigPath)' == ''">$(MSBuildProjectDirectory)\wrapgod.config.json</WrapGodConfigPath>
+
+    <!-- Directory used for caching resolved packages and intermediate artifacts -->
+    <WrapGodCacheDir Condition="'$(WrapGodCacheDir)' == ''">$(MSBuildProjectDirectory)\.wrapgod-cache</WrapGodCacheDir>
+
+    <!-- Enables/disables WrapGod build integration (default: true when WrapGodPackage items exist) -->
+    <EnableWrapGod Condition="'$(EnableWrapGod)' == ''">true</EnableWrapGod>
+
+    <!-- Hash file used for incremental build checks -->
+    <_WrapGodHashFile>$(WrapGodCacheDir)\wrapgod-inputs.hash</_WrapGodHashFile>
+  </PropertyGroup>
+</Project>
