@@ -1,47 +1,56 @@
 - name: Home
   href: index.md
-- name: Guides
+
+- name: Getting Started
   items:
-    - name: Quickstart
+    - name: Quick Start
       href: QUICKSTART.md
+    - name: CLI Reference
+      href: CLI.md
     - name: Configuration
       href: CONFIGURATION.md
-    - name: Manifest
-      href: MANIFEST.md
-    - name: Manifest schema
-      href: MANIFEST-SCHEMA.md
-    - name: Migration playbook
-      href: MIGRATION-PLAYBOOK.md
-    - name: Compatibility
-      href: COMPATIBILITY.md
-    - name: Analyzers
-      href: ANALYZERS.md
+    - name: MSBuild Integration
+      href: MSBUILD-INTEGRATION.md
+
+- name: Core Concepts
+  items:
     - name: Architecture
       href: ARCHITECTURE.md
-    - name: Engineering
-      href: ENGINEERING.md
-    - name: Plan
-      href: PLAN.md
-    - name: Work breakdown
-      href: WORK-BREAKDOWN.md
-    - name: Quality matrix
-      href: QUALITY-MATRIX.md
-- name: API reference
+    - name: Manifest Format
+      href: MANIFEST.md
+    - name: Manifest Schema
+      href: MANIFEST-SCHEMA.md
+    - name: Compatibility Modes
+      href: COMPATIBILITY.md
+    - name: Analyzers & Code Fixes
+      href: ANALYZERS.md
+
+- name: Migration
+  items:
+    - name: Migration Playbook
+      href: MIGRATION-PLAYBOOK.md
+    - name: Automation Guide
+      href: AUTOMATION.md
+
+- name: API Reference
   href: api/index.md
   homepage: api/index.md
-- name: Active work
+
+- name: Engineering
   items:
-    - name: Issue #6 - Config ingestion
-      href: active/issue-6-config-ingestion.md
-    - name: Issue #163 - NuGet matrix orchestration
-      href: active/issue-163-orchestration-hygiene-update-path.md
-- name: Operations
-  href: ops/workflow-parity-matrix.md
-- name: RFCs
-  items:
-    - name: RFC 0051 - Extractor incremental cache strategy
-      href: rfc/0051-extractor-incremental-cache-strategy.md
-    - name: RFC 0052 - Performance benchmarks and SLOs
-      href: rfc/RFC-0052-performance-benchmarks-and-slos.md
-    - name: RFC 0054 - Structured diagnostics contract and reporting
-      href: rfc/0054-structured-diagnostics-contract-and-reporting.md
+    - name: Engineering Guide
+      href: ENGINEERING.md
+    - name: Coverage Policy
+      href: COVERAGE-POLICY.md
+    - name: Flake Policy
+      href: FLAKE-POLICY.md
+    - name: Quality Matrix
+      href: QUALITY-MATRIX.md
+    - name: RFCs
+      items:
+        - name: "RFC 0051: Incremental Cache Strategy"
+          href: rfc/0051-extractor-incremental-cache-strategy.md
+        - name: "RFC 0052: Performance Benchmarks & SLOs"
+          href: rfc/RFC-0052-performance-benchmarks-and-slos.md
+        - name: "RFC 0054: Structured Diagnostics"
+          href: rfc/0054-structured-diagnostics-contract-and-reporting.md
