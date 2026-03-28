@@ -31,6 +31,9 @@ dotnet_diagnostic.CA1711.severity = none
 # CA1816: Example Dispose implementations don't need SuppressFinalize
 dotnet_diagnostic.CA1816.severity = none
 
+# CA1852: Private nested types in example tests don't need sealing
+dotnet_diagnostic.CA1852.severity = none
+
 # xUnit analyzer warnings — examples demonstrate patterns, not production code
 dotnet_diagnostic.xUnit1004.severity = none
 dotnet_diagnostic.xUnit1042.severity = none

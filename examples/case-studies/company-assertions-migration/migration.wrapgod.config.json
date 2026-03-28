@@ -1,0 +1,163 @@
+{
+  "migrationName": "FluentAssertions-to-CompanyAssertions",
+  "sourceLibrary": "FluentAssertions",
+  "targetLibrary": "Company.Assertions (Shouldly)",
+  "sourcePackage": "FluentAssertions",
+  "targetPackage": "Company.Assertions",
+  "usingReplacements": {
+    "FluentAssertions": "Shouldly"
+  },
+  "mappings": [
+    {
+      "description": "Equality assertion",
+      "source": ".Should().Be({expected})",
+      "target": ".ShouldBe({expected})",
+      "safety": "safe"
+    },
+    {
+      "description": "Boolean true assertion",
+      "source": ".Should().BeTrue()",
+      "target": ".ShouldBeTrue()",
+      "safety": "safe"
+    },
+    {
+      "description": "Boolean false assertion",
+      "source": ".Should().BeFalse()",
+      "target": ".ShouldBeFalse()",
+      "safety": "safe"
+    },
+    {
+      "description": "Null assertion",
+      "source": ".Should().BeNull()",
+      "target": ".ShouldBeNull()",
+      "safety": "safe"
+    },
+    {
+      "description": "Not null assertion",
+      "source": ".Should().NotBeNull()",
+      "target": ".ShouldNotBeNull()",
+      "safety": "safe"
+    },
+    {
+      "description": "Type assertion",
+      "source": ".Should().BeOfType<{T}>()",
+      "target": ".ShouldBeOfType<{T}>()",
+      "safety": "safe"
+    },
+    {
+      "description": "Assignable-to assertion",
+      "source": ".Should().BeAssignableTo<{T}>()",
+      "target": ".ShouldBeAssignableTo<{T}>()",
+      "safety": "safe"
+    },
+    {
+      "description": "String contains",
+      "source": ".Should().Contain({expected})",
+      "target": ".ShouldContain({expected})",
+      "safety": "safe"
+    },
+    {
+      "description": "String starts with",
+      "source": ".Should().StartWith({expected})",
+      "target": ".ShouldStartWith({expected})",
+      "safety": "safe"
+    },
+    {
+      "description": "String ends with",
+      "source": ".Should().EndWith({expected})",
+      "target": ".ShouldEndWith({expected})",
+      "safety": "safe"
+    },
+    {
+      "description": "String/collection empty",
+      "source": ".Should().BeEmpty()",
+      "target": ".ShouldBeEmpty()",
+      "safety": "safe"
+    },
+    {
+      "description": "String not null or empty",
+      "source": ".Should().NotBeNullOrEmpty()",
+      "target": ".ShouldNotBeNullOrEmpty()",
+      "safety": "safe"
+    },
+    {
+      "description": "Regex match",
+      "source": ".Should().MatchRegex({pattern})",
+      "target": ".ShouldMatch({pattern})",
+      "safety": "safe"
+    },
+    {
+      "description": "Greater than comparison",
+      "source": ".Should().BeGreaterThan({expected})",
+      "target": ".ShouldBeGreaterThan({expected})",
+      "safety": "safe"
+    },
+    {
+      "description": "Less than comparison",
+      "source": ".Should().BeLessThan({expected})",
+      "target": ".ShouldBeLessThan({expected})",
+      "safety": "safe"
+    },
+    {
+      "description": "Negative number assertion",
+      "source": ".Should().BeNegative()",
+      "target": ".ShouldBeLessThan(0)",
+      "safety": "safe",
+      "notes": "Shouldly has no direct BeNegative(); use ShouldBeLessThan(0) as equivalent."
+    },
+    {
+      "description": "Collection contains item",
+      "source": ".Should().Contain({item})",
+      "target": ".ShouldContain({item})",
+      "safety": "safe"
+    },
+    {
+      "description": "Collection count",
+      "source": ".Should().HaveCount({count})",
+      "target": ".Count.ShouldBe({count})",
+      "safety": "safe",
+      "notes": "Shouldly has no direct HaveCount; access .Count then assert."
+    },
+    {
+      "description": "Collection no nulls",
+      "source": ".Should().NotContainNulls()",
+      "target": ".ShouldAllBe(item => item != null)",
+      "safety": "safe",
+      "notes": "No direct Shouldly equivalent; ShouldAllBe with predicate achieves the same."
+    },
+    {
+      "description": "Collection ascending order",
+      "source": ".Should().BeInAscendingOrder()",
+      "target": ".ShouldBe(collection.OrderBy(x => x))",
+      "safety": "guided",
+      "notes": "Requires rewriting to compare against sorted copy. Manual review recommended."
+    },
+    {
+      "description": "Collection single item",
+      "source": ".Should().ContainSingle()",
+      "target": ".ShouldHaveSingleItem()",
+      "safety": "safe"
+    },
+    {
+      "description": "Exception throwing",
+      "source": "act.Should().Throw<{T}>()",
+      "target": "Should.Throw<{T}>(act)",
+      "safety": "guided",
+      "notes": "Shouldly uses a static method instead of extension method. Structural rewrite required."
+    },
+    {
+      "description": "Custom assertion helper removal",
+      "source": "AssertionHelpers.AssertIsTrue({condition})",
+      "target": "{condition}.ShouldBeTrue()",
+      "safety": "guided",
+      "notes": "Custom FA wrappers should be replaced with direct Shouldly calls via Company.Assertions."
+    },
+    {
+      "description": "Custom assertion helper removal (equality)",
+      "source": "AssertionHelpers.AssertAreEqual({expected}, {actual})",
+      "target": "{actual}.ShouldBe({expected})",
+      "safety": "guided",
+      "notes": "Custom FA wrappers should be replaced with direct Shouldly calls via Company.Assertions."
+    }
+  ]
+}
