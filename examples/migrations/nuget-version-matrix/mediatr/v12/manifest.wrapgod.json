@@ -1,0 +1,363 @@
+{
+  "$schema": "../../../../../schemas/wrapgod.manifest.v1.schema.json",
+  "name": "MediatR",
+  "version": "12.2.0",
+  "description": "MediatR v12 API surface. Major generic simplification: IRequest no longer inherits IRequest<Unit>, void handlers return Task directly, pipeline behavior constraints relaxed to 'notnull', DI consolidated into main package, custom notification publishers added.",
+  "types": [
+    {
+      "name": "MediatR.IRequest`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TResponse", "variance": "out" }
+      ],
+      "baseTypes": ["MediatR.IBaseRequest"],
+      "members": [],
+      "notes": "Unchanged. Covariant marker interface for typed responses."
+    },
+    {
+      "name": "MediatR.IRequest",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "baseTypes": ["MediatR.IBaseRequest"],
+      "members": [],
+      "notes": "BREAKING: No longer inherits IRequest<Unit>. Now inherits IBaseRequest directly. This decouples void requests from the Unit type entirely."
+    },
+    {
+      "name": "MediatR.IBaseRequest",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": [],
+      "notes": "Root marker. Now the direct base of both IRequest and IRequest<TResponse>."
+    },
+    {
+      "name": "MediatR.IRequestHandler`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["notnull"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "Task<TResponse>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "BREAKING: Constraint relaxed from 'where TRequest : IRequest<TResponse>' to 'where TRequest : notnull'. Enables open-generic registration patterns that were blocked in v10/v11."
+    },
+    {
+      "name": "MediatR.IRequestHandler`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["IRequest"] }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "BREAKING: No longer inherits IRequestHandler<TRequest, Unit>. Returns Task directly instead of Task<Unit>. Constraint changed from IRequest<Unit> to IRequest. Handlers use 'return;' or 'return Task.CompletedTask' instead of 'return Unit.Value'."
+    },
+    {
+      "name": "MediatR.INotification",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": []
+    },
+    {
+      "name": "MediatR.INotificationHandler`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TNotification", "variance": "in", "constraints": ["INotification"] }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "notification", "type": "TNotification" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MediatR.IPipelineBehavior`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["notnull"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "Task<TResponse>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "next", "type": "RequestHandlerDelegate<TResponse>" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "BREAKING: Constraint relaxed from 'where TRequest : IRequest<TResponse>' to 'where TRequest : notnull'. This is the key generic delta -- v10/v11 required the tight coupling which prevented open-generic pipeline registrations. v12 restores flexibility."
+    },
+    {
+      "name": "MediatR.IStreamRequest`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TResponse", "variance": "out" }
+      ],
+      "baseTypes": ["MediatR.IBaseRequest"],
+      "members": []
+    },
+    {
+      "name": "MediatR.IStreamRequestHandler`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["notnull"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "IAsyncEnumerable<TResponse>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "BREAKING: Constraint relaxed from 'where TRequest : IStreamRequest<TResponse>' to 'where TRequest : notnull'. Matches IPipelineBehavior relaxation."
+    },
+    {
+      "name": "MediatR.IStreamPipelineBehavior`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["notnull"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Handle",
+          "kind": "Method",
+          "returnType": "IAsyncEnumerable<TResponse>",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "next", "type": "StreamHandlerDelegate<TResponse>" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "Constraint relaxed from 'where TRequest : IStreamRequest<TResponse>' to 'where TRequest : notnull'."
+    },
+    {
+      "name": "MediatR.IMediator",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "baseTypes": ["MediatR.ISender", "MediatR.IPublisher"],
+      "members": []
+    },
+    {
+      "name": "MediatR.ISender",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": [
+        {
+          "name": "Send",
+          "kind": "Method",
+          "returnType": "Task<TResponse>",
+          "genericParameters": [
+            { "name": "TResponse", "variance": "none" }
+          ],
+          "parameters": [
+            { "name": "request", "type": "IRequest<TResponse>" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        },
+        {
+          "name": "Send",
+          "kind": "Method",
+          "returnType": "Task<object?>",
+          "parameters": [
+            { "name": "request", "type": "object" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        },
+        {
+          "name": "CreateStream",
+          "kind": "Method",
+          "returnType": "IAsyncEnumerable<TResponse>",
+          "genericParameters": [
+            { "name": "TResponse", "variance": "none" }
+          ],
+          "parameters": [
+            { "name": "request", "type": "IStreamRequest<TResponse>" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        },
+        {
+          "name": "CreateStream",
+          "kind": "Method",
+          "returnType": "IAsyncEnumerable<object?>",
+          "parameters": [
+            { "name": "request", "type": "object" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MediatR.IPublisher",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": [
+        {
+          "name": "Publish",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "notification", "type": "object" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        },
+        {
+          "name": "Publish",
+          "kind": "Method",
+          "returnType": "Task",
+          "genericParameters": [
+            { "name": "TNotification", "variance": "none", "constraints": ["INotification"] }
+          ],
+          "parameters": [
+            { "name": "notification", "type": "TNotification" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MediatR.INotificationPublisher",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "members": [
+        {
+          "name": "Publish",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "handlerExecutors", "type": "IEnumerable<NotificationHandlerExecutor>" },
+            { "name": "notification", "type": "INotification" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "NEW in v12. Allows custom notification publishing strategies (parallel, sequential, fire-and-forget, etc.). Replaces the internal NotificationPublisher pattern."
+    },
+    {
+      "name": "MediatR.NotificationHandlerExecutor",
+      "namespace": "MediatR",
+      "kind": "Class",
+      "members": [
+        { "name": "HandlerInstance", "kind": "Property", "returnType": "object" },
+        {
+          "name": "HandlerCallback",
+          "kind": "Property",
+          "returnType": "Func<INotification, CancellationToken, Task>"
+        }
+      ],
+      "notes": "NEW in v12. Wraps a notification handler instance and its callback for use with INotificationPublisher."
+    },
+    {
+      "name": "MediatR.Unit",
+      "namespace": "MediatR",
+      "kind": "Struct",
+      "members": [
+        { "name": "Value", "kind": "Property", "returnType": "Unit", "isStatic": true },
+        { "name": "Task", "kind": "Property", "returnType": "Task<Unit>", "isStatic": true }
+      ],
+      "notes": "Still exists for backward compatibility with IRequestHandler<TRequest, TResponse> where TResponse is Unit. However, IRequestHandler<TRequest> (single generic) no longer uses Unit -- it returns Task directly."
+    },
+    {
+      "name": "MediatR.RequestHandlerDelegate`1",
+      "namespace": "MediatR",
+      "kind": "Delegate",
+      "genericParameters": [
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "returnType": "Task<TResponse>",
+      "members": []
+    },
+    {
+      "name": "MediatR.StreamHandlerDelegate`1",
+      "namespace": "MediatR",
+      "kind": "Delegate",
+      "genericParameters": [
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "returnType": "IAsyncEnumerable<TResponse>",
+      "members": []
+    },
+    {
+      "name": "MediatR.IRequestPreProcessor`1",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["notnull"] }
+      ],
+      "members": [
+        {
+          "name": "Process",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "BREAKING: Constraint relaxed from 'where TRequest : IBaseRequest' to 'where TRequest : notnull'."
+    },
+    {
+      "name": "MediatR.IRequestPostProcessor`2",
+      "namespace": "MediatR",
+      "kind": "Interface",
+      "genericParameters": [
+        { "name": "TRequest", "variance": "in", "constraints": ["notnull"] },
+        { "name": "TResponse", "variance": "none" }
+      ],
+      "members": [
+        {
+          "name": "Process",
+          "kind": "Method",
+          "returnType": "Task",
+          "parameters": [
+            { "name": "request", "type": "TRequest" },
+            { "name": "response", "type": "TResponse" },
+            { "name": "cancellationToken", "type": "CancellationToken" }
+          ]
+        }
+      ],
+      "notes": "BREAKING: Constraint relaxed from 'where TRequest : IBaseRequest' to 'where TRequest : notnull'."
+    }
+  ]
+}

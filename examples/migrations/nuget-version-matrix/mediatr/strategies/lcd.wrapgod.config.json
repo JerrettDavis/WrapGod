@@ -1,0 +1,72 @@
+{
+  "strategyName": "lcd",
+  "description": "Lowest Common Denominator -- generates wrappers using only APIs available in ALL targeted MediatR versions (10, 11, 12). Safest for multi-targeting but requires Unit-based return types and strict generic constraints.",
+  "sourceLibrary": "MediatR",
+  "versionRange": {
+    "minimum": "10.0.1",
+    "maximum": "12.2.0"
+  },
+  "strategy": "intersect",
+  "rules": [
+    {
+      "description": "Exclude INotificationPublisher (v12-only)",
+      "action": "exclude",
+      "target": "MediatR.INotificationPublisher",
+      "reason": "INotificationPublisher introduced in v12. Not available in v10/v11. LCD strategy uses default notification publishing."
+    },
+    {
+      "description": "Exclude NotificationHandlerExecutor (v12-only)",
+      "action": "exclude",
+      "target": "MediatR.NotificationHandlerExecutor",
+      "reason": "NotificationHandlerExecutor introduced in v12 alongside INotificationPublisher."
+    },
+    {
+      "description": "Use strict IRequest<TResponse> constraint on pipeline behaviors",
+      "action": "constrain",
+      "target": "MediatR.IPipelineBehavior`2",
+      "genericParameter": "TRequest",
+      "constraint": "IRequest<TResponse>",
+      "reason": "v10/v11 require 'where TRequest : IRequest<TResponse>'. v12 relaxed to 'notnull'. LCD must use the strictest constraint to compile against all versions."
+    },
+    {
+      "description": "Use strict IStreamRequest<TResponse> constraint on stream pipeline behaviors",
+      "action": "constrain",
+      "target": "MediatR.IStreamPipelineBehavior`2",
+      "genericParameter": "TRequest",
+      "constraint": "IStreamRequest<TResponse>",
+      "reason": "v10/v11 require 'where TRequest : IStreamRequest<TResponse>'. LCD uses the strictest constraint."
+    },
+    {
+      "description": "Use strict IRequest<TResponse> constraint on stream request handlers",
+      "action": "constrain",
+      "target": "MediatR.IStreamRequestHandler`2",
+      "genericParameter": "TRequest",
+      "constraint": "IStreamRequest<TResponse>",
+      "reason": "v10/v11 require 'where TRequest : IStreamRequest<TResponse>'. LCD uses the strictest constraint."
+    },
+    {
+      "description": "Void handlers must return Task<Unit> (v10/v11 pattern)",
+      "action": "normalize",
+      "target": "MediatR.IRequestHandler`1",
+      "returnType": "Task<Unit>",
+      "reason": "v10/v11 void handlers return Task<Unit>. v12 returns Task directly. LCD normalizes to Task<Unit> because both v10/v11 require it. v12 code that returns Task<Unit> still compiles (Unit still exists)."
+    },
+    {
+      "description": "Use IBaseRequest constraint on pre-processors",
+      "action": "constrain",
+      "target": "MediatR.IRequestPreProcessor`1",
+      "genericParameter": "TRequest",
+      "constraint": "IBaseRequest",
+      "reason": "v10/v11 require 'where TRequest : IBaseRequest'. v12 relaxed to 'notnull'. LCD uses the strictest constraint."
+    },
+    {
+      "description": "Use IBaseRequest constraint on post-processors",
+      "action": "constrain",
+      "target": "MediatR.IRequestPostProcessor`2",
+      "genericParameter": "TRequest",
+      "constraint": "IBaseRequest",
+      "reason": "v10/v11 require 'where TRequest : IBaseRequest'. v12 relaxed to 'notnull'. LCD uses the strictest constraint."
+    }
+  ],
+  "notes": "LCD wrappers compile against MediatR >= 10.0.1. Consumers lose: custom notification publishers (v12), relaxed generic constraints (v12), Task-returning void handlers (v12). The strict constraints from v10/v11 are the LCD baseline because v12 is backward-compatible with stricter constraints but not vice versa."
+}
