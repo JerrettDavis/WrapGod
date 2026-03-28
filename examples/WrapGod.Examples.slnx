@@ -25,4 +25,9 @@
     <Project Path="migrations/automapper-mapster-bidirectional/MapsterApp/MapsterApp.csproj" />
     <Project Path="migrations/automapper-mapster-bidirectional/ParityTests/ParityTests.csproj" />
   </Folder>
+  <Folder Name="/migrations/efcore-dapper-bidirectional/">
+    <Project Path="migrations/efcore-dapper-bidirectional/EfCoreApp/EfCoreApp.csproj" />
+    <Project Path="migrations/efcore-dapper-bidirectional/DapperApp/DapperApp.csproj" />
+    <Project Path="migrations/efcore-dapper-bidirectional/ParityTests/ParityTests.csproj" />
+  </Folder>
 </Solution>
