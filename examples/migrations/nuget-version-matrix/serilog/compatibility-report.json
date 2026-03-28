@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "package": {
+    "name": "Serilog",
+    "versions": ["v2.12.0", "v3.1.1", "v4.2.0"]
+  },
+  "versionMatrix": {
+    "baseline": "v2.12.0",
+    "latest": "v4.2.0",
+    "intermediate": ["v3.1.1"]
+  },
+  "summary": {
+    "totalDeltas": 3,
+    "introducedMembers": 3,
+    "removedMembers": 0,
+    "changedMembers": 1
+  },
+  "deltas": [
+    {
+      "id": "delta-1",
+      "title": "Async shutdown API",
+      "severity": "safe",
+      "migrationRecommendation": "Prefer CloseAndFlushAsync() where available; keep CloseAndFlush() fallback for LCD compatibility.",
+      "members": {
+        "introduced": [
+          {
+            "kind": "method",
+            "displayName": "Serilog.Log.CloseAndFlushAsync()",
+            "version": "v3.0.0"
+          }
+        ],
+        "removed": [],
+        "changed": []
+      }
+    },
+    {
+      "id": "delta-2",
+      "title": "Trace context members on LogEvent",
+      "severity": "review",
+      "migrationRecommendation": "Add nullable wrappers for TraceId/SpanId and branch behavior by runtime version.",
+      "members": {
+        "introduced": [
+          {
+            "kind": "property",
+            "displayName": "Serilog.Events.LogEvent.TraceId",
+            "version": "v3.1.0"
+          },
+          {
+            "kind": "property",
+            "displayName": "Serilog.Events.LogEvent.SpanId",
+            "version": "v3.1.0"
+          }
+        ],
+        "removed": [],
+        "changed": []
+      }
+    },
+    {
+      "id": "delta-3",
+      "title": "Override matching behavior",
+      "severity": "guided",
+      "migrationRecommendation": "Normalize source context casing to avoid behavior drift between v2/v3 and v4.",
+      "members": {
+        "introduced": [],
+        "removed": [],
+        "changed": [
+          {
+            "kind": "method",
+            "displayName": "LoggerMinimumLevelConfiguration.Override(string, LogEventLevel)",
+            "version": "v4.0.0",
+            "changeSummary": "Source context matching became case-insensitive in v4."
+          }
+        ]
+      }
+    }
+  ]
+}
