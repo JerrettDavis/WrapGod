@@ -1,0 +1,23 @@
+- name: Overview
+  href: index.md
+
+- name: Engineering Guide
+  href: engineering.md
+
+- name: Coverage Policy
+  href: coverage-policy.md
+
+- name: Flake Policy
+  href: flake-policy.md
+
+- name: Quality Matrix
+  href: quality-matrix.md
+
+- name: RFCs
+  items:
+    - name: "0051: Incremental Cache Strategy"
+      href: rfc/0051-extractor-incremental-cache-strategy.md
+    - name: "0052: Performance Benchmarks & SLOs"
+      href: rfc/RFC-0052-performance-benchmarks-and-slos.md
+    - name: "0054: Structured Diagnostics"
+      href: rfc/0054-structured-diagnostics-contract-and-reporting.md

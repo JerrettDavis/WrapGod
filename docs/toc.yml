@@ -1,56 +1,14 @@
 - name: Home
   href: index.md
 
-- name: Getting Started
-  items:
-    - name: Quick Start
-      href: QUICKSTART.md
-    - name: CLI Reference
-      href: CLI.md
-    - name: Configuration
-      href: CONFIGURATION.md
-    - name: MSBuild Integration
-      href: MSBUILD-INTEGRATION.md
-
-- name: Core Concepts
-  items:
-    - name: Architecture
-      href: ARCHITECTURE.md
-    - name: Manifest Format
-      href: MANIFEST.md
-    - name: Manifest Schema
-      href: MANIFEST-SCHEMA.md
-    - name: Compatibility Modes
-      href: COMPATIBILITY.md
-    - name: Analyzers & Code Fixes
-      href: ANALYZERS.md
+- name: Guide
+  href: guide/
 
 - name: Migration
-  items:
-    - name: Migration Playbook
-      href: MIGRATION-PLAYBOOK.md
-    - name: Automation Guide
-      href: AUTOMATION.md
+  href: migration/
 
 - name: API Reference
-  href: api/index.md
-  homepage: api/index.md
+  href: api/
 
 - name: Engineering
-  items:
-    - name: Engineering Guide
-      href: ENGINEERING.md
-    - name: Coverage Policy
-      href: COVERAGE-POLICY.md
-    - name: Flake Policy
-      href: FLAKE-POLICY.md
-    - name: Quality Matrix
-      href: QUALITY-MATRIX.md
-    - name: RFCs
-      items:
-        - name: "RFC 0051: Incremental Cache Strategy"
-          href: rfc/0051-extractor-incremental-cache-strategy.md
-        - name: "RFC 0052: Performance Benchmarks & SLOs"
-          href: rfc/RFC-0052-performance-benchmarks-and-slos.md
-        - name: "RFC 0054: Structured Diagnostics"
-          href: rfc/0054-structured-diagnostics-contract-and-reporting.md
+  href: engineering/
