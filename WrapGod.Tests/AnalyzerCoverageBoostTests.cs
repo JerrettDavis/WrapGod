@@ -159,6 +159,7 @@ public sealed class AnalyzerCoverageBoostTests(ITestOutputHelper output) : TinyB
         }
         """;
 
+#pragma warning disable CS0414 // assigned but unused — kept for future generic analyzer tests
     private static readonly string GenericRepoManifest = """
         {
           "schemaVersion": "1.0",
@@ -173,6 +174,8 @@ public sealed class AnalyzerCoverageBoostTests(ITestOutputHelper output) : TinyB
           ]
         }
         """;
+
+#pragma warning restore CS0414
 
     // ── Scenarios: Qualified name usage ──────────────────────────────
 
