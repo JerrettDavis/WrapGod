@@ -30,7 +30,11 @@
   href: api/index.md
   homepage: api/index.md
 - name: Active work
-  href: active/issue-6-config-ingestion.md
+  items:
+    - name: Issue #6 - Config ingestion
+      href: active/issue-6-config-ingestion.md
+    - name: Issue #163 - NuGet matrix orchestration
+      href: active/issue-163-orchestration-hygiene-update-path.md
 - name: Operations
   href: ops/workflow-parity-matrix.md
 - name: RFCs
