@@ -1,103 +1,133 @@
-# Automation: Eliminating Vendor-Upgrade Tech Debt
+# End-to-End Automation: How WrapGod Eliminates Library Tech Debt
 
-WrapGod isn't just a code generator -- it's an automation pipeline that
-turns vendor upgrades from multi-sprint projects into single-commit changes.
+## The Promise
+
+You didn't change your requirements. You didn't add features. You just
+bumped a dependency version, and now 47 files have compile errors. That's
+library tech debt -- and it's the most frustrating kind because you didn't
+ask for it.
+
+WrapGod's automation pipeline turns library upgrades into version-number
+changes. You edit one line in your `.csproj`, run `dotnet build`, and the
+pipeline re-extracts the API surface, regenerates your wrappers, flags
+anything that broke, and offers code fixes for what it can resolve
+automatically. No refactoring sprint. No "update Serilog" Jira epic that
+lingers for three months.
+
+The same pipeline handles library swaps -- moving from Moq to NSubstitute,
+or from FluentAssertions to Shouldly. Same mechanism, bigger payoff.
 
 ---
 
-## The Problem: Vendor Upgrades Are Expensive
+## The Pipeline
 
-Picture this: your organization has 30 microservices, all using
-Newtonsoft.Json 12. Version 13 ships with breaking changes to the
-serialization API. Without an abstraction layer, every service needs manual
-changes wherever the API surface drifted. Someone files a ticket, estimates
-two sprints, and the upgrade languishes in the backlog for a year.
-
-This isn't hypothetical. It's the default state of most codebases. The
-vendor's API becomes load-bearing infrastructure, and upgrading means
-touching every call site in every service.
-
----
-
-## The WrapGod Automation Pipeline
-
-WrapGod inserts a generated abstraction layer between your code and the
-vendor. The entire pipeline runs at build time with no manual intervention:
+Every `dotnet build` with WrapGod.Targets installed runs this pipeline
+automatically:
 
 ```
-Restore → Extract → Generate → Compile → Analyze → Fix
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│  NuGet       │    │  Extract     │    │  Generate    │    │  Compile +   │    │  Code Fix    │
+│  Restore     │───►│  Manifest    │───►│  Wrappers    │───►│  Analyze     │───►│  (optional)  │
+│              │    │              │    │              │    │              │    │              │
+│  Resolves    │    │  Reads DLL   │    │  Emits       │    │  WG2001:     │    │  dotnet      │
+│  packages    │    │  via         │    │  IWrapped*   │    │  direct type │    │  format      │
+│  to local    │    │  Metadata    │    │  interfaces  │    │  WG2002:     │    │  rewrites    │
+│  cache       │    │  LoadContext │    │  + *Facade   │    │  direct call │    │  call sites  │
+│              │    │              │    │  proxies     │    │              │    │              │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+  WrapGodRestore      WrapGodExtract     WrapGodGenerate     Roslyn analyzer     dotnet format
+  (before Restore)    (before Compile)   (before Compile)    (during Compile)    (manual or CI)
 ```
 
-| Stage       | What Happens                                                    |
-|-------------|-----------------------------------------------------------------|
-| **Restore** | MSBuild resolves the NuGet package to a local path              |
-| **Extract** | The extractor scans the assembly and produces a JSON manifest    |
-| **Generate**| The Roslyn source generator emits `IWrapped*` interfaces and `*Facade` classes |
-| **Compile** | Your project compiles against generated types, not vendor types |
-| **Analyze** | Analyzers flag any direct vendor usage that bypasses wrappers   |
-| **Fix**     | Code fixes offer one-click migration to the generated types     |
-
-Every stage is incremental. If the vendor assembly hasn't changed, extraction
-is skipped. If the manifest hasn't changed, generation is skipped.
+**No human intervention** for the first four stages. The fifth stage --
+applying code fixes -- can be fully automated in CI or done interactively
+in your IDE.
 
 ---
 
 ## Setting Up Zero-Touch Automation
 
-Two packages, a few lines of MSBuild, and you never think about it again.
-
-### 1. Add WrapGod packages
-
-```bash
-dotnet add package WrapGod.Targets
-dotnet add package WrapGod.Analyzers
-```
-
-### 2. Declare what to wrap
-
-In your `.csproj`:
+Here's the complete `.csproj` with every WrapGod property explained:
 
 ```xml
-<ItemGroup>
-  <WrapGodPackage Include="Newtonsoft.Json" />
-</ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!--
+      EnableWrapGod (default: true)
+      Set to false to disable all WrapGod targets without removing packages.
+      Useful for temporarily bypassing extraction during debugging.
+    -->
+    <EnableWrapGod>true</EnableWrapGod>
+
+    <!--
+      WrapGodManifestPath (default: $(MSBuildProjectDirectory)\manifest.wrapgod.json)
+      Where the extracted manifest is written. The source generator reads this
+      as an AdditionalFile.
+    -->
+    <WrapGodManifestPath>$(MSBuildProjectDirectory)\manifest.wrapgod.json</WrapGodManifestPath>
+
+    <!--
+      WrapGodConfigPath (default: $(MSBuildProjectDirectory)\wrapgod.config.json)
+      Optional configuration file for renaming types/members, excluding members,
+      or overriding generation behavior. See CONFIGURATION.md.
+    -->
+    <WrapGodConfigPath>$(MSBuildProjectDirectory)\wrapgod.config.json</WrapGodConfigPath>
+
+    <!--
+      WrapGodCacheDir (default: $(MSBuildProjectDirectory)\.wrapgod-cache)
+      Local cache for resolved packages and intermediate artifacts.
+      The extract step hashes inputs and skips work when nothing changed.
+    -->
+    <WrapGodCacheDir>$(MSBuildProjectDirectory)\.wrapgod-cache</WrapGodCacheDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Source generator: reads manifest, emits IWrapped* and *Facade files -->
+    <PackageReference Include="WrapGod.Generator"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+
+    <!-- Analyzer: flags direct usage of wrapped types (WG2001, WG2002) -->
+    <PackageReference Include="WrapGod.Analyzers"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+
+    <!-- MSBuild targets: automates extract + generate pipeline -->
+    <PackageReference Include="WrapGod.Targets"
+                      Version="0.1.0-alpha"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Libraries to wrap: just the package name, WrapGod resolves the rest -->
+    <PackageReference Include="Serilog" Version="3.1.0" />
+    <WrapGodPackage Include="Serilog" />
+  </ItemGroup>
+</Project>
 ```
 
-### 3. Build
-
-```bash
-dotnet build
-```
-
-The targets automatically restore, extract, and feed the manifest to the
-source generator. Your project now compiles against `IWrappedJsonConvert`
-and `JsonConvertFacade` instead of `Newtonsoft.Json.JsonConvert` directly.
-
-### 4. Migrate existing call sites
-
-```bash
-dotnet format analyzers --diagnostics WG2001 WG2002
-```
-
-The WG2001 and WG2002 diagnostics catch direct vendor type usage and
-replace it with the generated wrappers. One command, entire project migrated.
+After this setup, every `dotnet build` automatically extracts, generates,
+and analyzes. You never run a separate tool.
 
 ---
 
-## The Upgrade Story
+## The Upgrade Workflow
 
-Here's what a vendor upgrade looks like with WrapGod in place.
+**Scenario:** You need to upgrade Serilog from v2.12 to v3.1.
 
-### Current state
-
-Your `.csproj` references Newtonsoft.Json 12. WrapGod has already generated
-wrappers, and all your code programs against `IWrappedJsonConvert`.
-
-### Step 1: Bump the version
+### Step 1: Change the version
 
 ```xml
-<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+<!-- Before -->
+<PackageReference Include="Serilog" Version="2.12.0" />
+
+<!-- After -->
+<PackageReference Include="Serilog" Version="3.1.0" />
 ```
+
+One line. That's the only manual change.
 
 ### Step 2: Build
 
@@ -105,145 +135,313 @@ wrappers, and all your code programs against `IWrappedJsonConvert`.
 dotnet build
 ```
 
-WrapGod re-extracts the manifest from v13, regenerates the interfaces and
-facades, and compiles.
+Here's what happens behind the scenes:
 
-### If the API is compatible
+1. **WrapGodRestore** resolves Serilog 3.1.0 from NuGet into the local
+   cache
+2. **WrapGodExtract** detects that the input hash changed (different DLL),
+   re-reads the Serilog 3.1.0 assembly, and writes a new
+   `manifest.wrapgod.json`
+3. **WrapGodGenerate** registers the updated manifest as an
+   `AdditionalFile`
+4. The **Roslyn source generator** compares the new `GenerationPlan`
+   against the cached one. Changed types get new `IWrapped*.g.cs` and
+   `*Facade.g.cs` files. Unchanged types are skipped (incremental
+   caching).
+5. The **Roslyn analyzer** scans your code and reports any new issues
 
-Build succeeds. You're done. Ship it. The wrapper absorbed the version
-change because the public API surface your code depends on didn't drift.
+### Step 3: Check the build output
 
-### If there are breaking changes
+If Serilog 3.1 is API-compatible with 2.12 for the members you use, the
+build succeeds with zero warnings. You're done.
 
-The analyzer flags the deltas. You see diagnostics like:
+If Serilog 3.1 removed or renamed members you depend on, you'll see:
 
 ```
-WG2001: 'JsonConvert.DeserializeObject<T>(string)' signature changed --
-        parameter 'settings' added in v13. Update wrapper usage.
+warning WG2001: Direct usage of 'Serilog.Log.CloseAndFlush' which has a
+               generated wrapper interface 'IWrappedLog'. Use the wrapper
+               instead.
 ```
 
-Code fixes offer migration. The blast radius is contained to the generated
-layer, not scattered across 30 services.
+### Step 4: Apply safe fixes
+
+```bash
+dotnet format analyzers --diagnostics WG2001 WG2002
+```
+
+This rewrites all direct references to use the generated wrappers. For
+members that were removed in v3.1, the facade throws
+`PlatformNotSupportedException` (in Adaptive mode) or the member is
+simply absent from the interface (in LCD mode), giving you a compile
+error that points directly at the call site that needs manual attention.
+
+### Step 5: Review and commit
+
+The only manual work is reviewing call sites that reference members that
+genuinely changed between versions. WrapGod got you from "47 compile
+errors scattered across the codebase" to "3 call sites that need your
+judgment."
 
 ---
 
-## CI Integration
+## The Library Swap Workflow
 
-Wire WrapGod into your CI pipeline to enforce wrapper discipline at the
-gate.
+**Scenario:** You need to switch from Moq to NSubstitute.
 
-### Analyze as a build step
+This is a bigger change than a version bump, but WrapGod handles it with
+the same pipeline. The key difference: you're swapping the underlying
+library behind the wrappers rather than updating it.
 
-```yaml
-- name: WrapGod Analysis
-  run: dotnet wrap-god analyze manifest.wrapgod.json --warnings-as-errors
+### Step 1: Extract manifests for both libraries
+
+```bash
+wrap-god extract --nuget Moq@4.20.0 -o moq.wrapgod.json
+wrap-god extract --nuget NSubstitute@5.1.0 -o nsub.wrapgod.json
 ```
 
-### Coverage gate
+### Step 2: Configure the mapping
 
-Use WG2001/WG2002 diagnostics as build-breakers. Any PR that introduces
-direct vendor usage fails the check:
-
-```xml
-<PropertyGroup>
-  <WarningsAsErrors>WG2001;WG2002</WarningsAsErrors>
-</PropertyGroup>
-```
-
-### PR checks for new direct vendor usage
-
-The analyzer catches new call sites that bypass the wrapper. Developers get
-immediate feedback, and the code fix is one click away in their IDE.
-
----
-
-## The Economics
-
-Be honest about the math.
-
-**Without WrapGod:**
-
-- 30 services x 15 breaking changes x 2 hours per change = **900 developer-hours**
-- Plus testing, review, and rollback risk across every service
-- Multiply by every vendor upgrade, forever
-
-**With WrapGod:**
-
-- Change one version number in one place
-- Rebuild -- WrapGod re-extracts, regenerates, recompiles
-- If compatible: done in minutes
-- If breaking: analyzer tells you exactly what changed and where
-- The wrapper is generated -- there is nothing to maintain
-
-Your requirements didn't change. The vendor's API changed. WrapGod absorbs
-that delta so your code doesn't have to.
-
----
-
-## Compatibility Modes for Version Strategy
-
-When wrapping multiple versions, WrapGod offers three compatibility modes
-that control what gets generated:
-
-| Mode         | Emits                            | Use When                                      |
-|--------------|----------------------------------|-----------------------------------------------|
-| **LCD**      | Only members present in ALL versions | Shipping a library that must work against any supported version |
-| **Targeted** | Members present in a specific version | Pinned to one version, want full API surface  |
-| **Adaptive** | Union of all versions, with runtime version checks | Supporting multiple versions simultaneously   |
-
-Configure in your `wrapgod.config.json`:
+Create a `wrapgod.config.json` that maps Moq concepts to NSubstitute
+equivalents:
 
 ```json
 {
-  "compatibilityMode": "lcd"
+  "types": [
+    {
+      "sourceType": "Moq.Mock`1",
+      "include": true,
+      "targetName": "IMockWrapper",
+      "members": [
+        { "sourceMember": "Setup", "include": true, "targetName": "Arrange" },
+        { "sourceMember": "Verify", "include": true, "targetName": "AssertReceived" },
+        { "sourceMember": "Object", "include": true, "targetName": "Instance" }
+      ]
+    }
+  ]
 }
 ```
+
+### Step 3: Update your .csproj
+
+```xml
+<ItemGroup>
+  <!-- Remove Moq, add NSubstitute -->
+  <PackageReference Include="NSubstitute" Version="5.1.0" />
+  <WrapGodPackage Include="NSubstitute" />
+</ItemGroup>
+
+<ItemGroup>
+  <!-- Include both manifests for the swap -->
+  <AdditionalFiles Include="moq.wrapgod.json" />
+  <AdditionalFiles Include="nsub.wrapgod.json" />
+</ItemGroup>
+```
+
+### Step 4: Build, analyze, fix
+
+```bash
+dotnet build
+dotnet format analyzers --diagnostics WG2001 WG2002
+```
+
+The analyzer flags every Moq reference. The code fixer rewrites them to
+the generated wrapper interface. Your tests now compile against wrapper
+interfaces backed by NSubstitute instead of Moq.
+
+For complete working examples of bidirectional library swaps, see the
+[`examples/MoqToNSubstitute`](../examples/MoqToNSubstitute) and
+[`examples/NSubstituteToMoq`](../examples/NSubstituteToMoq) example
+packs, plus the bidirectional migration packs under
+[`examples/migrations/`](../examples/migrations/).
+
+---
+
+## Multi-Version Support
+
+Sometimes you can't upgrade everywhere at once. Maybe one service needs
+Serilog 2.x for compatibility with a legacy sink, while another is ready
+for 3.x. WrapGod's **Adaptive mode** lets you support both from the same
+codebase.
+
+### Extract both versions
+
+```bash
+wrap-god extract --nuget Serilog@2.12.0 --nuget Serilog@3.1.0 -o serilog.wrapgod.json
+```
+
+The merged manifest annotates each member with `introducedIn` and
+`removedIn` metadata. Members present in both versions have no
+annotations. Members added in 3.1 have `"introducedIn": "3.1.0"`.
+Members removed in 3.1 have `"removedIn": "3.1.0"`.
+
+### Choose a compatibility mode
+
+| Mode | What gets generated | When to use |
+|------|-------------------|-------------|
+| **LCD** | Only members present in both 2.12 and 3.1 | Maximum safety -- code compiles against any version |
+| **Targeted** | Members present in a single specified version | Pinned deployment -- you know exactly which version runs |
+| **Adaptive** | All members, with runtime guards on version-specific ones | Runtime flexibility -- code detects the installed version |
+
+### Adaptive mode in action
+
+With Adaptive mode, the generated facade wraps version-specific members
+with runtime checks:
+
+```csharp
+// Generated SerilogFacade.g.cs (simplified)
+public void CloseAndFlush()
+{
+    if (!WrapGodVersionHelper.IsMemberAvailable("2.12.0", removedIn: "3.1.0"))
+        throw new PlatformNotSupportedException(
+            "Serilog.Log.CloseAndFlush is not available in the installed version.");
+
+    _inner.CloseAndFlush();
+}
+```
+
+Your code compiles and runs against either version. If it calls a member
+that doesn't exist at runtime, it gets a clear exception instead of a
+`MissingMethodException`.
 
 See [COMPATIBILITY.md](COMPATIBILITY.md) for the full reference.
 
 ---
 
-## Real Example: The Company.Assertions Case Study
+## CI Integration
 
-The `examples/case-studies/company-assertions-migration/` directory contains
-a complete, buildable example of WrapGod automation at enterprise scale.
+WrapGod diagnostics are standard Roslyn analyzer warnings. They integrate
+with any CI system that understands MSBuild output.
 
-### The scenario
+### Gating builds on WrapGod diagnostics
 
-Four legacy applications, each using different assertion libraries:
+To fail the build when direct usage of wrapped types is detected, promote
+WrapGod warnings to errors:
 
-| App        | Before                              |
-|------------|-------------------------------------|
-| LegacyApp.A | FluentAssertions 6.12.0           |
-| LegacyApp.B | FluentAssertions 8.3.0 + Shouldly 4.3.0 (mixed!) |
-| LegacyApp.C | Shouldly 4.1.0                    |
-| LegacyApp.D | FluentAssertions 5.10.3 + custom helpers |
-
-### What WrapGod built
-
-A single `Company.Assertions` wrapper package backed by Shouldly 4.3.0.
-WrapGod extracted the Shouldly manifest, generated facade types under the
-`Company.Assertions` namespace, and every app migrated to one import:
-
-```csharp
-using Company.Assertions;
-
-result.ShouldBe(42);
-Should.Throw<Exception>(act);
+```xml
+<PropertyGroup>
+  <!-- Treat WG2001 and WG2002 as build errors -->
+  <WarningsAsErrors>$(WarningsAsErrors);WG2001;WG2002</WarningsAsErrors>
+</PropertyGroup>
 ```
 
-### The result
+### GitHub Actions workflow
 
-| App        | After                              |
-|------------|------------------------------------|
-| Migrated.App.A | `Company.Assertions` (project ref) |
-| Migrated.App.B | `Company.Assertions` (project ref) |
-| Migrated.App.C | `Company.Assertions` (project ref) |
-| Migrated.App.D | `Company.Assertions` (project ref) |
+```yaml
+name: Build with WrapGod
 
-Four divergent assertion stacks unified into one generated facade. 76 tests
-pass. Zero direct references to FluentAssertions or Shouldly in consumer
-code. Future assertion library changes touch exactly one project.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
-See the full [MIGRATION-GUIDE.md](../examples/case-studies/company-assertions-migration/MIGRATION-GUIDE.md)
-for the step-by-step walkthrough.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build (extracts manifests, generates wrappers, runs analyzers)
+        run: dotnet build --no-restore --warnaserror
+
+      - name: Test
+        run: dotnet test --no-build
+```
+
+That's it. The `dotnet build` step runs the full WrapGod pipeline. If any
+code references a wrapped type directly, the build fails. No extra CI
+plugins or custom scripts needed.
+
+### CLI analysis in CI
+
+For richer diagnostics output (JSON or SARIF), use the CLI's `analyze`
+command:
+
+```yaml
+      - name: WrapGod Analysis
+        run: |
+          wrap-god analyze manifest.wrapgod.json \
+            --config wrapgod.config.json \
+            --warnings-as-errors
+```
+
+The `analyze` command exits with a non-zero code when diagnostics exceed
+the configured threshold, and can emit SARIF 2.1.0 for integration with
+GitHub Code Scanning or other security tooling. See
+[RFC-0054](rfc/0054-structured-diagnostics-contract-and-reporting.md) for
+the diagnostics contract.
+
+---
+
+## Enterprise Scale
+
+WrapGod's architecture is designed for one team to wrap a library and the
+entire organization to consume the result.
+
+### The Company.Assertions case study
+
+Consider an enterprise with four legacy applications, each using
+different assertion libraries:
+
+| Application | Libraries |
+|-------------|-----------|
+| LegacyApp.A | FluentAssertions 6.12.0 |
+| LegacyApp.B | FluentAssertions 8.3.0 + Shouldly 4.3.0 (mixed) |
+| LegacyApp.C | Shouldly 4.1.0 |
+| LegacyApp.D | FluentAssertions 5.10.3 + custom helpers |
+
+One platform team creates a `Company.Assertions` package:
+
+1. **Extract** Shouldly 4.3.0 as the backing implementation
+2. **Configure** the wrapper to expose a unified `Company.Assertions`
+   namespace
+3. **Publish** `Company.Assertions` as an internal NuGet package
+
+Each legacy app then migrates independently:
+
+```bash
+# In each app's directory:
+dotnet add package Company.Assertions
+dotnet build                    # WrapGod flags all direct FA/Shouldly usage
+dotnet format analyzers --diagnostics WG2001 WG2002  # Rewrites to Company.Assertions
+```
+
+After migration, all four apps:
+- Program against the same `Company.Assertions` interfaces
+- Have zero direct references to FluentAssertions or Shouldly
+- Can upgrade the backing library (or swap it entirely) by updating the
+  `Company.Assertions` package -- no changes in any consuming app
+
+The full case study with four migrated applications is at
+[`examples/case-studies/company-assertions-migration`](../examples/case-studies/company-assertions-migration).
+
+### Why this scales
+
+- **One extraction, many consumers.** The manifest is extracted once and
+  published as part of the wrapper package. Consuming teams never run the
+  extractor.
+- **Centralized upgrade path.** When the backing library releases a new
+  version, the platform team updates the wrapper package. Consuming teams
+  get new wrappers automatically on their next `dotnet restore`.
+- **Incremental migration.** Each team migrates on their own schedule.
+  The wrapper and the raw library can coexist during the transition.
+- **Diagnostics as guardrails.** Promoting `WG2001`/`WG2002` to errors
+  in CI prevents new direct usage from creeping in after migration.
+
+---
+
+## Further Reading
+
+- [QUICKSTART.md](QUICKSTART.md) -- three paths from zero to wrapped
+- [CONFIGURATION.md](CONFIGURATION.md) -- JSON, attribute, and Fluent DSL configuration
+- [COMPATIBILITY.md](COMPATIBILITY.md) -- LCD, Targeted, and Adaptive modes
+- [MSBUILD-INTEGRATION.md](MSBUILD-INTEGRATION.md) -- MSBuild targets deep dive
+- [ANALYZERS.md](ANALYZERS.md) -- full diagnostics reference
+- [ARCHITECTURE.md](ARCHITECTURE.md) -- pipeline internals and component reference
