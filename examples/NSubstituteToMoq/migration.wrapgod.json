@@ -18,11 +18,23 @@
       "kind": "Static",
       "members": [
         { "name": "Returns", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "value", "type": "T" }] },
+        { "name": "Returns", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "value", "type": "T" }, { "name": "returnThese", "type": "T[]" }] },
+        { "name": "Returns", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "returnThis", "type": "Func<CallInfo, T>" }] },
         { "name": "Throws", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "exception", "type": "Exception" }] },
+        { "name": "ThrowsAsync", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "exception", "type": "Exception" }] },
         { "name": "Received", "kind": "Method", "returnType": "T", "parameters": [] },
         { "name": "Received", "kind": "Method", "returnType": "T", "parameters": [{ "name": "requiredQuantity", "type": "int" }] },
         { "name": "DidNotReceive", "kind": "Method", "returnType": "T", "parameters": [] },
-        { "name": "ReceivedWithAnyArgs", "kind": "Method", "returnType": "T", "parameters": [] }
+        { "name": "ReceivedWithAnyArgs", "kind": "Method", "returnType": "T", "parameters": [] },
+        { "name": "When", "kind": "Method", "returnType": "WhenCalled<T>", "parameters": [{ "name": "substituteCall", "type": "Action<T>" }] }
+      ]
+    },
+    {
+      "name": "NSubstitute.WhenCalled`1",
+      "namespace": "NSubstitute",
+      "kind": "Class",
+      "members": [
+        { "name": "Do", "kind": "Method", "returnType": "void", "parameters": [{ "name": "callbackWithArguments", "type": "Action<CallInfo>" }] }
       ]
     },
     {
@@ -33,6 +45,23 @@
         { "name": "Any", "kind": "Method", "returnType": "T", "parameters": [] },
         { "name": "Is", "kind": "Method", "returnType": "T", "parameters": [{ "name": "predicate", "type": "Expression<Predicate<T>>" }] },
         { "name": "Do", "kind": "Method", "returnType": "T", "parameters": [{ "name": "action", "type": "Action<T>" }] }
+      ]
+    },
+    {
+      "name": "NSubstitute.Raise",
+      "namespace": "NSubstitute",
+      "kind": "Static",
+      "members": [
+        { "name": "EventWith", "kind": "Method", "returnType": "EventHandler<TEventArgs>", "parameters": [{ "name": "args", "type": "TEventArgs" }] }
+      ]
+    },
+    {
+      "name": "NSubstitute.ExceptionExtensions",
+      "namespace": "NSubstitute.ExceptionExtensions",
+      "kind": "Static",
+      "members": [
+        { "name": "Throws", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "exception", "type": "Exception" }] },
+        { "name": "ThrowsAsync", "kind": "Method", "returnType": "ConfiguredCall", "parameters": [{ "name": "exception", "type": "Exception" }] }
       ]
     }
   ]

@@ -5,7 +5,8 @@
   "sourcePackage": "NSubstitute",
   "targetPackage": "Moq",
   "usingReplacements": {
-    "NSubstitute": "Moq"
+    "NSubstitute": "Moq",
+    "NSubstitute.ExceptionExtensions": "Moq"
   },
   "notes": "Reverse migration from NSubstitute to Moq. This direction introduces indirection (Mock<T> wrapper, .Object accessor) that does not exist in NSubstitute. Several NSubstitute patterns have no clean Moq equivalent.",
   "mappings": [
@@ -24,9 +25,36 @@
       "notes": "Moq requires wrapping in Setup lambda expression. Argument matchers must also be translated."
     },
     {
+      "description": "Returns setup (async)",
+      "source": "{sub}.{Method}({args}).Returns({value})",
+      "target": "{mock}.Setup(x => x.{Method}({args})).ReturnsAsync({value})",
+      "safety": "guided",
+      "notes": "For Task<T>-returning methods, use ReturnsAsync. For Task-returning void methods, use Returns(Task.CompletedTask)."
+    },
+    {
+      "description": "Sequential returns",
+      "source": "{sub}.{Method}({args}).Returns({v1}, {v2}, {v3})",
+      "target": "{mock}.SetupSequence(x => x.{Method}({args})).Returns({v1}).Returns({v2}).Returns({v3})",
+      "safety": "safe",
+      "notes": "NSubstitute params array becomes chained SetupSequence().Returns() calls."
+    },
+    {
+      "description": "Returns from function",
+      "source": "{sub}.{Method}({args}).Returns(callInfo => {expression})",
+      "target": "{mock}.Setup(x => x.{Method}({args})).Returns({expression})",
+      "safety": "guided",
+      "notes": "Moq Returns also accepts Func<TResult> but the CallInfo parameter must be restructured or dropped."
+    },
+    {
       "description": "Throws setup",
       "source": "{sub}.{Method}({args}).Throws({exception})",
       "target": "{mock}.Setup(x => x.{Method}({args})).Throws({exception})",
+      "safety": "guided"
+    },
+    {
+      "description": "ThrowsAsync setup",
+      "source": "{sub}.{Method}({args}).ThrowsAsync({exception})",
+      "target": "{mock}.Setup(x => x.{Method}({args})).ThrowsAsync({exception})",
       "safety": "guided"
     },
     {
@@ -45,6 +73,18 @@
       "description": "Did not receive",
       "source": "{sub}.DidNotReceive().{Method}({args})",
       "target": "{mock}.Verify(x => x.{Method}({args}), Times.Never)",
+      "safety": "safe"
+    },
+    {
+      "description": "Property get setup",
+      "source": "{sub}.{Property}.Returns({value})",
+      "target": "{mock}.Setup(x => x.{Property}).Returns({value})",
+      "safety": "safe"
+    },
+    {
+      "description": "Property set verification",
+      "source": "{sub}.Received().{Property} = {value}",
+      "target": "{mock}.VerifySet(x => x.{Property} = {value})",
       "safety": "safe"
     },
     {
@@ -67,6 +107,13 @@
       "notes": "NSubstitute's Arg.Do captures argument inline; Moq requires .Callback() chained on Setup. No direct translation."
     },
     {
+      "description": "When().Do() for void methods",
+      "source": "{sub}.When(x => x.{Method}({args})).Do(ci => {action})",
+      "target": "{mock}.Setup(x => x.{Method}({args})).Callback<{ParamTypes}>({action})",
+      "safety": "guided",
+      "notes": "Moq uses Setup().Callback() for void method side effects. Callback type params must match method signature."
+    },
+    {
       "description": "ReceivedWithAnyArgs",
       "source": "{sub}.ReceivedWithAnyArgs().{Method}({args})",
       "target": "{mock}.Verify(x => x.{Method}(It.IsAny<...>(), ...), Times.AtLeastOnce)",
@@ -74,11 +121,17 @@
       "notes": "Must replace each parameter with It.IsAny<T>(). No single Moq equivalent to ReceivedWithAnyArgs."
     },
     {
-      "description": "Returns from function",
-      "source": "{sub}.{Method}({args}).Returns(callInfo => {expression})",
-      "target": "{mock}.Setup(x => x.{Method}({args})).Returns({expression})",
+      "description": "Event raising",
+      "source": "{sub}.{Event} += Raise.EventWith({args})",
+      "target": "{mock}.Raise(x => x.{Event} += null, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Out parameter via ci[index]",
+      "source": "{sub}.{Method}({args}).Returns(ci => { ci[{index}] = {value}; return {result}; })",
+      "target": "{mock}.Setup(x => x.{Method}({args})).Returns({result})",
       "safety": "guided",
-      "notes": "Moq Returns also accepts Func<TResult> but the CallInfo parameter must be restructured or dropped."
+      "notes": "Moq uses out variable setup syntax. Declare the out value before Setup and pass it in the expression."
     }
   ],
   "asymmetries": [
@@ -101,6 +154,11 @@
       "pattern": "When().Do() for void methods",
       "issue": "NSubstitute's When().Do() pattern maps to Moq's Setup().Callback(), but the syntax is significantly different.",
       "risk": "medium"
+    },
+    {
+      "pattern": "Sequential returns",
+      "issue": "NSubstitute uses params array in Returns(); Moq requires SetupSequence() with chained .Returns() calls.",
+      "risk": "low"
     }
   ]
 }

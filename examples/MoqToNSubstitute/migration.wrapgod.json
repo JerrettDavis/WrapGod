@@ -11,10 +11,17 @@
       "genericParameters": ["T"],
       "members": [
         { "name": ".ctor", "kind": "Constructor", "parameters": [] },
+        { "name": ".ctor", "kind": "Constructor", "parameters": [{ "name": "behavior", "type": "MockBehavior" }] },
         { "name": "Object", "kind": "Property", "returnType": "T" },
         { "name": "Setup", "kind": "Method", "returnType": "ISetup<T>", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TResult>>" }] },
+        { "name": "SetupSequence", "kind": "Method", "returnType": "ISetupSequentialResult<TResult>", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TResult>>" }] },
+        { "name": "SetupProperty", "kind": "Method", "returnType": "Mock<T>", "parameters": [{ "name": "expression", "type": "Expression<Func<T, TProperty>>" }] },
         { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }] },
-        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }, { "name": "times", "type": "Times" }] }
+        { "name": "Verify", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Expression<Action<T>>" }, { "name": "times", "type": "Times" }] },
+        { "name": "VerifyAll", "kind": "Method", "returnType": "void", "parameters": [] },
+        { "name": "VerifyNoOtherCalls", "kind": "Method", "returnType": "void", "parameters": [] },
+        { "name": "VerifySet", "kind": "Method", "returnType": "void", "parameters": [{ "name": "expression", "type": "Action<T>" }] },
+        { "name": "Raise", "kind": "Method", "returnType": "void", "parameters": [{ "name": "eventExpression", "type": "Action<T>" }, { "name": "args", "type": "EventArgs" }] }
       ]
     },
     {
@@ -23,8 +30,19 @@
       "kind": "Interface",
       "members": [
         { "name": "Returns", "kind": "Method", "returnType": "IReturnsResult<T>", "parameters": [{ "name": "value", "type": "TResult" }] },
+        { "name": "Returns", "kind": "Method", "returnType": "IReturnsResult<T>", "parameters": [{ "name": "valueFunction", "type": "Func<TResult>" }] },
+        { "name": "ReturnsAsync", "kind": "Method", "returnType": "IReturnsResult<T>", "parameters": [{ "name": "value", "type": "TResult" }] },
         { "name": "Throws", "kind": "Method", "returnType": "IThrowsResult", "parameters": [{ "name": "exception", "type": "Exception" }] },
+        { "name": "ThrowsAsync", "kind": "Method", "returnType": "IThrowsResult", "parameters": [{ "name": "exception", "type": "Exception" }] },
         { "name": "Callback", "kind": "Method", "returnType": "ICallbackResult", "parameters": [{ "name": "action", "type": "Action" }] }
+      ]
+    },
+    {
+      "name": "Moq.Language.ISetupSequentialResult`1",
+      "namespace": "Moq.Language",
+      "kind": "Interface",
+      "members": [
+        { "name": "Returns", "kind": "Method", "returnType": "ISetupSequentialResult<TResult>", "parameters": [{ "name": "value", "type": "TResult" }] }
       ]
     },
     {
@@ -44,7 +62,19 @@
       "kind": "Static",
       "members": [
         { "name": "IsAny", "kind": "Method", "returnType": "TValue", "parameters": [] },
-        { "name": "Is", "kind": "Method", "returnType": "TValue", "parameters": [{ "name": "match", "type": "Expression<Func<TValue, bool>>" }] }
+        { "name": "Is", "kind": "Method", "returnType": "TValue", "parameters": [{ "name": "match", "type": "Expression<Func<TValue, bool>>" }] },
+        { "name": "IsInRange", "kind": "Method", "returnType": "TValue", "parameters": [{ "name": "from", "type": "TValue" }, { "name": "to", "type": "TValue" }, { "name": "rangeKind", "type": "Range" }] },
+        { "name": "Ref<TValue>.IsAny", "kind": "Field", "returnType": "TValue" }
+      ]
+    },
+    {
+      "name": "Moq.MockBehavior",
+      "namespace": "Moq",
+      "kind": "Enum",
+      "members": [
+        { "name": "Strict", "kind": "Field" },
+        { "name": "Loose", "kind": "Field" },
+        { "name": "Default", "kind": "Field" }
       ]
     }
   ]
