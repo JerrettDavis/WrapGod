@@ -1,0 +1,1077 @@
+{
+  "$schema": "../../../../../schemas/wrapgod.manifest.v1.schema.json",
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-03-27T00:00:00Z",
+  "assembly": {
+    "name": "Serilog",
+    "version": "2.12.0",
+    "targetFramework": "netstandard2.0"
+  },
+  "types": [
+    {
+      "stableId": "Serilog.Log",
+      "fullName": "Serilog.Log",
+      "name": "Log",
+      "namespace": "Serilog",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "isSealed": false,
+      "isAbstract": false,
+      "isStatic": true,
+      "members": [
+        {
+          "stableId": "Serilog.Log.Logger",
+          "name": "Logger",
+          "kind": "property",
+          "returnType": "Serilog.ILogger",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true,
+          "hasGetter": true,
+          "hasSetter": true
+        },
+        {
+          "stableId": "Serilog.Log.Verbose(string,object[])",
+          "name": "Verbose",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "messageTemplate", "type": "string" },
+            { "name": "propertyValues", "type": "object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Log.Debug(string,object[])",
+          "name": "Debug",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "messageTemplate", "type": "string" },
+            { "name": "propertyValues", "type": "object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Log.Information(string,object[])",
+          "name": "Information",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "messageTemplate", "type": "string" },
+            { "name": "propertyValues", "type": "object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Log.Warning(string,object[])",
+          "name": "Warning",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "messageTemplate", "type": "string" },
+            { "name": "propertyValues", "type": "object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Log.Error(string,object[])",
+          "name": "Error",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "messageTemplate", "type": "string" },
+            { "name": "propertyValues", "type": "object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Log.Fatal(string,object[])",
+          "name": "Fatal",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "messageTemplate", "type": "string" },
+            { "name": "propertyValues", "type": "object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Log.CloseAndFlush()",
+          "name": "CloseAndFlush",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Log.ForContext(Type)",
+          "name": "ForContext",
+          "kind": "method",
+          "returnType": "Serilog.ILogger",
+          "parameters": [
+            { "name": "source", "type": "System.Type" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Log.ForContext<TSource>()",
+          "name": "ForContext",
+          "kind": "method",
+          "returnType": "Serilog.ILogger",
+          "parameters": [],
+          "genericParameters": [
+            { "name": "TSource", "position": 0, "variance": "none", "constraints": [] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true,
+          "isStatic": true
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.ILogger",
+      "fullName": "Serilog.ILogger",
+      "name": "ILogger",
+      "namespace": "Serilog",
+      "kind": "interface",
+      "baseType": null,
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.ILogger.Write(LogEventLevel,string,object[])",
+          "name": "Write",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "level", "type": "Serilog.Events.LogEventLevel" },
+            { "name": "messageTemplate", "type": "string" },
+            { "name": "propertyValues", "type": "object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.ILogger.Write(LogEvent)",
+          "name": "Write",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "logEvent", "type": "Serilog.Events.LogEvent" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.ILogger.IsEnabled(LogEventLevel)",
+          "name": "IsEnabled",
+          "kind": "method",
+          "returnType": "bool",
+          "parameters": [
+            { "name": "level", "type": "Serilog.Events.LogEventLevel" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.ILogger.ForContext(ILogEventEnricher)",
+          "name": "ForContext",
+          "kind": "method",
+          "returnType": "Serilog.ILogger",
+          "parameters": [
+            { "name": "enricher", "type": "Serilog.Core.ILogEventEnricher" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.ILogger.ForContext(string,object,bool)",
+          "name": "ForContext",
+          "kind": "method",
+          "returnType": "Serilog.ILogger",
+          "parameters": [
+            { "name": "propertyName", "type": "string" },
+            { "name": "value", "type": "object" },
+            { "name": "destructureObjects", "type": "bool" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.ILogger.BindMessageTemplate(string,object[],out MessageTemplate,out LogEventProperty[])",
+          "name": "BindMessageTemplate",
+          "kind": "method",
+          "returnType": "bool",
+          "parameters": [
+            { "name": "messageTemplate", "type": "string" },
+            { "name": "propertyValues", "type": "object[]" },
+            { "name": "parsedTemplate", "type": "Serilog.Events.MessageTemplate", "isOut": true },
+            { "name": "boundProperties", "type": "Serilog.Events.LogEventProperty[]", "isOut": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.ILogger.BindProperty(string,object,bool,out LogEventProperty)",
+          "name": "BindProperty",
+          "kind": "method",
+          "returnType": "bool",
+          "parameters": [
+            { "name": "propertyName", "type": "string" },
+            { "name": "value", "type": "object" },
+            { "name": "destructureObjects", "type": "bool" },
+            { "name": "property", "type": "Serilog.Events.LogEventProperty", "isOut": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.LoggerConfiguration",
+      "fullName": "Serilog.LoggerConfiguration",
+      "name": "LoggerConfiguration",
+      "namespace": "Serilog",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.LoggerConfiguration..ctor()",
+          "name": ".ctor",
+          "kind": "constructor",
+          "returnType": null,
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.LoggerConfiguration.WriteTo",
+          "name": "WriteTo",
+          "kind": "property",
+          "returnType": "Serilog.Configuration.LoggerSinkConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.LoggerConfiguration.MinimumLevel",
+          "name": "MinimumLevel",
+          "kind": "property",
+          "returnType": "Serilog.Configuration.LoggerMinimumLevelConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.LoggerConfiguration.Enrich",
+          "name": "Enrich",
+          "kind": "property",
+          "returnType": "Serilog.Configuration.LoggerEnrichmentConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.LoggerConfiguration.Destructure",
+          "name": "Destructure",
+          "kind": "property",
+          "returnType": "Serilog.Configuration.LoggerDestructuringConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.LoggerConfiguration.Filter",
+          "name": "Filter",
+          "kind": "property",
+          "returnType": "Serilog.Configuration.LoggerFilterConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.LoggerConfiguration.AuditTo",
+          "name": "AuditTo",
+          "kind": "property",
+          "returnType": "Serilog.Configuration.LoggerAuditSinkConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.LoggerConfiguration.ReadFrom",
+          "name": "ReadFrom",
+          "kind": "property",
+          "returnType": "Serilog.Configuration.LoggerSettingsConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.LoggerConfiguration.CreateLogger()",
+          "name": "CreateLogger",
+          "kind": "method",
+          "returnType": "Serilog.Core.Logger",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Events.LogEventLevel",
+      "fullName": "Serilog.Events.LogEventLevel",
+      "name": "LogEventLevel",
+      "namespace": "Serilog.Events",
+      "kind": "enum",
+      "baseType": "System.Enum",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Events.LogEventLevel.Verbose",
+          "name": "Verbose",
+          "kind": "field",
+          "returnType": "Serilog.Events.LogEventLevel",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Events.LogEventLevel.Debug",
+          "name": "Debug",
+          "kind": "field",
+          "returnType": "Serilog.Events.LogEventLevel",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Events.LogEventLevel.Information",
+          "name": "Information",
+          "kind": "field",
+          "returnType": "Serilog.Events.LogEventLevel",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Events.LogEventLevel.Warning",
+          "name": "Warning",
+          "kind": "field",
+          "returnType": "Serilog.Events.LogEventLevel",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Events.LogEventLevel.Error",
+          "name": "Error",
+          "kind": "field",
+          "returnType": "Serilog.Events.LogEventLevel",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "Serilog.Events.LogEventLevel.Fatal",
+          "name": "Fatal",
+          "kind": "field",
+          "returnType": "Serilog.Events.LogEventLevel",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Events.LogEvent",
+      "fullName": "Serilog.Events.LogEvent",
+      "name": "LogEvent",
+      "namespace": "Serilog.Events",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Events.LogEvent..ctor(DateTimeOffset,LogEventLevel,Exception,MessageTemplate,IEnumerable<LogEventProperty>)",
+          "name": ".ctor",
+          "kind": "constructor",
+          "returnType": null,
+          "parameters": [
+            { "name": "timestamp", "type": "System.DateTimeOffset" },
+            { "name": "level", "type": "Serilog.Events.LogEventLevel" },
+            { "name": "exception", "type": "System.Exception" },
+            { "name": "messageTemplate", "type": "Serilog.Events.MessageTemplate" },
+            { "name": "properties", "type": "System.Collections.Generic.IEnumerable<Serilog.Events.LogEventProperty>" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Events.LogEvent.Timestamp",
+          "name": "Timestamp",
+          "kind": "property",
+          "returnType": "System.DateTimeOffset",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.Events.LogEvent.Level",
+          "name": "Level",
+          "kind": "property",
+          "returnType": "Serilog.Events.LogEventLevel",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.Events.LogEvent.MessageTemplate",
+          "name": "MessageTemplate",
+          "kind": "property",
+          "returnType": "Serilog.Events.MessageTemplate",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.Events.LogEvent.Exception",
+          "name": "Exception",
+          "kind": "property",
+          "returnType": "System.Exception",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.Events.LogEvent.Properties",
+          "name": "Properties",
+          "kind": "property",
+          "returnType": "System.Collections.Generic.IReadOnlyDictionary<string, Serilog.Events.LogEventPropertyValue>",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "hasGetter": true,
+          "hasSetter": false
+        },
+        {
+          "stableId": "Serilog.Events.LogEvent.AddOrUpdateProperty(LogEventProperty)",
+          "name": "AddOrUpdateProperty",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "property", "type": "Serilog.Events.LogEventProperty" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Events.LogEvent.RemovePropertyIfPresent(string)",
+          "name": "RemovePropertyIfPresent",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "propertyName", "type": "string" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Events.LogEvent.RenderMessage()",
+          "name": "RenderMessage",
+          "kind": "method",
+          "returnType": "string",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Configuration.LoggerSinkConfiguration",
+      "fullName": "Serilog.Configuration.LoggerSinkConfiguration",
+      "name": "LoggerSinkConfiguration",
+      "namespace": "Serilog.Configuration",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Configuration.LoggerSinkConfiguration.Sink(ILogEventSink,LogEventLevel)",
+          "name": "Sink",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "logEventSink", "type": "Serilog.Core.ILogEventSink" },
+            { "name": "restrictedToMinimumLevel", "type": "Serilog.Events.LogEventLevel", "isOptional": true, "defaultValue": "Verbose" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerSinkConfiguration.Sink<TSink>(LogEventLevel)",
+          "name": "Sink",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "restrictedToMinimumLevel", "type": "Serilog.Events.LogEventLevel", "isOptional": true, "defaultValue": "Verbose" }
+          ],
+          "genericParameters": [
+            { "name": "TSink", "position": 0, "variance": "none", "constraints": ["Serilog.Core.ILogEventSink", "new()"] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerSinkConfiguration.Logger(Action<LoggerConfiguration>,LogEventLevel)",
+          "name": "Logger",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "configureLogger", "type": "System.Action<Serilog.LoggerConfiguration>" },
+            { "name": "restrictedToMinimumLevel", "type": "Serilog.Events.LogEventLevel", "isOptional": true, "defaultValue": "Verbose" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration",
+      "fullName": "Serilog.Configuration.LoggerMinimumLevelConfiguration",
+      "name": "LoggerMinimumLevelConfiguration",
+      "namespace": "Serilog.Configuration",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration.Is(LogEventLevel)",
+          "name": "Is",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "minimumLevel", "type": "Serilog.Events.LogEventLevel" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration.Verbose()",
+          "name": "Verbose",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration.Debug()",
+          "name": "Debug",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration.Information()",
+          "name": "Information",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration.Warning()",
+          "name": "Warning",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration.Error()",
+          "name": "Error",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration.Fatal()",
+          "name": "Fatal",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerMinimumLevelConfiguration.Override(string,LogEventLevel)",
+          "name": "Override",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "source", "type": "string" },
+            { "name": "minimumLevel", "type": "Serilog.Events.LogEventLevel" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Configuration.LoggerEnrichmentConfiguration",
+      "fullName": "Serilog.Configuration.LoggerEnrichmentConfiguration",
+      "name": "LoggerEnrichmentConfiguration",
+      "namespace": "Serilog.Configuration",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Configuration.LoggerEnrichmentConfiguration.With(ILogEventEnricher)",
+          "name": "With",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "enricher", "type": "Serilog.Core.ILogEventEnricher" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerEnrichmentConfiguration.With<TEnricher>()",
+          "name": "With",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [],
+          "genericParameters": [
+            { "name": "TEnricher", "position": 0, "variance": "none", "constraints": ["Serilog.Core.ILogEventEnricher", "new()"] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerEnrichmentConfiguration.WithProperty(string,object,bool)",
+          "name": "WithProperty",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "name", "type": "string" },
+            { "name": "value", "type": "object" },
+            { "name": "destructureObjects", "type": "bool", "isOptional": true, "defaultValue": "false" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerEnrichmentConfiguration.AtLevel(LogEventLevel,Action<LoggerEnrichmentConfiguration>)",
+          "name": "AtLevel",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "enrichFromLevel", "type": "Serilog.Events.LogEventLevel" },
+            { "name": "configureEnricher", "type": "System.Action<Serilog.Configuration.LoggerEnrichmentConfiguration>" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "presence": { "introducedIn": "2.12.0", "removedIn": null, "changedIn": null }
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Core.ILogEventSink",
+      "fullName": "Serilog.Core.ILogEventSink",
+      "name": "ILogEventSink",
+      "namespace": "Serilog.Core",
+      "kind": "interface",
+      "baseType": null,
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Core.ILogEventSink.Emit(LogEvent)",
+          "name": "Emit",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "logEvent", "type": "Serilog.Events.LogEvent" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Core.ILogEventEnricher",
+      "fullName": "Serilog.Core.ILogEventEnricher",
+      "name": "ILogEventEnricher",
+      "namespace": "Serilog.Core",
+      "kind": "interface",
+      "baseType": null,
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Core.ILogEventEnricher.Enrich(LogEvent,ILogEventPropertyFactory)",
+          "name": "Enrich",
+          "kind": "method",
+          "returnType": null,
+          "parameters": [
+            { "name": "logEvent", "type": "Serilog.Events.LogEvent" },
+            { "name": "propertyFactory", "type": "Serilog.Core.ILogEventPropertyFactory" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Core.IDestructuringPolicy",
+      "fullName": "Serilog.Core.IDestructuringPolicy",
+      "name": "IDestructuringPolicy",
+      "namespace": "Serilog.Core",
+      "kind": "interface",
+      "baseType": null,
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Core.IDestructuringPolicy.TryDestructure(object,ILogEventPropertyValueFactory,out LogEventPropertyValue)",
+          "name": "TryDestructure",
+          "kind": "method",
+          "returnType": "bool",
+          "parameters": [
+            { "name": "value", "type": "object" },
+            { "name": "propertyValueFactory", "type": "Serilog.Core.ILogEventPropertyValueFactory" },
+            { "name": "result", "type": "Serilog.Events.LogEventPropertyValue", "isOut": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "Serilog.Configuration.LoggerSettingsConfiguration",
+      "fullName": "Serilog.Configuration.LoggerSettingsConfiguration",
+      "name": "LoggerSettingsConfiguration",
+      "namespace": "Serilog.Configuration",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "Serilog.Configuration.LoggerSettingsConfiguration.KeyValuePairs(IEnumerable<KeyValuePair<string,string>>)",
+          "name": "KeyValuePairs",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "settings", "type": "System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string,string>>" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "Serilog.Configuration.LoggerSettingsConfiguration.Settings(ILoggerSettings)",
+          "name": "Settings",
+          "kind": "method",
+          "returnType": "Serilog.LoggerConfiguration",
+          "parameters": [
+            { "name": "settings", "type": "Serilog.Settings.ILoggerSettings" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    }
+  ]
+}

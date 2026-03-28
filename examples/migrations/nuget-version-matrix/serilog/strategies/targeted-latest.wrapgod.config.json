@@ -1,0 +1,106 @@
+{
+  "strategyName": "Targeted-Latest",
+  "description": "Generate wrapper APIs targeting Serilog v4.x, leveraging all modern features including batched sinks, OpenTelemetry trace IDs, and case-insensitive level overrides.",
+  "sourcePackage": "Serilog",
+  "targetVersionRange": ">=4.0.0 <5.0.0",
+  "approach": "targeted-latest",
+  "mappings": [
+    {
+      "description": "Static Log.Information",
+      "source": "Log.Information({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Information({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Warning",
+      "source": "Log.Warning({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Warning({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Error",
+      "source": "Log.Error({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Error({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Fatal",
+      "source": "Log.Fatal({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Fatal({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Debug",
+      "source": "Log.Debug({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Debug({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Verbose",
+      "source": "Log.Verbose({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Verbose({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Async close and flush — v3+",
+      "source": "Log.CloseAndFlushAsync()",
+      "target": "WrapGodLoggerFactory.CloseAndFlushAsync()",
+      "safety": "safe",
+      "notes": "ValueTask-based async flush, preferred over sync variant."
+    },
+    {
+      "description": "LogEvent with TraceId/SpanId — v3.1+",
+      "source": "logEvent.TraceId",
+      "target": "wrappedEvent.TraceId",
+      "safety": "safe",
+      "notes": "Auto-populated from Activity.Current. Enables OpenTelemetry correlation."
+    },
+    {
+      "description": "LogEvent with SpanId — v3.1+",
+      "source": "logEvent.SpanId",
+      "target": "wrappedEvent.SpanId",
+      "safety": "safe"
+    },
+    {
+      "description": "Batched sink registration — v4 first-class",
+      "source": "WriteTo.Sink(IBatchedLogEventSink, BatchingOptions)",
+      "target": "WrapGodLoggerFactory.Configure(c => c.WriteTo.Sink({batchedSink}, {options}))",
+      "safety": "safe",
+      "notes": "First-class batching support via System.Threading.Channels in v4."
+    },
+    {
+      "description": "Conditional enrichment — v3.1+",
+      "source": ".Enrich.When({condition}, {configure})",
+      "target": ".Enrich.When({condition}, {configure})",
+      "safety": "safe"
+    },
+    {
+      "description": "Level-scoped enrichment — v2.12+",
+      "source": ".Enrich.AtLevel({level}, {configure})",
+      "target": ".Enrich.AtLevel({level}, {configure})",
+      "safety": "safe"
+    },
+    {
+      "description": "LoggerSinkConfiguration.CreateSink — v4+",
+      "source": "LoggerSinkConfiguration.CreateSink()",
+      "target": "WrapGodSinkFactory.CreateSink()",
+      "safety": "safe",
+      "notes": "New in v4.0.0. Utility for building sinks from configuration."
+    },
+    {
+      "description": "MinimumLevel.Override — case-insensitive in v4",
+      "source": ".MinimumLevel.Override({source}, {level})",
+      "target": ".MinimumLevel.Override({source}, {level})",
+      "safety": "guided",
+      "notes": "v4 uses case-insensitive matching for level overrides. Existing v2/v3 code relying on exact-case matching may behave differently."
+    }
+  ],
+  "unsupportedTransformations": [
+    {
+      "description": "Dotted property names in templates — experimental in v4",
+      "source": "Log.Information(\"{user.name} logged in\")",
+      "reason": "Requires AppContext switch to enable. Not enabled by default and may change in future releases.",
+      "workaround": "Use standard property names: Log.Information(\"{UserName} logged in\", user.Name)"
+    }
+  ]
+}

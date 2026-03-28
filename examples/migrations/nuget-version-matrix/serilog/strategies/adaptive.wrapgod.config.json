@@ -1,0 +1,111 @@
+{
+  "strategyName": "Adaptive",
+  "description": "Generate wrapper APIs that detect the installed Serilog version at runtime and adapt behavior accordingly. Uses compile-time #if directives for framework-dependent features and runtime checks for optional APIs.",
+  "sourcePackage": "Serilog",
+  "targetVersionRange": ">=2.12.0 <5.0.0",
+  "approach": "adaptive",
+  "compilationSymbols": {
+    "SERILOG_V2": "Serilog >=2.0.0 <3.0.0",
+    "SERILOG_V3": "Serilog >=3.0.0 <4.0.0",
+    "SERILOG_V4": "Serilog >=4.0.0 <5.0.0",
+    "SERILOG_V3_PLUS": "Serilog >=3.0.0",
+    "SERILOG_V3_1_PLUS": "Serilog >=3.1.0"
+  },
+  "mappings": [
+    {
+      "description": "Core logging methods — identical across all versions",
+      "source": "Log.{Level}({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.{Level}({messageTemplate}, {args})",
+      "safety": "safe",
+      "notes": "No version branching needed. API surface identical."
+    },
+    {
+      "description": "CloseAndFlush — sync in v2, prefer async in v3+",
+      "source": "Log.CloseAndFlush() | Log.CloseAndFlushAsync()",
+      "target": "WrapGodLoggerFactory.CloseAndFlushAsync()",
+      "safety": "safe",
+      "notes": "Wrapper calls CloseAndFlushAsync() on v3+, falls back to Task.Run(() => CloseAndFlush()) on v2.",
+      "versionBranch": {
+        "SERILOG_V3_PLUS": "await Log.CloseAndFlushAsync()",
+        "SERILOG_V2": "Log.CloseAndFlush()"
+      }
+    },
+    {
+      "description": "TraceId/SpanId on LogEvent — v3.1+ only",
+      "source": "logEvent.TraceId, logEvent.SpanId",
+      "target": "wrappedEvent.TraceId, wrappedEvent.SpanId",
+      "safety": "guided",
+      "notes": "Wrapper exposes nullable TraceId/SpanId. Returns null on v2.x where properties don't exist.",
+      "versionBranch": {
+        "SERILOG_V3_1_PLUS": "logEvent.TraceId",
+        "default": "null"
+      }
+    },
+    {
+      "description": "Batched sink registration — adaptive approach",
+      "source": "WriteTo.Sink(IBatchedLogEventSink)",
+      "target": "WrapGodLoggerFactory.Configure(c => c.WriteTo.BatchedSink({sink}))",
+      "safety": "guided",
+      "notes": "On v4, uses native BatchingOptions. On v3, uses IBatchedLogEventSink directly. On v2, wraps with PeriodicBatchingSink NuGet.",
+      "versionBranch": {
+        "SERILOG_V4": "WriteTo.Sink(batchedSink, new BatchingOptions { ... })",
+        "SERILOG_V3": "WriteTo.Sink(batchedSink)",
+        "SERILOG_V2": "WriteTo.Sink(new PeriodicBatchingSink(batchedSink, options))"
+      }
+    },
+    {
+      "description": "Conditional enrichment — v3.1+, custom enricher on v2",
+      "source": ".Enrich.When({condition}, {configure})",
+      "target": ".Enrich.When({condition}, {configure})",
+      "safety": "guided",
+      "notes": "v3.1+ has native When(). v2 requires a custom ILogEventEnricher that evaluates the condition.",
+      "versionBranch": {
+        "SERILOG_V3_1_PLUS": ".Enrich.When(condition, configure)",
+        "SERILOG_V2": ".Enrich.With(new ConditionalEnricher(condition, enricher))"
+      }
+    },
+    {
+      "description": "Level override matching behavior",
+      "source": ".MinimumLevel.Override({source}, {level})",
+      "target": ".MinimumLevel.Override({source}, {level})",
+      "safety": "guided",
+      "notes": "v4 uses case-insensitive matching. Wrapper normalizes source context names to avoid behavioral drift between versions."
+    },
+    {
+      "description": "Sink with LevelSwitch — overload added in v3",
+      "source": "WriteTo.Sink(sink, level, levelSwitch)",
+      "target": "WrapGodLoggerFactory.Configure(c => c.WriteTo.Sink(sink, level, levelSwitch))",
+      "safety": "guided",
+      "versionBranch": {
+        "SERILOG_V3_PLUS": "WriteTo.Sink(sink, level, levelSwitch)",
+        "SERILOG_V2": "WriteTo.Sink(sink, level)"
+      },
+      "notes": "LoggingLevelSwitch overload not available in v2. Wrapper ignores levelSwitch on v2."
+    },
+    {
+      "description": "LoggerSinkConfiguration.CreateSink — v4 only",
+      "source": "LoggerSinkConfiguration.CreateSink()",
+      "target": "WrapGodSinkFactory.CreateSink()",
+      "safety": "guided",
+      "notes": "New static utility in v4. Wrapper provides a polyfill on v2/v3.",
+      "versionBranch": {
+        "SERILOG_V4": "LoggerSinkConfiguration.CreateSink()",
+        "default": "// polyfill: manually build sink from configuration"
+      }
+    }
+  ],
+  "unsupportedTransformations": [
+    {
+      "description": "LogEvent constructor with trace IDs — cannot polyfill on v2",
+      "source": "new LogEvent(timestamp, level, exception, template, properties, traceId, spanId)",
+      "reason": "The 7-parameter LogEvent constructor only exists in v3.1+. Cannot create LogEvents with embedded trace context on v2.",
+      "workaround": "On v2, create the standard 5-parameter LogEvent and add TraceId/SpanId as regular properties via AddOrUpdateProperty."
+    },
+    {
+      "description": "Dotted property names — experimental v4 only",
+      "source": "Log.Information(\"{user.name} logged in\")",
+      "reason": "AppContext switch-gated experimental feature in v4. Cannot be polyfilled on earlier versions.",
+      "workaround": "Use flat property names across all versions."
+    }
+  ]
+}
