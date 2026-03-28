@@ -1104,7 +1104,7 @@ namespace Ns
         {
             CacheKeyHash = "abc123",
             CacheKey = key,
-            CreatedAtUtc = DateTimeOffset.UtcNow,
+            CreatedAtUtc = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
             Manifest = new ApiManifest { SchemaVersion = "1.0" },
         };
 
@@ -1123,7 +1123,7 @@ namespace Ns
         {
             CacheKeyHash = "hash1",
             PayloadHash = "payload1",
-            CreatedAtUtc = DateTimeOffset.UtcNow,
+            CreatedAtUtc = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
         };
 
         return Given("an ExtractorCacheIndexRecord", () => record)
