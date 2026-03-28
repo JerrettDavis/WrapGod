@@ -1,0 +1,59 @@
+{
+  "migrationName": "FluentAssertions-TargetV8",
+  "description": "Targeted strategy: generates wrappers that map the full v8 API surface, enabling migration from v5 or v6 to v8.",
+  "sourceLibrary": "FluentAssertions",
+  "strategy": "targeted",
+  "targetVersion": "8.3.0",
+  "manifests": [
+    "../v5/manifest.wrapgod.json",
+    "../v6/manifest.wrapgod.json",
+    "../v8/manifest.wrapgod.json"
+  ],
+  "rules": {
+    "memberSelection": "target-version",
+    "typeSelection": "target-version",
+    "signatureConflictResolution": "use-target"
+  },
+  "mappings": [
+    {
+      "description": "Execute.Assertion replaced by AssertionChain.GetOrCreate()",
+      "sourcePattern": "Execute.Assertion",
+      "targetPattern": "AssertionChain.GetOrCreate()",
+      "appliesTo": ["5.*", "6.*"],
+      "safety": "guided",
+      "notes": "Custom assertion classes that used Execute.Assertion must be rewritten to use the new AssertionChain pattern in v8."
+    },
+    {
+      "description": "EquivalencyAssertionOptions replaced by EquivalencyAssertionConfiguration",
+      "sourcePattern": "AssertionOptions.EquivalencyPlan",
+      "targetPattern": "AssertionConfiguration.Current.Equivalency.Modify()",
+      "appliesTo": ["5.*", "6.*"],
+      "safety": "guided",
+      "notes": "Global equivalency configuration moved from EquivalencyAssertionOptions to EquivalencyAssertionConfiguration in v8."
+    },
+    {
+      "description": "ActionAssertions.Should() removed in v6; use FluentActions.Invoking()",
+      "sourcePattern": "action.Should().Throw<T>()",
+      "targetPattern": "FluentActions.Invoking(() => action()).Should().Throw<T>()",
+      "appliesTo": ["5.*"],
+      "safety": "safe"
+    },
+    {
+      "description": "BeEquivalentTo gained optional config parameter in v8",
+      "sourcePattern": ".BeEquivalentTo(expected)",
+      "targetPattern": ".BeEquivalentTo(expected, config => config)",
+      "appliesTo": ["5.*", "6.*"],
+      "safety": "safe",
+      "notes": "The config parameter is optional so existing calls still compile, but the signature changed."
+    },
+    {
+      "description": "AsyncFunctionAssertions return type changed in v6",
+      "sourcePattern": "Should(Func<Task>)",
+      "targetPattern": "Should(Func<Task>)",
+      "appliesTo": ["5.*"],
+      "safety": "guided",
+      "notes": "Return type changed from AsyncFunctionAssertions to NonGenericAsyncFunctionAssertions in v6. Wrapper type references must update."
+    }
+  ],
+  "notes": "This strategy generates wrappers targeting the v8 API surface. Members removed in v8 (EquivalencyAssertionOptions) are excluded, and v8-only members (AssertionChain, Satisfy, EquivalencyAssertionConfiguration) are included. Use this when migrating a codebase to v8 exclusively."
+}

@@ -1,0 +1,30 @@
+{
+  "migrationName": "FluentAssertions-LCD",
+  "description": "Lowest-common-denominator strategy: generates wrappers using only API surface common to FluentAssertions v5, v6, and v8.",
+  "sourceLibrary": "FluentAssertions",
+  "strategy": "lowest-common-denominator",
+  "versionRange": {
+    "minimum": "5.10.3",
+    "maximum": "8.3.0"
+  },
+  "manifests": [
+    "../v5/manifest.wrapgod.json",
+    "../v6/manifest.wrapgod.json",
+    "../v8/manifest.wrapgod.json"
+  ],
+  "rules": {
+    "memberSelection": "intersection",
+    "typeSelection": "intersection",
+    "signatureConflictResolution": "use-oldest"
+  },
+  "excludedMembers": [
+    "M:FluentAssertions.Collections.GenericCollectionAssertions`1.AllSatisfy*",
+    "M:FluentAssertions.Collections.GenericCollectionAssertions`1.Satisfy*",
+    "M:FluentAssertions.Numeric.NumericAssertions`1.BeCloseTo*",
+    "M:FluentAssertions.Specialized.DelegateAssertions`1.ThrowExactly*",
+    "M:FluentAssertions.Primitives.BooleanAssertions.NotBe*",
+    "M:FluentAssertions.Primitives.StringAssertions.NotBeNullOrWhiteSpace*",
+    "M:FluentAssertions.Primitives.ObjectAssertions.Satisfy*"
+  ],
+  "notes": "This strategy produces wrappers that compile against any FA version from v5 through v8. It excludes members introduced in v6+ (AllSatisfy, ThrowExactly, NotBeNullOrWhiteSpace, BeCloseTo, BooleanAssertions.NotBe) and v8+ (Satisfy, AssertionChain). Use this when your codebase must support multiple FA versions simultaneously."
+}
