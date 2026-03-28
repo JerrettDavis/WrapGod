@@ -5,10 +5,16 @@ on:
     branches: [ main ]
     paths:
       - 'examples/**'
+      - 'schemas/**'
+      - '.github/workflows/examples.yml'
+      - 'WrapGod.Tests/**'
   pull_request:
     branches: [ main ]
     paths:
       - 'examples/**'
+      - 'schemas/**'
+      - '.github/workflows/examples.yml'
+      - 'WrapGod.Tests/**'
 
 jobs:
   build-examples:
@@ -46,3 +52,80 @@ jobs:
 
       - name: Build WrapGod.Examples
         run: dotnet build examples/WrapGod.Examples.slnx --nologo
+
+  nuget-version-matrix:
+    name: nuget-version-matrix (${{ matrix.sample }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - sample: fluent-assertions
+            versions: "v5 v6 v8"
+          - sample: moq
+            versions: "v4.10 v4.16 v4.20"
+          - sample: serilog
+            versions: "v2 v3 v4"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Validate sample structure + report consistency
+        shell: pwsh
+        run: |
+          $sample = "${{ matrix.sample }}"
+          $versions = "${{ matrix.versions }}".Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
+          $root = "examples/migrations/nuget-version-matrix/$sample"
+
+          if (!(Test-Path $root)) { throw "Missing sample root: $root" }
+          foreach ($v in $versions) {
+            $manifest = Join-Path $root "$v/manifest.wrapgod.json"
+            if (!(Test-Path $manifest)) { throw "Missing manifest: $manifest" }
+          }
+
+          $jsonPath = Join-Path $root "compatibility-report.json"
+          $mdPath = Join-Path $root "compatibility-report.md"
+          $diffPath = Join-Path $root "diff-report.md"
+          foreach ($f in @($jsonPath,$mdPath,$diffPath)) {
+            if (!(Test-Path $f)) { throw "Missing required report artifact: $f" }
+          }
+
+          $report = Get-Content $jsonPath -Raw | ConvertFrom-Json
+          if ($null -eq $report.package -or [string]::IsNullOrWhiteSpace($report.package.name)) {
+            throw "compatibility-report.json is missing package.name for $sample"
+          }
+
+          $md = Get-Content $mdPath -Raw
+          if ($md -notmatch [Regex]::Escape($report.package.name)) {
+            throw "compatibility-report.md does not mention package '$($report.package.name)' for $sample"
+          }
+
+          foreach ($v in $report.package.versions) {
+            if ($md -notmatch [Regex]::Escape($v)) {
+              throw "compatibility-report.md missing version '$v' for $sample"
+            }
+          }
+
+          $diffLength = (Get-Content $diffPath -Raw).Trim().Length
+          if ($diffLength -lt 100) { throw "diff-report.md appears too small/non-deterministic for $sample" }
+
+      - name: Validate JSON schema tests
+        run: dotnet test WrapGod.Tests/WrapGod.Tests.csproj --filter "CompatibilityReportSchemaTests|ManifestSchemaTests" --nologo
+
+      - name: Upload compatibility artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-version-matrix-${{ matrix.sample }}
+          path: |
+            examples/migrations/nuget-version-matrix/${{ matrix.sample }}/compatibility-report.json
+            examples/migrations/nuget-version-matrix/${{ matrix.sample }}/compatibility-report.md
+            examples/migrations/nuget-version-matrix/${{ matrix.sample }}/diff-report.md
+            examples/migrations/nuget-version-matrix/${{ matrix.sample }}/strategies/
+            examples/migrations/nuget-version-matrix/${{ matrix.sample }}/v*/manifest.wrapgod.json
+          if-no-files-found: error

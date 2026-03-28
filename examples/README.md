@@ -7,6 +7,7 @@ This folder contains a runnable, end-to-end workflow demo for issue #43.
 - `Acme.Lib` — tiny third-party library we will wrap
 - `WrapGod.WorkflowDemo` — console app that executes the full WrapGod flow
 - `migrations/serilog-nlog-bidirectional` — bidirectional Serilog <-> NLog integration pack with parity tests
+- `migrations/nuget-version-matrix` — version-divergence example packs (FluentAssertions/Moq/Serilog) with compatibility reports and CI drift guards
 
 ## What the demo does
 
