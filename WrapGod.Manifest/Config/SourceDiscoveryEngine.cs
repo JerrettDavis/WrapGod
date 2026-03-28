@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using WrapGod.Abstractions.Config;
@@ -23,9 +22,7 @@ public static class SourceDiscoveryEngine
         }
 
         var packageRef = input.PackageReferences
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .OrderBy(p => p, StringComparer.Ordinal)
-            .FirstOrDefault();
+            .FirstOrDefault(static p => !string.IsNullOrWhiteSpace(p));
 
         if (!string.IsNullOrWhiteSpace(packageRef))
         {

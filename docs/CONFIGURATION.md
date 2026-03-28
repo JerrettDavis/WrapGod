@@ -89,7 +89,7 @@ public interface IHttpClientWrapper { }
 Source resolution for `[WrapType]` follows a deterministic discovery order:
 
 1. Convention match in `WrapGodPackage`
-2. Convention match in referenced packages/assemblies
+2. Convention match in referenced packages/assemblies (first declared package reference wins)
 3. `@self` (the attributed type itself)
 4. Explicit metadata name from `sourceType`
 
