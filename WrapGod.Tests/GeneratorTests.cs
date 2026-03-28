@@ -137,6 +137,82 @@ public sealed class GeneratorTests(ITestOutputHelper output) : TinyBddXunitBase(
                 !result.Results.SelectMany(r => r.GeneratedSources).Any())
             .AssertPassed();
 
+    // -- OutputNamespace Scenarios -------------------------------------
+
+    private static readonly string CustomNamespaceConfig = """
+        {
+          "outputNamespace": "MyCustomNamespace",
+          "types": [
+            { "sourceType": "Acme.Lib.FooService", "include": true }
+          ]
+        }
+        """;
+
+    private static GeneratorDriverRunResult RunGeneratorWithManifestAndConfig(string manifest, string config)
+    {
+        var syntaxTree = CSharpSyntaxTree.ParseText("namespace Placeholder; public class Marker { }");
+        var references = new[]
+        {
+            MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+        };
+
+        var compilation = CSharpCompilation.Create(
+            "TestAssembly",
+            new[] { syntaxTree },
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+        IIncrementalGenerator generator = new WrapGodIncrementalGenerator();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            generators: new[] { generator.AsSourceGenerator() },
+            additionalTexts: new AdditionalText[]
+            {
+                new InMemoryAdditionalText("acme.wrapgod.json", manifest),
+                new InMemoryAdditionalText("acme.wrapgod.config.json", config),
+            });
+
+        driver = driver.RunGenerators(compilation);
+        return driver.GetRunResult();
+    }
+
+    [Scenario("Custom outputNamespace in config overrides default namespace")]
+    [Fact]
+    public Task OutputNamespaceOverridesDefault()
+        => Given("a generator run with a manifest and custom namespace config", () =>
+                RunGeneratorWithManifestAndConfig(SimpleManifest, CustomNamespaceConfig))
+            .Then("the interface uses the custom namespace", result =>
+                result.Results
+                    .SelectMany(r => r.GeneratedSources)
+                    .First(s => s.HintName == "IWrappedFooService.g.cs")
+                    .SourceText.ToString()
+                    .Contains("namespace MyCustomNamespace;", StringComparison.Ordinal))
+            .And("the facade uses the custom namespace", result =>
+                result.Results
+                    .SelectMany(r => r.GeneratedSources)
+                    .First(s => s.HintName == "FooServiceFacade.g.cs")
+                    .SourceText.ToString()
+                    .Contains("namespace MyCustomNamespace;", StringComparison.Ordinal))
+            .AssertPassed();
+
+    [Scenario("No outputNamespace in config uses default WrapGod.Generated")]
+    [Fact]
+    public Task NoOutputNamespaceUsesDefault()
+        => Given("a generator run with a manifest and config without outputNamespace", () =>
+                RunGeneratorWithManifestAndConfig(SimpleManifest, """
+                    {
+                      "types": [
+                        { "sourceType": "Acme.Lib.FooService", "include": true }
+                      ]
+                    }
+                    """))
+            .Then("the interface uses the default namespace", result =>
+                result.Results
+                    .SelectMany(r => r.GeneratedSources)
+                    .First(s => s.HintName == "IWrappedFooService.g.cs")
+                    .SourceText.ToString()
+                    .Contains("namespace WrapGod.Generated;", StringComparison.Ordinal))
+            .AssertPassed();
+
     // -- In-memory AdditionalText for testing --------------------------
 
     private sealed class InMemoryAdditionalText : AdditionalText

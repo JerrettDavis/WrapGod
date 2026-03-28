@@ -94,12 +94,38 @@ that decouples consumer code from the underlying assertion library.
   <ItemGroup>
     <PackageReference Include="Shouldly" Version="4.3.0" />
   </ItemGroup>
+
+  <!-- WrapGod source generator -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\WrapGod.Generator\WrapGod.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!-- Manifest + config as AdditionalFiles for the generator -->
+  <ItemGroup>
+    <AdditionalFiles Include="shouldly.wrapgod.json" />
+    <AdditionalFiles Include="shouldly.wrapgod.config.json" />
+  </ItemGroup>
 </Project>
 ```
 
+The generation pipeline works as follows:
+
+1. **`shouldly.wrapgod.json`** -- Manifest extracted from Shouldly 4.3.0 via
+   `dotnet run --project WrapGod.Cli -- extract --nuget Shouldly@4.3.0`
+2. **`shouldly.wrapgod.config.json`** -- Config specifying which types to include
+   and `"outputNamespace": "Company.Assertions"` to emit generated code under the
+   `Company.Assertions` namespace instead of the default `WrapGod.Generated`
+3. **WrapGod source generator** -- At build time, reads the manifest and config,
+   then emits `IWrapped*` interfaces and `*Facade` classes under `Company.Assertions`
+4. **`AssertionExtensions.cs`** -- Hand-authored extension methods that delegate
+   to Shouldly, providing the ergonomic `actual.ShouldBe(expected)` API surface
+
 ```csharp
-// AssertionExtensions.cs — WrapGod-generated facade over Shouldly.
-// Each method delegates to the underlying Shouldly implementation.
+// AssertionExtensions.cs -- Extension methods delegating to Shouldly.
+// Lives alongside WrapGod-generated interfaces and facades.
 namespace Company.Assertions;
 
 public static class AssertionExtensions
@@ -116,7 +142,7 @@ public static class AssertionExtensions
     // ... full Shouldly API surface wrapped under Company.Assertions
 }
 
-// Static assertion facade — wraps Shouldly.Should
+// Static assertion facade -- wraps Shouldly.Should
 public static class Should
 {
     public static TException Throw<TException>(Action actual) where TException : Exception

@@ -1,0 +1,509 @@
+{
+  "assembly": {
+    "name": "Shouldly",
+    "version": "4.3.0"
+  },
+  "types": [
+    {
+      "fullName": "Shouldly.Should",
+      "name": "Should",
+      "namespace": "Shouldly",
+      "members": [
+        {
+          "name": "Throw",
+          "kind": "method",
+          "returnType": "System.Exception",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Func<System.Object>"
+            },
+            {
+              "name": "exceptionType",
+              "type": "System.Type"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false
+        },
+        {
+          "name": "Throw",
+          "kind": "method",
+          "returnType": "TException",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Action"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "TException",
+              "constraints": [
+                "System.Exception"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ThrowAsync",
+          "kind": "method",
+          "returnType": "System.Threading.Tasks.Task<TException>",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Func<System.Threading.Tasks.Task>"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "TException",
+              "constraints": [
+                "System.Exception"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ThrowAsync",
+          "kind": "method",
+          "returnType": "System.Threading.Tasks.Task<TException>",
+          "parameters": [
+            {
+              "name": "task",
+              "type": "System.Threading.Tasks.Task"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "TException",
+              "constraints": [
+                "System.Exception"
+              ]
+            }
+          ]
+        }
+      ],
+      "isStatic": true
+    },
+    {
+      "fullName": "Shouldly.ShouldBeBooleanExtensions",
+      "name": "ShouldBeBooleanExtensions",
+      "namespace": "Shouldly",
+      "members": [
+        {
+          "name": "ShouldBeFalse",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Boolean",
+              "isThis": true
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false
+        },
+        {
+          "name": "ShouldBeTrue",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Boolean",
+              "isThis": true
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false
+        }
+      ],
+      "isStatic": true
+    },
+    {
+      "fullName": "Shouldly.ShouldBeEnumerableTestExtensions",
+      "name": "ShouldBeEnumerableTestExtensions",
+      "namespace": "Shouldly",
+      "members": [
+        {
+          "name": "ShouldBeEmpty",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Collections.Generic.IEnumerable<T>",
+              "isThis": true
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T"
+            }
+          ]
+        },
+        {
+          "name": "ShouldContain",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Collections.Generic.IEnumerable<T>",
+              "isThis": true
+            },
+            {
+              "name": "elementPredicate",
+              "type": "System.Linq.Expressions.Expression<System.Func<T, System.Boolean>>"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T"
+            }
+          ]
+        },
+        {
+          "name": "ShouldContain",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Collections.Generic.IEnumerable<T>",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "T"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T"
+            }
+          ]
+        },
+        {
+          "name": "ShouldNotBeEmpty",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Collections.Generic.IEnumerable<T>",
+              "isThis": true
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T"
+            }
+          ]
+        }
+      ],
+      "isStatic": true
+    },
+    {
+      "fullName": "Shouldly.ShouldBeNullExtensions",
+      "name": "ShouldBeNullExtensions",
+      "namespace": "Shouldly",
+      "members": [
+        {
+          "name": "ShouldBeNull",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "T",
+              "isThis": true
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T",
+              "constraints": [
+                "class"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ShouldNotBeNull",
+          "kind": "method",
+          "returnType": "T",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "T",
+              "isThis": true
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T",
+              "constraints": [
+                "class"
+              ]
+            }
+          ]
+        }
+      ],
+      "isStatic": true
+    },
+    {
+      "fullName": "Shouldly.ShouldBeStringTestExtensions",
+      "name": "ShouldBeStringTestExtensions",
+      "namespace": "Shouldly",
+      "members": [
+        {
+          "name": "ShouldContain",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.String",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "System.String"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false
+        },
+        {
+          "name": "ShouldEndWith",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.String",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "System.String"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false
+        },
+        {
+          "name": "ShouldNotBeNullOrEmpty",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.String",
+              "isThis": true
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false
+        },
+        {
+          "name": "ShouldStartWith",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.String",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "System.String"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false
+        }
+      ],
+      "isStatic": true
+    },
+    {
+      "fullName": "Shouldly.ShouldBeTestExtensions",
+      "name": "ShouldBeTestExtensions",
+      "namespace": "Shouldly",
+      "members": [
+        {
+          "name": "ShouldBe",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "System.Collections.Generic.IEnumerable<T>",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "System.Collections.Generic.IEnumerable<T>"
+            },
+            {
+              "name": "ignoreOrder",
+              "type": "System.Boolean"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T"
+            }
+          ]
+        },
+        {
+          "name": "ShouldBe",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "T",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "T"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T"
+            }
+          ]
+        },
+        {
+          "name": "ShouldBeGreaterThanOrEqualTo",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "T",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "T"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T",
+              "constraints": [
+                "System.IComparable<T>"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ShouldBeGreaterThan",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "T",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "T"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T",
+              "constraints": [
+                "System.IComparable<T>"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ShouldBeLessThanOrEqualTo",
+          "kind": "method",
+          "returnType": "System.Void",
+          "parameters": [
+            {
+              "name": "actual",
+              "type": "T",
+              "isThis": true
+            },
+            {
+              "name": "expected",
+              "type": "T"
+            }
+          ],
+          "isStatic": true,
+          "hasGetter": false,
+          "hasSetter": false,
+          "genericParameters": [
+            {
+              "name": "T",
+              "constraints": [
+                "System.IComparable<T>"
+              ]
+            }
+          ]
+        }
+      ],
+      "isStatic": true
+    }
+  ]
+}
