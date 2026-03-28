@@ -15,4 +15,24 @@
     <Project Path="NUnitToXUnit/SampleTests.Before/SampleTests.Before.csproj" />
     <Project Path="NUnitToXUnit/SampleTests.After/SampleTests.After.csproj" />
   </Folder>
+  <Folder Name="/migrations/serilog-nlog-bidirectional/">
+    <Project Path="migrations/serilog-nlog-bidirectional/SerilogApp/SerilogApp.csproj" />
+    <Project Path="migrations/serilog-nlog-bidirectional/NLogApp/NLogApp.csproj" />
+    <Project Path="migrations/serilog-nlog-bidirectional/ParityTests/ParityTests.csproj" />
+  </Folder>
+  <Folder Name="/migrations/automapper-mapster-bidirectional/">
+    <Project Path="migrations/automapper-mapster-bidirectional/AutoMapperApp/AutoMapperApp.csproj" />
+    <Project Path="migrations/automapper-mapster-bidirectional/MapsterApp/MapsterApp.csproj" />
+    <Project Path="migrations/automapper-mapster-bidirectional/ParityTests/ParityTests.csproj" />
+  </Folder>
+  <Folder Name="/migrations/efcore-dapper-bidirectional/">
+    <Project Path="migrations/efcore-dapper-bidirectional/EfCoreApp/EfCoreApp.csproj" />
+    <Project Path="migrations/efcore-dapper-bidirectional/DapperApp/DapperApp.csproj" />
+    <Project Path="migrations/efcore-dapper-bidirectional/ParityTests/ParityTests.csproj" />
+  </Folder>
+  <Folder Name="/migrations/mediatr-masstransit-mediator-bidirectional/">
+    <Project Path="migrations/mediatr-masstransit-mediator-bidirectional/MediatRApp/MediatRApp.csproj" />
+    <Project Path="migrations/mediatr-masstransit-mediator-bidirectional/MassTransitMediatorApp/MassTransitMediatorApp.csproj" />
+    <Project Path="migrations/mediatr-masstransit-mediator-bidirectional/ParityTests/ParityTests.csproj" />
+  </Folder>
 </Solution>
