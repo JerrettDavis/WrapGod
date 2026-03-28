@@ -1,0 +1,921 @@
+{
+  "$schema": "../../../../../schemas/wrapgod.manifest.v1.schema.json",
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-03-27T00:00:00Z",
+  "assembly": {
+    "name": "FluentAssertions",
+    "version": "5.10.3",
+    "publicKeyToken": "33f2691a05b67b6a",
+    "targetFramework": "netstandard2.0"
+  },
+  "types": [
+    {
+      "stableId": "T:FluentAssertions.AssertionExtensions",
+      "fullName": "FluentAssertions.AssertionExtensions",
+      "name": "AssertionExtensions",
+      "namespace": "FluentAssertions",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "isSealed": false,
+      "isAbstract": false,
+      "isStatic": true,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.AssertionExtensions.Should(System.Object)",
+          "name": "Should",
+          "kind": "method",
+          "returnType": "FluentAssertions.Primitives.ObjectAssertions",
+          "parameters": [
+            { "name": "actualValue", "type": "System.Object" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "M:FluentAssertions.AssertionExtensions.Should(System.Boolean)",
+          "name": "Should",
+          "kind": "method",
+          "returnType": "FluentAssertions.Primitives.BooleanAssertions",
+          "parameters": [
+            { "name": "actualValue", "type": "System.Boolean" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "M:FluentAssertions.AssertionExtensions.Should(System.String)",
+          "name": "Should",
+          "kind": "method",
+          "returnType": "FluentAssertions.Primitives.StringAssertions",
+          "parameters": [
+            { "name": "actualValue", "type": "System.String" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "M:FluentAssertions.AssertionExtensions.Should``1(System.Collections.Generic.IEnumerable{``0})",
+          "name": "Should",
+          "kind": "method",
+          "returnType": "FluentAssertions.Collections.GenericCollectionAssertions`1",
+          "parameters": [
+            { "name": "actualValue", "type": "System.Collections.Generic.IEnumerable`1" }
+          ],
+          "genericParameters": [
+            { "name": "T", "position": 0, "variance": "none", "constraints": [] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true,
+          "isStatic": true
+        },
+        {
+          "stableId": "M:FluentAssertions.AssertionExtensions.Should(System.Int32)",
+          "name": "Should",
+          "kind": "method",
+          "returnType": "FluentAssertions.Numeric.NumericAssertions`1[System.Int32]",
+          "parameters": [
+            { "name": "actualValue", "type": "System.Int32" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "M:FluentAssertions.AssertionExtensions.Should(System.Action)",
+          "name": "Should",
+          "kind": "method",
+          "returnType": "FluentAssertions.Specialized.ActionAssertions",
+          "parameters": [
+            { "name": "action", "type": "System.Action" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        },
+        {
+          "stableId": "M:FluentAssertions.AssertionExtensions.Invoking``1(``0,System.Action{``0})",
+          "name": "Invoking",
+          "kind": "method",
+          "returnType": "System.Action",
+          "parameters": [
+            { "name": "subject", "type": "T" },
+            { "name": "action", "type": "System.Action`1[T]" }
+          ],
+          "genericParameters": [
+            { "name": "T", "position": 0, "variance": "none", "constraints": [] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true,
+          "isStatic": true
+        },
+        {
+          "stableId": "M:FluentAssertions.AssertionExtensions.Should(System.Func{System.Threading.Tasks.Task})",
+          "name": "Should",
+          "kind": "method",
+          "returnType": "FluentAssertions.Specialized.AsyncFunctionAssertions",
+          "parameters": [
+            { "name": "asyncAction", "type": "System.Func`1[System.Threading.Tasks.Task]" }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false,
+          "isStatic": true
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Primitives.ObjectAssertions",
+      "fullName": "FluentAssertions.Primitives.ObjectAssertions",
+      "name": "ObjectAssertions",
+      "namespace": "FluentAssertions.Primitives",
+      "kind": "class",
+      "baseType": "FluentAssertions.Primitives.ReferenceTypeAssertions`2",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Primitives.ObjectAssertions.Be(System.Object,System.String,System.Object[])",
+          "name": "Be",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.ObjectAssertions]",
+          "parameters": [
+            { "name": "expected", "type": "System.Object" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.ObjectAssertions.NotBe(System.Object,System.String,System.Object[])",
+          "name": "NotBe",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.ObjectAssertions]",
+          "parameters": [
+            { "name": "unexpected", "type": "System.Object" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.ObjectAssertions.BeEquivalentTo``1(``0,System.String,System.Object[])",
+          "name": "BeEquivalentTo",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.ObjectAssertions]",
+          "parameters": [
+            { "name": "expectation", "type": "T" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [
+            { "name": "T", "position": 0, "variance": "none", "constraints": [] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.ObjectAssertions.BeOfType``1(System.String,System.Object[])",
+          "name": "BeOfType",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndWhichConstraint`2[FluentAssertions.Primitives.ObjectAssertions,``0]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [
+            { "name": "T", "position": 0, "variance": "none", "constraints": [] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.ObjectAssertions.BeNull(System.String,System.Object[])",
+          "name": "BeNull",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.ObjectAssertions]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.ObjectAssertions.NotBeNull(System.String,System.Object[])",
+          "name": "NotBeNull",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.ObjectAssertions]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.ObjectAssertions.BeAssignableTo``1(System.String,System.Object[])",
+          "name": "BeAssignableTo",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.ObjectAssertions]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [
+            { "name": "T", "position": 0, "variance": "none", "constraints": [] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Primitives.BooleanAssertions",
+      "fullName": "FluentAssertions.Primitives.BooleanAssertions",
+      "name": "BooleanAssertions",
+      "namespace": "FluentAssertions.Primitives",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Primitives.BooleanAssertions.BeTrue(System.String,System.Object[])",
+          "name": "BeTrue",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.BooleanAssertions]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.BooleanAssertions.BeFalse(System.String,System.Object[])",
+          "name": "BeFalse",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.BooleanAssertions]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.BooleanAssertions.Be(System.Boolean,System.String,System.Object[])",
+          "name": "Be",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.BooleanAssertions]",
+          "parameters": [
+            { "name": "expected", "type": "System.Boolean" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Primitives.StringAssertions",
+      "fullName": "FluentAssertions.Primitives.StringAssertions",
+      "name": "StringAssertions",
+      "namespace": "FluentAssertions.Primitives",
+      "kind": "class",
+      "baseType": "FluentAssertions.Primitives.ReferenceTypeAssertions`2",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Primitives.StringAssertions.Be(System.String,System.String,System.Object[])",
+          "name": "Be",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.StringAssertions]",
+          "parameters": [
+            { "name": "expected", "type": "System.String" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.StringAssertions.Contain(System.String,System.String,System.Object[])",
+          "name": "Contain",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.StringAssertions]",
+          "parameters": [
+            { "name": "expected", "type": "System.String" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.StringAssertions.StartWith(System.String,System.String,System.Object[])",
+          "name": "StartWith",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.StringAssertions]",
+          "parameters": [
+            { "name": "expected", "type": "System.String" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.StringAssertions.EndWith(System.String,System.String,System.Object[])",
+          "name": "EndWith",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.StringAssertions]",
+          "parameters": [
+            { "name": "expected", "type": "System.String" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.StringAssertions.BeEmpty(System.String,System.Object[])",
+          "name": "BeEmpty",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.StringAssertions]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.StringAssertions.NotBeNullOrEmpty(System.String,System.Object[])",
+          "name": "NotBeNullOrEmpty",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.StringAssertions]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.StringAssertions.MatchRegex(System.String,System.String,System.Object[])",
+          "name": "MatchRegex",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.StringAssertions]",
+          "parameters": [
+            { "name": "regularExpression", "type": "System.String" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Primitives.StringAssertions.HaveLength(System.Int32,System.String,System.Object[])",
+          "name": "HaveLength",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Primitives.StringAssertions]",
+          "parameters": [
+            { "name": "expected", "type": "System.Int32" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Numeric.NumericAssertions`1",
+      "fullName": "FluentAssertions.Numeric.NumericAssertions`1",
+      "name": "NumericAssertions`1",
+      "namespace": "FluentAssertions.Numeric",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [
+        { "name": "T", "position": 0, "variance": "none", "constraints": ["System.IComparable`1"] }
+      ],
+      "isGenericType": true,
+      "isGenericTypeDefinition": true,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": true,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Numeric.NumericAssertions`1.Be(`0,System.String,System.Object[])",
+          "name": "Be",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Numeric.NumericAssertions`1[`0]]",
+          "parameters": [
+            { "name": "expected", "type": "T" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Numeric.NumericAssertions`1.BeGreaterThan(`0,System.String,System.Object[])",
+          "name": "BeGreaterThan",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Numeric.NumericAssertions`1[`0]]",
+          "parameters": [
+            { "name": "expected", "type": "T" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Numeric.NumericAssertions`1.BeLessThan(`0,System.String,System.Object[])",
+          "name": "BeLessThan",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Numeric.NumericAssertions`1[`0]]",
+          "parameters": [
+            { "name": "expected", "type": "T" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Numeric.NumericAssertions`1.BePositive(System.String,System.Object[])",
+          "name": "BePositive",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Numeric.NumericAssertions`1[`0]]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Numeric.NumericAssertions`1.BeNegative(System.String,System.Object[])",
+          "name": "BeNegative",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Numeric.NumericAssertions`1[`0]]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Numeric.NumericAssertions`1.BeInRange(`0,`0,System.String,System.Object[])",
+          "name": "BeInRange",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Numeric.NumericAssertions`1[`0]]",
+          "parameters": [
+            { "name": "minimumValue", "type": "T" },
+            { "name": "maximumValue", "type": "T" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Collections.GenericCollectionAssertions`1",
+      "fullName": "FluentAssertions.Collections.GenericCollectionAssertions`1",
+      "name": "GenericCollectionAssertions`1",
+      "namespace": "FluentAssertions.Collections",
+      "kind": "class",
+      "baseType": "FluentAssertions.Primitives.ReferenceTypeAssertions`2",
+      "interfaces": [],
+      "genericParameters": [
+        { "name": "T", "position": 0, "variance": "none", "constraints": [] }
+      ],
+      "isGenericType": true,
+      "isGenericTypeDefinition": true,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": true,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Collections.GenericCollectionAssertions`1.HaveCount(System.Int32,System.String,System.Object[])",
+          "name": "HaveCount",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Collections.GenericCollectionAssertions`1[`0]]",
+          "parameters": [
+            { "name": "expected", "type": "System.Int32" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Collections.GenericCollectionAssertions`1.Contain(`0,System.String,System.Object[])",
+          "name": "Contain",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndWhichConstraint`2[FluentAssertions.Collections.GenericCollectionAssertions`1[`0],`0]",
+          "parameters": [
+            { "name": "expected", "type": "T" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Collections.GenericCollectionAssertions`1.BeEmpty(System.String,System.Object[])",
+          "name": "BeEmpty",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Collections.GenericCollectionAssertions`1[`0]]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Collections.GenericCollectionAssertions`1.NotContainNulls(System.String,System.Object[])",
+          "name": "NotContainNulls",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Collections.GenericCollectionAssertions`1[`0]]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Collections.GenericCollectionAssertions`1.BeInAscendingOrder(System.String,System.Object[])",
+          "name": "BeInAscendingOrder",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Collections.GenericCollectionAssertions`1[`0]]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Collections.GenericCollectionAssertions`1.ContainSingle(System.String,System.Object[])",
+          "name": "ContainSingle",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndWhichConstraint`2[FluentAssertions.Collections.GenericCollectionAssertions`1[`0],`0]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Collections.GenericCollectionAssertions`1.OnlyContain(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}},System.String,System.Object[])",
+          "name": "OnlyContain",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Collections.GenericCollectionAssertions`1[`0]]",
+          "parameters": [
+            { "name": "predicate", "type": "System.Linq.Expressions.Expression`1[System.Func`2[T,System.Boolean]]" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Collections.GenericCollectionAssertions`1.SatisfyRespectively(System.Action{`0}[])",
+          "name": "SatisfyRespectively",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Collections.GenericCollectionAssertions`1[`0]]",
+          "parameters": [
+            { "name": "inspectors", "type": "System.Action`1[T][]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true,
+          "presence": {
+            "introducedIn": "5.5.0"
+          }
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Specialized.ActionAssertions",
+      "fullName": "FluentAssertions.Specialized.ActionAssertions",
+      "name": "ActionAssertions",
+      "namespace": "FluentAssertions.Specialized",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Specialized.ActionAssertions.Throw``1(System.String,System.Object[])",
+          "name": "Throw",
+          "kind": "method",
+          "returnType": "FluentAssertions.Specialized.ExceptionAssertions`1[``0]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [
+            { "name": "TException", "position": 0, "variance": "none", "constraints": ["System.Exception"] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Specialized.ActionAssertions.NotThrow(System.String,System.Object[])",
+          "name": "NotThrow",
+          "kind": "method",
+          "returnType": "FluentAssertions.AndConstraint`1[FluentAssertions.Specialized.ActionAssertions]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Specialized.ExceptionAssertions`1",
+      "fullName": "FluentAssertions.Specialized.ExceptionAssertions`1",
+      "name": "ExceptionAssertions`1",
+      "namespace": "FluentAssertions.Specialized",
+      "kind": "class",
+      "baseType": "FluentAssertions.Primitives.ReferenceTypeAssertions`2",
+      "interfaces": [],
+      "genericParameters": [
+        { "name": "TException", "position": 0, "variance": "none", "constraints": ["System.Exception"] }
+      ],
+      "isGenericType": true,
+      "isGenericTypeDefinition": true,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": true,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Specialized.ExceptionAssertions`1.WithMessage(System.String,System.String,System.Object[])",
+          "name": "WithMessage",
+          "kind": "method",
+          "returnType": "FluentAssertions.Specialized.ExceptionAssertions`1[`0]",
+          "parameters": [
+            { "name": "expectedWildcardPattern", "type": "System.String" },
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        },
+        {
+          "stableId": "M:FluentAssertions.Specialized.ExceptionAssertions`1.WithInnerException``1(System.String,System.Object[])",
+          "name": "WithInnerException",
+          "kind": "method",
+          "returnType": "FluentAssertions.Specialized.ExceptionAssertions`1[``0]",
+          "parameters": [
+            { "name": "because", "type": "System.String", "isOptional": true, "defaultValue": "" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [
+            { "name": "TInnerException", "position": 0, "variance": "none", "constraints": ["System.Exception"] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Equivalency.EquivalencyAssertionOptions",
+      "fullName": "FluentAssertions.Equivalency.EquivalencyAssertionOptions",
+      "name": "EquivalencyAssertionOptions",
+      "namespace": "FluentAssertions.Equivalency",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": [],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Equivalency.EquivalencyAssertionOptions.Using``1(FluentAssertions.Equivalency.IEquivalencyStep)",
+          "name": "Using",
+          "kind": "method",
+          "returnType": "FluentAssertions.Equivalency.EquivalencyAssertionOptions",
+          "parameters": [
+            { "name": "step", "type": "FluentAssertions.Equivalency.IEquivalencyStep" }
+          ],
+          "genericParameters": [
+            { "name": "T", "position": 0, "variance": "none", "constraints": [] }
+          ],
+          "isGenericMethod": true,
+          "isGenericMethodDefinition": true,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": true
+        }
+      ]
+    },
+    {
+      "stableId": "T:FluentAssertions.Execution.AssertionScope",
+      "fullName": "FluentAssertions.Execution.AssertionScope",
+      "name": "AssertionScope",
+      "namespace": "FluentAssertions.Execution",
+      "kind": "class",
+      "baseType": "System.Object",
+      "interfaces": ["System.IDisposable"],
+      "genericParameters": [],
+      "isGenericType": false,
+      "isGenericTypeDefinition": false,
+      "isConstructedGenericType": false,
+      "containsGenericParameters": false,
+      "members": [
+        {
+          "stableId": "M:FluentAssertions.Execution.AssertionScope.#ctor",
+          "name": ".ctor",
+          "kind": "constructor",
+          "returnType": null,
+          "parameters": [],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        },
+        {
+          "stableId": "M:FluentAssertions.Execution.AssertionScope.BecauseOf(System.String,System.Object[])",
+          "name": "BecauseOf",
+          "kind": "method",
+          "returnType": "FluentAssertions.Execution.AssertionScope",
+          "parameters": [
+            { "name": "because", "type": "System.String" },
+            { "name": "becauseArgs", "type": "System.Object[]", "isParams": true }
+          ],
+          "genericParameters": [],
+          "isGenericMethod": false,
+          "isGenericMethodDefinition": false,
+          "isConstructedGenericMethod": false,
+          "containsGenericParameters": false
+        }
+      ]
+    }
+  ]
+}

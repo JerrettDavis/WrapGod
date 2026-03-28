@@ -1,0 +1,96 @@
+{
+  "strategyName": "FluentAssertions-Adaptive",
+  "description": "Adaptive strategy: generates wrappers with runtime version detection that branch to the correct API surface based on the loaded FluentAssertions assembly version.",
+  "sourceLibrary": "FluentAssertions",
+  "strategy": "adaptive",
+  "versionRange": {
+    "minimum": "5.10.3",
+    "maximum": "8.3.0"
+  },
+  "manifests": [
+    "../v5/manifest.wrapgod.json",
+    "../v6/manifest.wrapgod.json",
+    "../v8/manifest.wrapgod.json"
+  ],
+  "rules": {
+    "memberSelection": "union",
+    "typeSelection": "union",
+    "signatureConflictResolution": "runtime-branch"
+  },
+  "runtimeDetection": {
+    "method": "assembly-version",
+    "assembly": "FluentAssertions",
+    "versionBranches": [
+      {
+        "range": ">=5.0.0 <6.0.0",
+        "label": "v5",
+        "manifest": "../v5/manifest.wrapgod.json"
+      },
+      {
+        "range": ">=6.0.0 <7.0.0",
+        "label": "v6",
+        "manifest": "../v6/manifest.wrapgod.json"
+      },
+      {
+        "range": ">=8.0.0",
+        "label": "v8",
+        "manifest": "../v8/manifest.wrapgod.json"
+      }
+    ]
+  },
+  "adaptiveMappings": [
+    {
+      "member": "Throw",
+      "description": "Exception assertion entry point differs across versions",
+      "branches": {
+        "v5": "action.Should().Throw<T>()",
+        "v6": "FluentActions.Invoking(() => action()).Should().Throw<T>()",
+        "v8": "FluentActions.Invoking(() => action()).Should().Throw<T>()"
+      }
+    },
+    {
+      "member": "AssertionScope/AssertionChain",
+      "description": "Custom assertion entry point changed in v8",
+      "branches": {
+        "v5": "Execute.Assertion",
+        "v6": "Execute.Assertion",
+        "v8": "AssertionChain.GetOrCreate()"
+      }
+    },
+    {
+      "member": "EquivalencyOptions",
+      "description": "Global equivalency configuration class renamed in v8",
+      "branches": {
+        "v5": "AssertionOptions.EquivalencyPlan.Using<T>(step)",
+        "v6": "AssertionOptions.EquivalencyPlan.Using<T>(step)",
+        "v8": "AssertionConfiguration.Current.Equivalency.Modify(opts => ...)"
+      }
+    },
+    {
+      "member": "ThrowExactly",
+      "description": "ThrowExactly not available in v5",
+      "branches": {
+        "v5": null,
+        "v6": ".Should().ThrowExactly<T>()",
+        "v8": ".Should().ThrowExactly<T>()"
+      },
+      "fallback": {
+        "v5": ".Should().Throw<T>().And.GetType().Should().Be(typeof(T))"
+      }
+    },
+    {
+      "member": "Satisfy",
+      "description": "Satisfy is v8-only",
+      "branches": {
+        "v5": null,
+        "v6": null,
+        "v8": ".Should().Satisfy<T>(inspector)"
+      },
+      "fallback": {
+        "v5": "manual assertion with .Should().BeOfType<T>().Which",
+        "v6": "manual assertion with .Should().BeOfType<T>().Which"
+      }
+    }
+  ],
+  "notes": "This strategy generates a unified wrapper that detects the loaded FluentAssertions version at runtime and dispatches to the correct API surface. Members available only in certain versions get fallback implementations for older versions. Use this when your library must support consumers using different FA versions."
+}

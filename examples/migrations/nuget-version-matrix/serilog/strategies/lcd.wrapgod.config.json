@@ -1,0 +1,117 @@
+{
+  "strategyName": "Lowest-Common-Denominator",
+  "description": "Generate wrapper APIs that work across all Serilog versions (v2.x, v3.x, v4.x) by targeting only the shared stable surface.",
+  "sourceLibrary": "Serilog",
+  "targetVersionRange": ">=2.12.0 <5.0.0",
+  "strategy": "lcd",
+  "mappings": [
+    {
+      "description": "Static Log.Information — stable across all versions",
+      "source": "Log.Information({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Information({messageTemplate}, {args})",
+      "safety": "safe",
+      "notes": "Core logging methods unchanged since v2.0."
+    },
+    {
+      "description": "Static Log.Warning — stable across all versions",
+      "source": "Log.Warning({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Warning({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Error — stable across all versions",
+      "source": "Log.Error({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Error({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Fatal — stable across all versions",
+      "source": "Log.Fatal({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Fatal({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Debug — stable across all versions",
+      "source": "Log.Debug({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Debug({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "Static Log.Verbose — stable across all versions",
+      "source": "Log.Verbose({messageTemplate}, {args})",
+      "target": "IWrapGodLogger.Verbose({messageTemplate}, {args})",
+      "safety": "safe"
+    },
+    {
+      "description": "LoggerConfiguration fluent chain — stable across all versions",
+      "source": "new LoggerConfiguration().MinimumLevel.{Level}().WriteTo.Sink({sink}).CreateLogger()",
+      "target": "WrapGodLoggerFactory.Configure(c => c.MinimumLevel.{Level}().WriteTo.Sink({sink}))",
+      "safety": "safe",
+      "notes": "Core fluent configuration API unchanged across versions."
+    },
+    {
+      "description": "ILogger.ForContext — stable across all versions",
+      "source": "logger.ForContext<{T}>()",
+      "target": "wrappedLogger.ForContext<{T}>()",
+      "safety": "safe"
+    },
+    {
+      "description": "ILogger.ForContext with property — stable across all versions",
+      "source": "logger.ForContext({name}, {value}, {destructure})",
+      "target": "wrappedLogger.ForContext({name}, {value}, {destructure})",
+      "safety": "safe"
+    },
+    {
+      "description": "Log.CloseAndFlush — stable across all versions",
+      "source": "Log.CloseAndFlush()",
+      "target": "WrapGodLoggerFactory.CloseAndFlush()",
+      "safety": "safe",
+      "notes": "Synchronous variant available in all versions."
+    },
+    {
+      "description": "Enrich.WithProperty — stable across all versions",
+      "source": ".Enrich.WithProperty({name}, {value})",
+      "target": ".Enrich.WithProperty({name}, {value})",
+      "safety": "safe"
+    },
+    {
+      "description": "MinimumLevel.Override — stable across all versions",
+      "source": ".MinimumLevel.Override({source}, {level})",
+      "target": ".MinimumLevel.Override({source}, {level})",
+      "safety": "safe",
+      "notes": "Behavior changed in v4 (case-insensitive matching) but the API shape is the same."
+    }
+  ],
+  "unsupportedTransformations": [
+    {
+      "description": "Log.CloseAndFlushAsync — v3+ only, no v2 equivalent",
+      "source": "Log.CloseAndFlushAsync()",
+      "reason": "ValueTask-based async flush introduced in v3.0.0. Not available in v2.x.",
+      "workaround": "Use Log.CloseAndFlush() synchronously, or conditionally call async variant via reflection."
+    },
+    {
+      "description": "LogEvent.TraceId / SpanId — v3.1+ only",
+      "source": "logEvent.TraceId, logEvent.SpanId",
+      "reason": "First-class OpenTelemetry trace correlation added in v3.1.0.",
+      "workaround": "Use LogEvent.Properties to manually attach trace IDs in v2.x."
+    },
+    {
+      "description": "IBatchedLogEventSink — v3+ only",
+      "source": "WriteTo.Sink(IBatchedLogEventSink)",
+      "reason": "Batching sink interface introduced in v3.0.0 with Serilog.Sinks.PeriodicBatching integration.",
+      "workaround": "Use PeriodicBatchingSink NuGet package directly in v2.x."
+    },
+    {
+      "description": "Enrich.When conditional enrichment — v3.1+ only",
+      "source": ".Enrich.When({condition}, {configure})",
+      "reason": "Conditional enrichment introduced in v3.1.0.",
+      "workaround": "Implement ILogEventEnricher with condition logic in Enrich method."
+    },
+    {
+      "description": "BatchingOptions configuration — v4+ only",
+      "source": "WriteTo.Sink(batchedSink, new BatchingOptions { ... })",
+      "reason": "BatchingOptions class introduced in v4.0.0.",
+      "workaround": "Use PeriodicBatchingSink constructor parameters in v2/v3."
+    }
+  ]
+}

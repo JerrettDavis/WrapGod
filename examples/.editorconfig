@@ -1,0 +1,11 @@
+# Example projects — relax analyzer rules that conflict with test conventions
+[*.cs]
+
+# CA1707: Test method names conventionally use underscores
+dotnet_diagnostic.CA1707.severity = none
+
+# CA1716: Example interfaces use common parameter names like 'to'
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1822: Test methods should not be required to be static (xUnit convention)
+dotnet_diagnostic.CA1822.severity = none

@@ -1,0 +1,104 @@
+{
+  "strategyName": "lcd",
+  "description": "Lowest Common Denominator -- generates wrappers using only APIs available in ALL targeted Moq versions (4.10, 4.16, 4.20). Safest for multi-targeting but loses newer features.",
+  "sourceLibrary": "Moq",
+  "versionRange": {
+    "minimum": "4.10.1",
+    "maximum": "4.20.72"
+  },
+  "strategy": "intersect",
+  "rules": [
+    {
+      "description": "Use string-based protected member mocking only",
+      "action": "exclude",
+      "target": "Moq.IProtectedAsMock`2",
+      "reason": "IProtectedAsMock<T, TAnalog> introduced in 4.15. LCD strategy falls back to IProtectedMock string-based Setup."
+    },
+    {
+      "description": "Exclude SetupAdd/SetupRemove event subscription",
+      "action": "exclude",
+      "target": "Moq.Mock`1.SetupAdd",
+      "reason": "Introduced in 4.13.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude SetupRemove event subscription",
+      "action": "exclude",
+      "target": "Moq.Mock`1.SetupRemove",
+      "reason": "Introduced in 4.13.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude VerifyAdd/VerifyRemove",
+      "action": "exclude",
+      "target": "Moq.Mock`1.VerifyAdd",
+      "reason": "Introduced in 4.13.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude Invocations introspection property",
+      "action": "exclude",
+      "target": "Moq.Mock`1.Invocations",
+      "reason": "Introduced in 4.17.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude Setups introspection property",
+      "action": "exclude",
+      "target": "Moq.Mock`1.Setups",
+      "reason": "Introduced in 4.17.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude RaiseAsync",
+      "action": "exclude",
+      "target": "Moq.Mock`1.RaiseAsync",
+      "reason": "Introduced in 4.20.0. Not available in 4.10 or 4.16."
+    },
+    {
+      "description": "Exclude Switches enum",
+      "action": "exclude",
+      "target": "Moq.Switches",
+      "reason": "Introduced in 4.15.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude IInvocationList",
+      "action": "exclude",
+      "target": "Moq.IInvocationList",
+      "reason": "Introduced in 4.17.0. Not available in 4.10."
+    },
+    {
+      "description": "Limit Callback generic arity to 4",
+      "action": "constrain",
+      "target": "Moq.Language.Flow.ISetup`1.Callback",
+      "maxGenericArity": 4,
+      "reason": "v4.10 supports Callback up to Action<T1,T2,T3,T4>. Higher arities added in 4.11+."
+    },
+    {
+      "description": "Exclude Verifiable(Times) overload",
+      "action": "exclude",
+      "target": "Moq.Language.Flow.ISetup`1.Verifiable(Times)",
+      "reason": "Introduced in 4.20.0."
+    },
+    {
+      "description": "Exclude It.IsNotNull matcher",
+      "action": "exclude",
+      "target": "Moq.It.IsNotNull",
+      "reason": "Introduced in 4.14.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude MockRepository.Of<T> LINQ factory",
+      "action": "exclude",
+      "target": "Moq.MockRepository.Of",
+      "reason": "Introduced in 4.14.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude ISetupSequentialAction for void sequences",
+      "action": "exclude",
+      "target": "Moq.Language.Flow.ISetupSequentialAction",
+      "reason": "Introduced in 4.12.0. Not available in 4.10."
+    },
+    {
+      "description": "Exclude sequential async helpers",
+      "action": "exclude",
+      "target": "Moq.Language.Flow.ISetupSequentialResult`1.ReturnsAsync",
+      "reason": "Introduced in 4.12.0."
+    }
+  ],
+  "notes": "LCD wrappers compile against Moq >= 4.10.1. Consumers lose: type-safe protected mocking, event subscription setup, invocation introspection, high-arity callbacks, Verifiable(Times), RaiseAsync, and void sequential setup."
+}
