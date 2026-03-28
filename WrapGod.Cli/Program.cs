@@ -1,6 +1,12 @@
 using System.CommandLine;
 using WrapGod.Cli;
 
+var ciCommand = new Command("ci", "CI/CD workflow tools")
+{
+    CiBootstrapCommand.Create(),
+    CiParityReportCommand.Create()
+};
+
 var rootCommand = new RootCommand("WrapGod CLI -- extract manifests, generate wrappers, and analyze migrations")
 {
     InitCommand.Create(),
@@ -9,7 +15,8 @@ var rootCommand = new RootCommand("WrapGod CLI -- extract manifests, generate wr
     AnalyzeCommand.Create(),
     DoctorCommand.Create(),
     ExplainCommand.Create(),
-    MigrateInitCommand.Create()
+    MigrateInitCommand.Create(),
+    ciCommand
 };
 
 return await rootCommand.InvokeAsync(args);
