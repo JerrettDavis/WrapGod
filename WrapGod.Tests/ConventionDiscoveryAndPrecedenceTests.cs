@@ -6,13 +6,15 @@ namespace WrapGod.Tests;
 
 public sealed class ConventionDiscoveryAndPrecedenceTests
 {
+    private static readonly string[] SecondaryPackages = ["Vendor.Secondary"];
+
     [Fact]
     public void SourceDiscovery_UsesConfiguredOrder()
     {
         var result = SourceDiscoveryEngine.Discover(new SourceDiscoveryInput
         {
             WrapGodPackage = "Vendor.Primary",
-            PackageReferences = new[] { "Vendor.Secondary" },
+            PackageReferences = SecondaryPackages,
             HasSelfSource = true,
             ExplicitSource = "Vendor.Explicit"
         });
