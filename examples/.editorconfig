@@ -9,3 +9,15 @@ dotnet_diagnostic.CA1716.severity = none
 
 # CA1822: Test methods should not be required to be static (xUnit convention)
 dotnet_diagnostic.CA1822.severity = none
+
+# CA1304/CA1305/CA1307/CA1310: Example code doesn't need locale-aware overloads
+dotnet_diagnostic.CA1304.severity = none
+dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1307.severity = none
+dotnet_diagnostic.CA1310.severity = none
+
+# CA1861: Prefer static readonly arrays in example test data
+dotnet_diagnostic.CA1861.severity = none
+
+# CA2211: Non-constant fields in example code
+dotnet_diagnostic.CA2211.severity = none
