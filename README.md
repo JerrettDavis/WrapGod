@@ -58,12 +58,14 @@ wrap-god analyze manifest.wrapgod.json --warnings-as-errors
 ## Documentation
 
 - [Quick Start Guide](docs/QUICKSTART.md) -- end-to-end onboarding walkthrough
+- [CLI Reference](docs/CLI.md) -- command surface, exit codes, troubleshooting
 - [Manifest Format Reference](docs/MANIFEST.md) -- schema, type/member nodes, version metadata
 - [Configuration Guide](docs/CONFIGURATION.md) -- JSON, attributes, fluent DSL, merge precedence
 - [Compatibility Modes](docs/COMPATIBILITY.md) -- LCD, Targeted, and Adaptive modes
 - [Analyzer Diagnostics Reference](docs/ANALYZERS.md) -- WG2001, WG2002, code fixes, suppression
 - [Migration Playbook](docs/MIGRATION-PLAYBOOK.md) -- strategy selection, authoring mappings, safety model, validation checklist
 - [Examples](examples/README.md) -- runnable end-to-end workflow sample (extract -> config -> generate -> analyze -> fix)
+- [Feature Completeness Audit](docs/FEATURE-COMPLETENESS-AUDIT.md) -- implementation/test/documentation status matrix
 
 ## Engineering
 

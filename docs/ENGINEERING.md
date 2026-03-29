@@ -35,14 +35,15 @@ Configured in `Directory.Build.props`:
 | `WrapGod.Manifest` | `netstandard2.0` | Manifest models, serialization, config loading/merging |
 | `WrapGod.Extractor` | `net10.0` | Reflection-only API surface extraction via `MetadataLoadContext` |
 | `WrapGod.TypeMap` | `netstandard2.0` | Type mapping plan and mapper source emitter |
-| `WrapGod.Fluent` | `netstandard2.0` | Fluent DSL for programmatic wrapper configuration |
+| `WrapGod.Fluent` | `net10.0` | Fluent DSL for programmatic wrapper configuration |
 | `WrapGod.Generator` | `netstandard2.0` | Roslyn incremental source generator |
 | `WrapGod.Analyzers` | `netstandard2.0` | Roslyn analyzer and code-fix provider |
-| `WrapGod.Runtime` | `net10.0` | Runtime helpers for generated code |
+| `WrapGod.Runtime` | `netstandard2.0` | Runtime helpers for generated code |
 | `WrapGod.Tests` | `net10.0` | Unit and integration tests |
 
 Generator, analyzer, and shared contract projects target `netstandard2.0` to be
-loadable by any Roslyn host. The extractor and runtime target `net10.0`.
+loadable by any Roslyn host. The extractor and CLI/benchmark apps target
+`net10.0`; the runtime helper library remains `netstandard2.0` for broad reuse.
 
 ## Contribution Guidelines
 

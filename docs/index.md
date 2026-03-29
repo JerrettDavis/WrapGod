@@ -5,6 +5,7 @@ WrapGod helps you extract API manifests and generate wrappers to keep consumers 
 ## Guides
 
 - [Quickstart](QUICKSTART.md)
+- [CLI reference](CLI.md)
 - [Configuration](CONFIGURATION.md)
 - [Manifest](MANIFEST.md)
 - [Manifest schema](MANIFEST-SCHEMA.md)
@@ -16,6 +17,7 @@ WrapGod helps you extract API manifests and generate wrappers to keep consumers 
 - [Plan](PLAN.md)
 - [Work breakdown](WORK-BREAKDOWN.md)
 - [Quality matrix](QUALITY-MATRIX.md)
+- [Feature completeness audit](FEATURE-COMPLETENESS-AUDIT.md)
 
 ## References
 
