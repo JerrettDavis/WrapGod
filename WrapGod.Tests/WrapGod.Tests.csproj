@@ -47,6 +47,10 @@
   </Target>
 
   <ItemGroup>
+    <None Include="Snapshots\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
     <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
     <ProjectReference Include="..\WrapGod.Extractor\WrapGod.Extractor.csproj" />

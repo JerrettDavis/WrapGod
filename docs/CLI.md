@@ -14,12 +14,24 @@
 - `wrap-god ci bootstrap` – CI helper setup
 - `wrap-god ci parity` – CI parity report generation
 
-## Diagnostics gate exit codes (`analyze`)
+## Exit codes
+
+### `analyze`
 
 - `0` success (no effective errors)
 - `1` command/runtime failure
 - `2` diagnostics gate failed on `error`
 - `3` diagnostics gate failed on `warning` when `--warnings-as-errors` is enabled
+
+### `doctor`
+
+- `0` all checks passed
+- `1` invalid project path or one/more checks failed
+
+### `migrate init`
+
+- `0` migration plan generated successfully
+- `1` invalid filesystem state or runtime failure (missing project directory, output path is a directory, existing plan file, invalid manifest JSON, or read/write failure)
 
 ## Common examples
 

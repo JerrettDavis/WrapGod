@@ -19,15 +19,41 @@ internal static class DoctorCommand
             projectDirOption
         };
 
-        command.SetHandler(Handle, projectDirOption);
+        command.SetHandler((DirectoryInfo projectDir) => Environment.ExitCode = Handle(projectDir), projectDirOption);
         return command;
     }
 
-    private static void Handle(DirectoryInfo projectDir)
+    private static int Handle(DirectoryInfo projectDir)
     {
         Console.WriteLine("WrapGod Doctor");
         Console.WriteLine(new string('-', 40));
         Console.WriteLine();
+
+        string projectPath;
+        try
+        {
+            projectPath = projectDir.FullName;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            ReportFail($"Invalid project directory path: {ex.Message}");
+            ReportFix("Pass a valid directory path to --project-dir.");
+            return 1;
+        }
+
+        if (!Path.Exists(projectPath))
+        {
+            ReportFail($"Project directory not found: {projectPath}");
+            ReportFix("Pass a valid directory path to --project-dir.");
+            return 1;
+        }
+
+        if (File.Exists(projectPath))
+        {
+            ReportFail($"Project path points to a file, not a directory: {projectPath}");
+            ReportFix("Pass a valid directory path to --project-dir.");
+            return 1;
+        }
 
         var passed = 0;
         var failed = 0;
@@ -55,11 +81,11 @@ internal static class DoctorCommand
         {
             Console.WriteLine();
             Console.WriteLine("Fix the issues above and run 'wrap-god doctor' again.");
+            return 1;
         }
-        else
-        {
-            Console.WriteLine("All checks passed.");
-        }
+
+        Console.WriteLine("All checks passed.");
+        return 0;
     }
 
     private static void CheckDotNetSdk(ref int passed, ref int failed)
@@ -127,7 +153,19 @@ internal static class DoctorCommand
 
     private static void CheckManifestFile(DirectoryInfo projectDir, ref int passed, ref int failed)
     {
-        var manifestFiles = Directory.GetFiles(projectDir.FullName, "*.wrapgod.json");
+        string[] manifestFiles;
+        try
+        {
+            manifestFiles = Directory.GetFiles(projectDir.FullName, "*.wrapgod.json");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ReportFail($"Unable to enumerate manifest files: {ex.Message}");
+            ReportFix("Verify project directory permissions and try again.");
+            failed++;
+            return;
+        }
+
         if (manifestFiles.Length == 0)
         {
             ReportFail("No manifest files found (*.wrapgod.json)");
@@ -165,7 +203,19 @@ internal static class DoctorCommand
 
     private static void CheckGeneratorReference(DirectoryInfo projectDir, ref int passed, ref int failed)
     {
-        var csprojFiles = Directory.GetFiles(projectDir.FullName, "*.csproj");
+        string[] csprojFiles;
+        try
+        {
+            csprojFiles = Directory.GetFiles(projectDir.FullName, "*.csproj");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ReportFail($"Unable to enumerate project files: {ex.Message}");
+            ReportFix("Verify project directory permissions and try again.");
+            failed++;
+            return;
+        }
+
         if (csprojFiles.Length == 0)
         {
             ReportFail("No .csproj file found in project directory");

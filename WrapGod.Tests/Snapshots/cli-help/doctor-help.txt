@@ -1,0 +1,5 @@
+command: doctor
+description: Validate environment setup and project health
+subcommands: 
+options:
+  - project-dir|aliases=--project-dir,-p|arity=1..1|description=Project directory to check (defaults to current directory)

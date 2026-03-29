@@ -1,0 +1,6 @@
+command: analyze
+description: Analyze a manifest and report diagnostic information
+subcommands: 
+options:
+  - config|aliases=--config,-c|arity=1..1|description=Path to the WrapGod config JSON file
+  - warnings-as-errors|aliases=--warnings-as-errors|arity=0..1|description=Treat warning diagnostics as gate failures (exit code 3)

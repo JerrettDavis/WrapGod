@@ -1,0 +1,4 @@
+command: ci
+description: CI/CD workflow tools
+subcommands: bootstrap,parity
+options:
