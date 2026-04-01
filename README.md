@@ -127,6 +127,7 @@ See [examples/README.md](examples/README.md) for the full catalog.
 - [Migration Playbook](docs/migration/playbook.md) — strategy selection, authoring mappings, safety model
 - [Architecture](docs/guide/architecture.md) — pipeline internals and design decisions
 - [Engineering](docs/engineering/engineering.md) — SDK, build conventions, contribution guidelines
+- [Feature Completeness Audit](docs/FEATURE-COMPLETENESS-AUDIT.md) — implementation/test/documentation status matrix
 
 ## Solution Structure
 

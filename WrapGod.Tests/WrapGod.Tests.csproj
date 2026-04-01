@@ -47,6 +47,10 @@
   </Target>
 
   <ItemGroup>
+    <None Include="Snapshots\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
     <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
     <ProjectReference Include="..\WrapGod.Extractor\WrapGod.Extractor.csproj" />
@@ -55,6 +59,7 @@
     <ProjectReference Include="..\WrapGod.Analyzers\WrapGod.Analyzers.csproj" />
     <ProjectReference Include="..\WrapGod.Fluent\WrapGod.Fluent.csproj" />
     <ProjectReference Include="..\WrapGod.Runtime\WrapGod.Runtime.csproj" />
+    <ProjectReference Include="..\WrapGod.Cli\WrapGod.Cli.csproj" />
   </ItemGroup>
 
 </Project>

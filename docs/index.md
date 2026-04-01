@@ -6,6 +6,8 @@ WrapGod generates type-safe wrapper interfaces over third-party .NET APIs so you
 
 Learn the fundamentals — from your first generated wrapper to advanced configuration.
 
+- [Feature Completeness Audit](FEATURE-COMPLETENESS-AUDIT.md) — implementation/test/documentation status matrix
+
 ## [Migration](migration/)
 
 Strategies and end-to-end automation for migrating between library versions and across libraries.

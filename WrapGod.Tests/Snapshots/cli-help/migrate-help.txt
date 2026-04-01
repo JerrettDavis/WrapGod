@@ -1,0 +1,4 @@
+command: migrate
+description: Migration tools for adopting WrapGod wrappers
+subcommands: init
+options:

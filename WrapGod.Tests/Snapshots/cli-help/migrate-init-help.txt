@@ -1,0 +1,7 @@
+command: migrate init
+description: Analyze a project and generate a migration plan
+subcommands: 
+options:
+  - manifest|aliases=--manifest,-m|arity=1..1|description=Path to the WrapGod manifest JSON file (auto-detects *.wrapgod.json)
+  - output|aliases=--output,-o|arity=1..1|description=Output path for the migration plan
+  - project-dir|aliases=--project-dir,-p|arity=1..1|description=Project directory to analyze

@@ -1,0 +1,4 @@
+command: <root>
+description: WrapGod CLI -- extract manifests, generate wrappers, and analyze migrations
+subcommands: analyze,ci,doctor,explain,extract,generate,init,migrate
+options:

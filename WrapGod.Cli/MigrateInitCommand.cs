@@ -31,7 +31,7 @@ internal static class MigrateInitCommand
             outputOption
         };
 
-        command.SetHandler(HandleAsync, projectDirOption, manifestOption, outputOption);
+        command.SetHandler(async (DirectoryInfo p, FileInfo? m, string o) => Environment.ExitCode = await HandleAsync(p, m, o), projectDirOption, manifestOption, outputOption);
 
         var migrateCommand = new Command("migrate", "Migration tools for adopting WrapGod wrappers")
         {
@@ -41,16 +41,50 @@ internal static class MigrateInitCommand
         return migrateCommand;
     }
 
-    private static async Task HandleAsync(DirectoryInfo projectDir, FileInfo? manifestFile, string outputPath)
+    private static async Task<int> HandleAsync(DirectoryInfo projectDir, FileInfo? manifestFile, string outputPath)
     {
         Console.WriteLine("WrapGod Migration Wizard");
         Console.WriteLine(new string('-', 40));
         Console.WriteLine();
 
+        string projectPath;
+        try
+        {
+            projectPath = projectDir.FullName;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            Console.Error.WriteLine($"Invalid project directory path: {ex.Message}");
+            return 1;
+        }
+
         if (!projectDir.Exists)
         {
-            Console.Error.WriteLine($"Project directory not found: {projectDir.FullName}");
-            return;
+            Console.Error.WriteLine($"Project directory not found: {projectPath}");
+            return 1;
+        }
+
+        if (File.Exists(projectPath))
+        {
+            Console.Error.WriteLine($"Project path points to a file, not a directory: {projectPath}");
+            return 1;
+        }
+
+        var planPath = Path.IsPathRooted(outputPath)
+            ? outputPath
+            : Path.Combine(projectDir.FullName, outputPath);
+
+        if (Directory.Exists(planPath))
+        {
+            Console.Error.WriteLine($"Output path points to a directory: {planPath}");
+            return 1;
+        }
+
+        if (File.Exists(planPath))
+        {
+            Console.Error.WriteLine($"Migration plan already exists: {planPath}");
+            Console.Error.WriteLine("Choose a different --output path or remove the existing plan.");
+            return 1;
         }
 
         // Auto-detect manifest
@@ -68,26 +102,34 @@ internal static class MigrateInitCommand
         var wrappedTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (manifestFile is not null && manifestFile.Exists)
         {
-            var manifestJson = await File.ReadAllTextAsync(manifestFile.FullName);
-            using var doc = JsonDocument.Parse(manifestJson);
-            if (doc.RootElement.TryGetProperty("Types", out var typesElement) ||
-                doc.RootElement.TryGetProperty("types", out typesElement))
+            try
             {
-                foreach (var type in typesElement.EnumerateArray())
+                var manifestJson = await File.ReadAllTextAsync(manifestFile.FullName);
+                using var doc = JsonDocument.Parse(manifestJson);
+                if (doc.RootElement.TryGetProperty("Types", out var typesElement) ||
+                    doc.RootElement.TryGetProperty("types", out typesElement))
                 {
-                    var fullName = type.TryGetProperty("FullName", out var fn) ? fn.GetString()
-                        : type.TryGetProperty("fullName", out fn) ? fn.GetString()
-                        : null;
-                    var name = type.TryGetProperty("Name", out var n) ? n.GetString()
-                        : type.TryGetProperty("name", out n) ? n.GetString()
-                        : null;
+                    foreach (var type in typesElement.EnumerateArray())
+                    {
+                        var fullName = type.TryGetProperty("FullName", out var fn) ? fn.GetString()
+                            : type.TryGetProperty("fullName", out fn) ? fn.GetString()
+                            : null;
+                        var name = type.TryGetProperty("Name", out var n) ? n.GetString()
+                            : type.TryGetProperty("name", out n) ? n.GetString()
+                            : null;
 
-                    if (fullName is not null) wrappedTypes.Add(fullName);
-                    if (name is not null) wrappedTypes.Add(name);
+                        if (fullName is not null) wrappedTypes.Add(fullName);
+                        if (name is not null) wrappedTypes.Add(name);
+                    }
                 }
-            }
 
-            Console.WriteLine($"Loaded {wrappedTypes.Count / 2} types from manifest.");
+                Console.WriteLine($"Loaded {wrappedTypes.Count / 2} types from manifest.");
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+            {
+                Console.Error.WriteLine($"Failed to read manifest '{manifestFile.FullName}': {ex.Message}");
+                return 1;
+            }
         }
         else
         {
@@ -98,10 +140,19 @@ internal static class MigrateInitCommand
         Console.WriteLine();
 
         // Scan C# source files for direct third-party type usage
-        var csFiles = Directory.GetFiles(projectDir.FullName, "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains("obj" + Path.DirectorySeparatorChar) &&
-                        !f.Contains("bin" + Path.DirectorySeparatorChar))
-            .ToList();
+        List<string> csFiles;
+        try
+        {
+            csFiles = Directory.GetFiles(projectDir.FullName, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !f.Contains("obj" + Path.DirectorySeparatorChar) &&
+                            !f.Contains("bin" + Path.DirectorySeparatorChar))
+                .ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Failed to enumerate source files: {ex.Message}");
+            return 1;
+        }
 
         Console.WriteLine($"Found {csFiles.Count} source files to analyze.");
 
@@ -110,7 +161,17 @@ internal static class MigrateInitCommand
 
         foreach (var file in csFiles)
         {
-            var content = await File.ReadAllTextAsync(file);
+            string content;
+            try
+            {
+                content = await File.ReadAllTextAsync(file);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine($"Failed to read source file '{file}': {ex.Message}");
+                return 1;
+            }
+
             var relativePath = Path.GetRelativePath(projectDir.FullName, file);
 
             foreach (var typeName in wrappedTypes)
@@ -176,11 +237,16 @@ internal static class MigrateInitCommand
         };
 
         var planJson = JsonSerializer.Serialize(plan, SerializerOptions);
-        var planPath = Path.IsPathRooted(outputPath)
-            ? outputPath
-            : Path.Combine(projectDir.FullName, outputPath);
 
-        await File.WriteAllTextAsync(planPath, planJson);
+        try
+        {
+            await File.WriteAllTextAsync(planPath, planJson);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Failed to write migration plan '{planPath}': {ex.Message}");
+            return 1;
+        }
 
         Console.WriteLine();
         Console.WriteLine("Migration Plan Summary");
@@ -197,6 +263,8 @@ internal static class MigrateInitCommand
         Console.WriteLine("  1. Review migration-plan.json for categorized actions");
         Console.WriteLine("  2. Add WrapGod.Analyzers to your project for code fix suggestions");
         Console.WriteLine("  3. Run 'dotnet build' to see WG2001/WG2002 diagnostics");
+
+        return 0;
     }
 
     private static string ClassifyAction(string typeName, string content, MatchCollection matches)
@@ -209,7 +277,7 @@ internal static class MigrateInitCommand
         if (content.Contains($"typeof({typeName})") || content.Contains("reflection", StringComparison.OrdinalIgnoreCase))
             return "manual";
 
-        if (content.Contains($": {typeName}") || content.Contains($"where") && content.Contains(typeName))
+        if (content.Contains($": {typeName}") || (content.Contains("where") && content.Contains(typeName)))
             return "assisted";
 
         return "safe";
