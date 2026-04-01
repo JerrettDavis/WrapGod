@@ -277,7 +277,7 @@ internal static class MigrateInitCommand
         if (content.Contains($"typeof({typeName})") || content.Contains("reflection", StringComparison.OrdinalIgnoreCase))
             return "manual";
 
-        if (content.Contains($": {typeName}") || content.Contains($"where") && content.Contains(typeName))
+        if (content.Contains($": {typeName}") || (content.Contains("where") && content.Contains(typeName)))
             return "assisted";
 
         return "safe";

@@ -1,0 +1,8 @@
+- name: Overview
+  href: index.md
+
+- name: Migration Playbook
+  href: playbook.md
+
+- name: Automation Guide
+  href: automation.md

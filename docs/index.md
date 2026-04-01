@@ -1,26 +1,21 @@
-# WrapGod documentation
+# WrapGod Documentation
 
-WrapGod helps you extract API manifests and generate wrappers to keep consumers decoupled from third-party dependency churn.
+WrapGod generates type-safe wrapper interfaces over third-party .NET APIs so your application code never touches vendor types directly. Upgrade, swap, or support multiple versions — without refactoring a single line.
 
-## Guides
+## [Guide](guide/)
 
-- [Quickstart](QUICKSTART.md)
-- [CLI reference](CLI.md)
-- [Configuration](CONFIGURATION.md)
-- [Manifest](MANIFEST.md)
-- [Manifest schema](MANIFEST-SCHEMA.md)
-- [Migration playbook](MIGRATION-PLAYBOOK.md)
-- [Compatibility](COMPATIBILITY.md)
-- [Analyzers](ANALYZERS.md)
-- [Architecture](ARCHITECTURE.md)
-- [Engineering](ENGINEERING.md)
-- [Plan](PLAN.md)
-- [Work breakdown](WORK-BREAKDOWN.md)
-- [Quality matrix](QUALITY-MATRIX.md)
-- [Feature completeness audit](FEATURE-COMPLETENESS-AUDIT.md)
+Learn the fundamentals — from your first generated wrapper to advanced configuration.
 
-## References
+- [Feature Completeness Audit](FEATURE-COMPLETENESS-AUDIT.md) — implementation/test/documentation status matrix
 
-- [API reference](api/index.md)
-- [RFCs](rfc/0051-extractor-incremental-cache-strategy.md)
-- [Ops notes](ops/workflow-parity-matrix.md)
+## [Migration](migration/)
+
+Strategies and end-to-end automation for migrating between library versions and across libraries.
+
+## [API Reference](api/)
+
+Generated API documentation for all WrapGod packages.
+
+## [Engineering](engineering/)
+
+Build conventions, quality standards, and design RFCs for contributors.

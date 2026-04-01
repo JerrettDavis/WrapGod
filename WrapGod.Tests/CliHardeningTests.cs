@@ -3,6 +3,7 @@ using WrapGod.Cli;
 
 namespace WrapGod.Tests;
 
+[Collection("CLI")]
 public sealed class CliHardeningTests
 {
     [Fact]

@@ -1,53 +1,29 @@
-# Hangfire ↔ Quartz.NET Bidirectional Integration Pack (WrapGod)
+# Hangfire <-> Quartz.NET Bidirectional Integration Pack
 
-This integration pack demonstrates job scheduler transition patterns
-between Hangfire and Quartz.NET, demonstrating WrapGod's capability to handle
-any library paradigm — not just typical assertion/ORM/dependency-injection libraries.
-
-## Layout
-
-- `HangfireApp/` — Hangfire scheduler sample implementation
-- `QuartzApp/` — Quartz.NET scheduler sample implementation
-- `ParityTests/` — CI parity tests for schedule execution and outcomes
-- `README.md` — pack introduction and usage
-- `schedule-mapping-matrix.md` — job/schedule/retry mapping guidance
-- `diagnostics.md` — scheduler semantics that cannot be safely auto-converted
-- `migration-checklist.md` — operational behavior parity playbook
-
-## Scope covered (expandable)
-
-- Job definition/enqueue/scheduling abstraction mappings
-- Recurring schedule translation guidance
-- Retry/misfire/concurrency policy compatibility matrix
-- Analyzer diagnostics for scheduler semantics that cannot be safely auto-converted
-
-## WrapGod philosophy
-
-WrapGod is a "God Wrapper" — capable of handling any library, paradigm, or scheduler semantics.
-This pack demonstrates that capability beyond typical migration scenarios.
-
-## Run locally
-
-```bash
-dotnet test examples/migrations/hangfire-quartz-bidirectional/ParityTests/ParityTests.csproj
-```
-
+This migration pack demonstrates bidirectional scheduling coverage between
+[Hangfire](https://www.hangfire.io/) and [Quartz.NET](https://www.quartz-scheduler.net/)
+job schedulers.
 
 ## Layout
 
-- `HangfireApp/` — Hangfire scheduler sample implementation
-- `QuartzApp/` — Quartz.NET scheduler sample implementation
-- `ParityTests/` — CI parity tests for schedule execution and outcomes
-- `schedule-mapping-matrix.md` — job definition/schedule/retry mapping guidance
-- `diagnostics.md` — scheduler semantics that cannot be safely auto-converted
-- `migration-checklist.md` — operational behavior parity playbook
+- `HangfireApp/` — Hangfire scheduling abstraction and job definitions
+- `QuartzApp/` — Quartz.NET scheduling abstraction and IJob implementations
+- `ParityTests/` — API surface and behavioral parity checks for both directions
+- `mapping-matrix.md` — schedule/retry/misfire/concurrency mapping table
+- `diagnostics.md` — semantic gaps and unsafe transformation guidance
+- `migration-checklist.md` — operational behavior parity steps
 
 ## Scope covered
 
-- Job definition/enqueue/scheduling abstraction mappings
-- Recurring schedule translation guidance
-- Retry/misfire/concurrency policy compatibility matrix
-- Analyzer diagnostics for unsupported scheduler transitions
+- Fire-and-forget scheduling (`Enqueue` / `StartNow` trigger)
+- Delayed scheduling (`Schedule` / `StartAt` trigger)
+- Recurring schedules (`RecurringJob.AddOrUpdate` / `WithCronSchedule`)
+- Job continuations (`ContinueJobWith` / durable job + listener)
+- Retry policies (`[AutomaticRetry]` / `IJobListener` re-schedule)
+- Queue assignment (`[Queue("critical")]` / trigger priority)
+- Concurrency control (server workers / `[DisallowConcurrentExecution]`)
+- Misfire handling (Hangfire auto-retry / Quartz misfire instructions)
+- Cron expression translation (5-field to 6/7-field)
 
 ## Run locally
 

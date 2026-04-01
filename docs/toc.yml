@@ -1,47 +1,14 @@
 - name: Home
   href: index.md
-- name: Guides
-  items:
-    - name: Quickstart
-      href: QUICKSTART.md
-    - name: Configuration
-      href: CONFIGURATION.md
-    - name: Manifest
-      href: MANIFEST.md
-    - name: Manifest schema
-      href: MANIFEST-SCHEMA.md
-    - name: Migration playbook
-      href: MIGRATION-PLAYBOOK.md
-    - name: Compatibility
-      href: COMPATIBILITY.md
-    - name: Analyzers
-      href: ANALYZERS.md
-    - name: Architecture
-      href: ARCHITECTURE.md
-    - name: Engineering
-      href: ENGINEERING.md
-    - name: Plan
-      href: PLAN.md
-    - name: Work breakdown
-      href: WORK-BREAKDOWN.md
-    - name: Quality matrix
-      href: QUALITY-MATRIX.md
-- name: API reference
-  href: api/index.md
-  homepage: api/index.md
-- name: Active work
-  items:
-    - name: Issue #6 - Config ingestion
-      href: active/issue-6-config-ingestion.md
-    - name: Issue #163 - NuGet matrix orchestration
-      href: active/issue-163-orchestration-hygiene-update-path.md
-- name: Operations
-  href: ops/workflow-parity-matrix.md
-- name: RFCs
-  items:
-    - name: RFC 0051 - Extractor incremental cache strategy
-      href: rfc/0051-extractor-incremental-cache-strategy.md
-    - name: RFC 0052 - Performance benchmarks and SLOs
-      href: rfc/RFC-0052-performance-benchmarks-and-slos.md
-    - name: RFC 0054 - Structured diagnostics contract and reporting
-      href: rfc/0054-structured-diagnostics-contract-and-reporting.md
+
+- name: Guide
+  href: guide/
+
+- name: Migration
+  href: migration/
+
+- name: API Reference
+  href: api/
+
+- name: Engineering
+  href: engineering/

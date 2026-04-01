@@ -65,6 +65,12 @@ internal sealed class TypePlan : IEquatable<TypePlan>
     public string? TargetName { get; }
 
     /// <summary>
+    /// When <c>true</c>, the source type is a static class.
+    /// Static types emit a static facade class instead of interface + instance facade.
+    /// </summary>
+    public bool IsStatic { get; }
+
+    /// <summary>
     /// Version in which this type first appeared, or <c>null</c> when
     /// version metadata is not available.
     /// </summary>
@@ -93,6 +99,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         string ns,
         IReadOnlyList<MemberPlan> members,
         string? targetName = null,
+        bool isStatic = false,
         string? introducedIn = null,
         string? removedIn = null,
         IReadOnlyList<GenericTypeParameterPlan>? genericTypeParameters = null)
@@ -102,6 +109,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         Namespace = ns;
         Members = members;
         TargetName = targetName;
+        IsStatic = isStatic;
         IntroducedIn = introducedIn;
         RemovedIn = removedIn;
         GenericTypeParameters = genericTypeParameters ?? Array.Empty<GenericTypeParameterPlan>();
@@ -112,7 +120,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         if (FullName != other.FullName || Name != other.Name || Namespace != other.Namespace) return false;
-        if (TargetName != other.TargetName) return false;
+        if (TargetName != other.TargetName || IsStatic != other.IsStatic) return false;
         if (IntroducedIn != other.IntroducedIn || RemovedIn != other.RemovedIn) return false;
         if (Members.Count != other.Members.Count) return false;
         if (GenericTypeParameters.Count != other.GenericTypeParameters.Count) return false;
@@ -138,6 +146,7 @@ internal sealed class TypePlan : IEquatable<TypePlan>
         hash = (hash * 397) ^ Name.GetHashCode();
         hash = (hash * 397) ^ Namespace.GetHashCode();
         if (TargetName != null) hash = (hash * 397) ^ TargetName.GetHashCode();
+        hash = (hash * 397) ^ IsStatic.GetHashCode();
         if (IntroducedIn != null) hash = (hash * 397) ^ IntroducedIn.GetHashCode();
         if (RemovedIn != null) hash = (hash * 397) ^ RemovedIn.GetHashCode();
         foreach (var m in Members)
@@ -214,7 +223,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
     public bool HasGetter { get; }
     public bool HasSetter { get; }
     public bool IsStatic { get; }
-    public IReadOnlyList<string> GenericParameters { get; }
+    public IReadOnlyList<GenericTypeParameterPlan> GenericParameters { get; }
 
     /// <summary>
     /// Optional override name from user configuration.
@@ -247,7 +256,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         bool hasGetter,
         bool hasSetter,
         bool isStatic = false,
-        IReadOnlyList<string>? genericParameters = null,
+        IReadOnlyList<GenericTypeParameterPlan>? genericParameters = null,
         string? targetName = null,
         string? introducedIn = null,
         string? removedIn = null)
@@ -259,7 +268,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
         HasGetter = hasGetter;
         HasSetter = hasSetter;
         IsStatic = isStatic;
-        GenericParameters = genericParameters ?? Array.Empty<string>();
+        GenericParameters = genericParameters ?? Array.Empty<GenericTypeParameterPlan>();
         TargetName = targetName;
         IntroducedIn = introducedIn;
         RemovedIn = removedIn;
@@ -284,7 +293,7 @@ internal sealed class MemberPlan : IEquatable<MemberPlan>
 
         for (int i = 0; i < GenericParameters.Count; i++)
         {
-            if (GenericParameters[i] != other.GenericParameters[i]) return false;
+            if (!GenericParameters[i].Equals(other.GenericParameters[i])) return false;
         }
 
         return true;
@@ -318,18 +327,24 @@ internal sealed class ParameterPlan : IEquatable<ParameterPlan>
     /// </summary>
     public string Modifier { get; }
 
-    public ParameterPlan(string name, string type, string modifier = "")
+    /// <summary>
+    /// When <c>true</c>, this is the <c>this</c> parameter of an extension method.
+    /// </summary>
+    public bool IsThis { get; }
+
+    public ParameterPlan(string name, string type, string modifier = "", bool isThis = false)
     {
         Name = name;
         Type = type;
         Modifier = modifier;
+        IsThis = isThis;
     }
 
     public bool Equals(ParameterPlan? other)
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Type == other.Type && Modifier == other.Modifier;
+        return Name == other.Name && Type == other.Type && Modifier == other.Modifier && IsThis == other.IsThis;
     }
 
     public override bool Equals(object? obj) => Equals(obj as ParameterPlan);
@@ -338,6 +353,7 @@ internal sealed class ParameterPlan : IEquatable<ParameterPlan>
     {
         int hash = (Name.GetHashCode() * 397) ^ Type.GetHashCode();
         hash = (hash * 397) ^ Modifier.GetHashCode();
+        hash = (hash * 397) ^ IsThis.GetHashCode();
         return hash;
     }
 }
@@ -349,16 +365,19 @@ internal sealed class ParameterPlan : IEquatable<ParameterPlan>
 internal sealed class ConfigPlan : IEquatable<ConfigPlan>
 {
     public IReadOnlyList<ConfigTypePlan> Types { get; }
+    public string? OutputNamespace { get; }
 
-    public ConfigPlan(IReadOnlyList<ConfigTypePlan> types)
+    public ConfigPlan(IReadOnlyList<ConfigTypePlan> types, string? outputNamespace = null)
     {
         Types = types;
+        OutputNamespace = outputNamespace;
     }
 
     public bool Equals(ConfigPlan? other)
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
+        if (OutputNamespace != other.OutputNamespace) return false;
         if (Types.Count != other.Types.Count) return false;
         for (int i = 0; i < Types.Count; i++)
         {
@@ -373,6 +392,8 @@ internal sealed class ConfigPlan : IEquatable<ConfigPlan>
     public override int GetHashCode()
     {
         int hash = 17;
+        if (OutputNamespace != null)
+            hash = (hash * 397) ^ OutputNamespace.GetHashCode();
         foreach (var t in Types)
         {
             hash = (hash * 397) ^ t.GetHashCode();

@@ -88,7 +88,19 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
             }
 
             var filteredPlans = ApplyConfig(allPlans, configPlans);
-            EmitSources(spc, filteredPlans);
+
+            // Resolve outputNamespace: first non-null value across all configs, or default.
+            string? outputNamespace = null;
+            foreach (var cfg in configPlans)
+            {
+                if (cfg.OutputNamespace is not null)
+                {
+                    outputNamespace = cfg.OutputNamespace;
+                    break;
+                }
+            }
+
+            EmitSources(spc, filteredPlans, outputNamespace);
         });
     }
 
@@ -188,10 +200,14 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
             switch (member)
             {
                 case IMethodSymbol method when method.MethodKind == MethodKind.Ordinary:
-                    var methodGenericParams = new List<string>();
+                    var methodGenericParams = new List<GenericTypeParameterPlan>();
                     foreach (var tp in method.TypeParameters)
                     {
-                        methodGenericParams.Add(tp.Name);
+                        var constraints = new List<string>();
+                        foreach (var ct in tp.ConstraintTypes)
+                            constraints.Add(ct.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                                .Replace("global::", string.Empty));
+                        methodGenericParams.Add(new GenericTypeParameterPlan(tp.Name, constraints));
                     }
 
                     var methodParams = new List<ParameterPlan>();
@@ -206,7 +222,8 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
                             p.Name,
                             p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                                 .Replace("global::", string.Empty),
-                            modifier));
+                            modifier,
+                            isThis: p.IsThis));
                     }
 
                     members.Add(new MemberPlan(
@@ -345,7 +362,13 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
                 }
             }
 
-            return new ConfigPlan(types);
+            string? outputNamespace = null;
+            if (root.TryGetProperty("outputNamespace", out var nsEl) && nsEl.ValueKind == JsonValueKind.String)
+            {
+                outputNamespace = nsEl.GetString();
+            }
+
+            return new ConfigPlan(types, outputNamespace);
         }
 #pragma warning disable CA1031 // Do not catch general exception types -- generator must not crash
         catch
@@ -441,6 +464,7 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
                         type.Namespace,
                         filteredMembers,
                         targetName: !string.IsNullOrEmpty(rule.TargetName) ? rule.TargetName : type.TargetName,
+                        isStatic: type.IsStatic,
                         introducedIn: type.IntroducedIn,
                         removedIn: type.RemovedIn,
                         genericTypeParameters: type.GenericTypeParameters));
@@ -508,7 +532,10 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
             }
         }
 
-        return new TypePlan(fullName, name, ns, members, genericTypeParameters: genericTypeParams);
+        bool isStatic = typeEl.TryGetProperty("isStatic", out var isStaticEl)
+            && isStaticEl.ValueKind == JsonValueKind.True;
+
+        return new TypePlan(fullName, name, ns, members, isStatic: isStatic, genericTypeParameters: genericTypeParams);
     }
 
     private static MemberPlan? ParseMemberPlan(JsonElement memberEl)
@@ -526,7 +553,7 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
         bool hasSetter = GetBoolProperty(memberEl, "hasSetter");
         bool isStatic = GetBoolProperty(memberEl, "isStatic");
 
-        var genericParameters = new List<string>();
+        var genericParameters = new List<GenericTypeParameterPlan>();
         if (memberEl.TryGetProperty("genericParameters", out var gpEl) && gpEl.ValueKind == JsonValueKind.Array)
         {
             foreach (var gp in gpEl.EnumerateArray())
@@ -534,7 +561,17 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
                 string gpName = GetStringProperty(gp, "name");
                 if (!string.IsNullOrEmpty(gpName))
                 {
-                    genericParameters.Add(gpName);
+                    var constraints = new List<string>();
+                    if (gp.TryGetProperty("constraints", out var cEl) && cEl.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var c in cEl.EnumerateArray())
+                        {
+                            var cv = c.GetString() ?? string.Empty;
+                            if (!string.IsNullOrEmpty(cv))
+                                constraints.Add(cv);
+                        }
+                    }
+                    genericParameters.Add(new GenericTypeParameterPlan(gpName, constraints));
                 }
             }
         }
@@ -557,7 +594,8 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
                     else if (GetBoolProperty(paramEl, "isParams"))
                         modifier = "params";
 
-                    parameters.Add(new ParameterPlan(paramName, paramType, modifier));
+                    bool isThis = GetBoolProperty(paramEl, "isThis");
+                    parameters.Add(new ParameterPlan(paramName, paramType, modifier, isThis));
                 }
             }
         }
@@ -577,21 +615,27 @@ public sealed class WrapGodIncrementalGenerator : IIncrementalGenerator
         return el.TryGetProperty(name, out var prop) && prop.ValueKind == JsonValueKind.True;
     }
 
-    private static void EmitSources(SourceProductionContext spc, ImmutableArray<GenerationPlan> plans)
+    private static void EmitSources(SourceProductionContext spc, ImmutableArray<GenerationPlan> plans, string? outputNamespace = null)
     {
+        var ns = outputNamespace ?? SourceEmitter.DefaultNamespace;
+
         foreach (var plan in plans)
         {
             foreach (var type in plan.Types)
             {
-                string interfaceSource = SourceEmitter.EmitInterface(type);
-                spc.AddSource(
-                    "IWrapped" + type.EffectiveName + ".g.cs",
-                    SourceText.From(interfaceSource, Encoding.UTF8));
+                string? interfaceSource = SourceEmitter.EmitInterface(type, ns);
+                if (interfaceSource != null)
+                {
+                    spc.AddSource(
+                        "IWrapped" + type.EffectiveName + ".g.cs",
+                        SourceText.From(interfaceSource, Encoding.UTF8));
+                }
 
-                string facadeSource = SourceEmitter.EmitFacade(type);
-                spc.AddSource(
-                    type.EffectiveName + "Facade.g.cs",
-                    SourceText.From(facadeSource, Encoding.UTF8));
+                string facadeSource = SourceEmitter.EmitFacade(type, ns);
+                string facadeFileName = type.IsStatic
+                    ? type.EffectiveName + ".g.cs"
+                    : type.EffectiveName + "Facade.g.cs";
+                spc.AddSource(facadeFileName, SourceText.From(facadeSource, Encoding.UTF8));
             }
         }
     }

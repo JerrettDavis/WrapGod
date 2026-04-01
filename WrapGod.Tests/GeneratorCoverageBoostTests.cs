@@ -578,7 +578,7 @@ public sealed class GeneratorCoverageBoostTests(ITestOutputHelper output) : Tiny
             new("Name", "property", "string",
                 new List<ParameterPlan>(),
                 hasGetter: true, hasSetter: false, isStatic: false,
-                genericParameters: new List<string>(),
+                genericParameters: new List<GenericTypeParameterPlan>(),
                 introducedIn: "2.0"),
         };
         var type = new TypePlan("Lib.Svc", "Svc", "Lib", members);
@@ -737,13 +737,13 @@ public sealed class GeneratorCoverageBoostTests(ITestOutputHelper output) : Tiny
     {
         var m1 = new MemberPlan("Foo", "method", "void",
             new List<ParameterPlan>(), false, false,
-            genericParameters: new List<string> { "T" });
+            genericParameters: new List<GenericTypeParameterPlan> { new("T", Array.Empty<string>()) });
         var m2 = new MemberPlan("Foo", "method", "void",
             new List<ParameterPlan>(), false, false,
-            genericParameters: new List<string> { "T" });
+            genericParameters: new List<GenericTypeParameterPlan> { new("T", Array.Empty<string>()) });
         var m3 = new MemberPlan("Foo", "method", "void",
             new List<ParameterPlan>(), false, false,
-            genericParameters: new List<string> { "U" });
+            genericParameters: new List<GenericTypeParameterPlan> { new("U", Array.Empty<string>()) });
 
         return Given("MemberPlans with generic parameters", () => (m1, m2, m3))
             .Then("identical are equal", t => t.m1.Equals(t.m2))

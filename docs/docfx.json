@@ -31,7 +31,12 @@
         ],
         "exclude": [
           "_site/**",
-          "api/.manifest"
+          "api/.manifest",
+          "active/**",
+          "ops/**",
+          "rfc/**",
+          "PLAN.md",
+          "WORK-BREAKDOWN.md"
         ]
       },
       {

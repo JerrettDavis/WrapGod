@@ -10,4 +10,18 @@
     <PackageReference Include="Shouldly" Version="4.3.0" />
   </ItemGroup>
 
+  <!-- WrapGod source generator -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\WrapGod.Generator\WrapGod.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\..\..\WrapGod.Abstractions\WrapGod.Abstractions.csproj" />
+  </ItemGroup>
+
+  <!-- Manifest + config as AdditionalFiles for the generator -->
+  <ItemGroup>
+    <AdditionalFiles Include="shouldly.wrapgod.json" />
+    <AdditionalFiles Include="shouldly.wrapgod.config.json" />
+  </ItemGroup>
+
 </Project>

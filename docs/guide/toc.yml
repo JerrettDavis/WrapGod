@@ -1,0 +1,29 @@
+- name: Overview
+  href: index.md
+
+- name: Quick Start
+  href: quickstart.md
+
+- name: CLI Reference
+  href: cli.md
+
+- name: Configuration
+  href: configuration.md
+
+- name: MSBuild Integration
+  href: msbuild-integration.md
+
+- name: Architecture
+  href: architecture.md
+
+- name: Manifest Format
+  href: manifest.md
+
+- name: Manifest Schema
+  href: manifest-schema.md
+
+- name: Compatibility Modes
+  href: compatibility.md
+
+- name: Analyzers & Code Fixes
+  href: analyzers.md
