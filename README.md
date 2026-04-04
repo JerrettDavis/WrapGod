@@ -119,7 +119,7 @@ See [examples/README.md](examples/README.md) for the full catalog.
 
 - [Quick Start Guide](docs/guide/quickstart.md) — end-to-end onboarding walkthrough
 - [CLI Reference](docs/guide/cli.md) — command-line tool usage and options
-- [MSBuild Integration](docs/MSBUILD-INTEGRATION.md) — zero-touch build automation
+- [MSBuild Integration](docs/guide/msbuild-integration.md) — zero-touch build automation
 - [Manifest Format](docs/guide/manifest.md) — schema, type/member nodes, version metadata
 - [Configuration Guide](docs/guide/configuration.md) — JSON, attributes, fluent DSL, merge precedence
 - [Compatibility Modes](docs/guide/compatibility.md) — LCD, Targeted, and Adaptive modes

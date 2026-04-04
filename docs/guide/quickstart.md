@@ -183,7 +183,7 @@ wrap-god extract --nuget Shouldly@3.0.0 --nuget Shouldly@4.3.0 -o shouldly.wrapg
 
 The CLI merges both versions into a single manifest with
 `introducedIn`/`removedIn` metadata on each member. The generator uses
-this to produce version-aware wrappers. See [COMPATIBILITY.md](COMPATIBILITY.md)
+this to produce version-aware wrappers. See [compatibility.md](compatibility.md)
 for LCD, Targeted, and Adaptive modes.
 
 ---
@@ -288,9 +288,9 @@ the pipeline regenerates everything. Your code stays the same.
 
 ## Next Steps
 
-- [CONFIGURATION.md](CONFIGURATION.md) -- JSON, attribute, and Fluent DSL configuration
-- [COMPATIBILITY.md](COMPATIBILITY.md) -- LCD, Targeted, and Adaptive compatibility modes
-- [AUTOMATION.md](AUTOMATION.md) -- end-to-end automation for upgrades and library swaps
-- [ANALYZERS.md](ANALYZERS.md) -- full diagnostics reference (WG2001--WG6004)
-- [MSBUILD-INTEGRATION.md](MSBUILD-INTEGRATION.md) -- MSBuild targets deep dive
-- [MANIFEST.md](MANIFEST.md) -- manifest schema reference
+- [configuration.md](configuration.md) -- JSON, attribute, and Fluent DSL configuration
+- [compatibility.md](compatibility.md) -- LCD, Targeted, and Adaptive compatibility modes
+- [automation.md](../migration/automation.md) -- end-to-end automation for upgrades and library swaps
+- [analyzers.md](analyzers.md) -- full diagnostics reference (WG2001--WG6004)
+- [msbuild-integration.md](msbuild-integration.md) -- MSBuild targets deep dive
+- [manifest.md](manifest.md) -- manifest schema reference

@@ -1,32 +1,36 @@
+using MassTransit;
+using MassTransit.Mediator;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace MassTransitMediatorApp;
 
 public sealed record ScenarioResult(string Response, IReadOnlyList<string> Trace);
 
 public static class MassTransitMediatorScenario
 {
-    public static Task<ScenarioResult> RunAsync()
+    public static async Task<ScenarioResult> RunAsync()
     {
-        var trace = new TraceLog();
+        var services = new ServiceCollection();
+        services.AddSingleton<TraceLog>();
+        services.AddMediator(cfg =>
+        {
+            cfg.AddConsumer<PingConsumer>();
+            cfg.AddConsumer<OrderCreatedConsumer>();
+            cfg.ConfigureMediator((context, mediator) =>
+            {
+                mediator.UseConsumeFilter(typeof(TracingFilter<>), context);
+            });
+        });
 
-        var response = HandleRequest(new PingRequest("hello"), trace);
-        HandleNotification(new OrderCreated("ORD-100"), trace);
+        await using var provider = services.BuildServiceProvider();
+        var trace = provider.GetRequiredService<TraceLog>();
+        var mediator = provider.GetRequiredService<IMediator>();
+        var requestClient = provider.GetRequiredService<IRequestClient<PingRequest>>();
 
-        return Task.FromResult(new ScenarioResult(response.Text, trace.Entries.ToList()));
-    }
+        var response = await requestClient.GetResponse<PongResponse>(new PingRequest("hello"));
+        await mediator.Publish(new OrderCreated("ORD-100"));
 
-    private static PongResponse HandleRequest(PingRequest request, TraceLog trace)
-    {
-        trace.Entries.Add("pipeline:before:PingRequest");
-        trace.Entries.Add("request:handled");
-        var response = new PongResponse($"pong:{request.Text}");
-        trace.Entries.Add("pipeline:after:PingRequest");
-        return response;
-    }
-
-    private static void HandleNotification(OrderCreated notification, TraceLog trace)
-    {
-        _ = notification;
-        trace.Entries.Add("notification:handled");
+        return new ScenarioResult(response.Message.Text, trace.Entries.ToList());
     }
 
     public sealed class TraceLog
@@ -37,4 +41,39 @@ public static class MassTransitMediatorScenario
     public sealed record PingRequest(string Text);
     public sealed record PongResponse(string Text);
     public sealed record OrderCreated(string OrderId);
+
+    public sealed class PingConsumer(TraceLog trace) : IConsumer<PingRequest>
+    {
+        public Task Consume(ConsumeContext<PingRequest> context)
+        {
+            trace.Entries.Add("request:handled");
+            return context.RespondAsync(new PongResponse($"pong:{context.Message.Text}"));
+        }
+    }
+
+    public sealed class OrderCreatedConsumer(TraceLog trace) : IConsumer<OrderCreated>
+    {
+        public Task Consume(ConsumeContext<OrderCreated> context)
+        {
+            _ = context.Message;
+            trace.Entries.Add("notification:handled");
+            return Task.CompletedTask;
+        }
+    }
+
+    public sealed class TracingFilter<TMessage>(TraceLog trace) : IFilter<ConsumeContext<TMessage>>
+        where TMessage : class
+    {
+        public async Task Send(ConsumeContext<TMessage> context, IPipe<ConsumeContext<TMessage>> next)
+        {
+            trace.Entries.Add($"pipeline:before:{typeof(TMessage).Name}");
+            await next.Send(context);
+            trace.Entries.Add($"pipeline:after:{typeof(TMessage).Name}");
+        }
+
+        public void Probe(ProbeContext context)
+        {
+            context.CreateFilterScope("tracing");
+        }
+    }
 }

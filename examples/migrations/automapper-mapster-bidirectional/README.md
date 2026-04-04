@@ -1,12 +1,8 @@
 # AutoMapper <-> Mapster Bidirectional Integration Pack
 
 This migration pack demonstrates bidirectional mapping coverage between
-AutoMapper-style profile mappings and [Mapster](https://github.com/MapsterMapper/Mapster).
-
-> Note: this sample intentionally avoids taking a direct AutoMapper package dependency
-> because current published AutoMapper versions are flagged by dependency review in CI
-> (`GHSA-rvv3-g6hj-g44x`). The source-side mapping code mirrors AutoMapper profile semantics
-> (`CreateMap` / member mapping style) so migration behavior remains demonstrable.
+[AutoMapper](https://github.com/LuckyPennySoftware/AutoMapper) profile mappings and
+[Mapster](https://github.com/MapsterMapper/Mapster), using both frameworks directly.
 
 ## Layout
 

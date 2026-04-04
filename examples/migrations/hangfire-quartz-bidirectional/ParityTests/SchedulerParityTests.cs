@@ -105,8 +105,8 @@ public class SchedulerParityTests
     {
         // Hangfire uses 5-field cron (minute hour day month weekday)
         // Quartz uses 6-7 field cron (second minute hour day month weekday [year])
-        // Migration must prepend "0 " to convert Hangfire cron to Quartz cron
-        var quartzCron = $"0 {cron}";
+        // and requires either day-of-month or day-of-week to be '?'.
+        var quartzCron = ConvertHangfireCronToQuartz(cron);
         Assert.True(CronExpression.IsValidExpression(quartzCron),
             $"Quartz should accept converted cron: {quartzCron}");
     }
@@ -174,5 +174,40 @@ public class SchedulerParityTests
     private static bool HasMethod(Type type, string methodName)
     {
         return type.GetMethod(methodName) != null;
+    }
+
+    private static string ConvertHangfireCronToQuartz(string hangfireCron)
+    {
+        var parts = hangfireCron.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 5)
+        {
+            throw new ArgumentException("Expected 5-field Hangfire cron expression.", nameof(hangfireCron));
+        }
+
+        var minute = parts[0];
+        var hour = parts[1];
+        var dayOfMonth = parts[2];
+        var month = parts[3];
+        var dayOfWeek = parts[4];
+
+        if (dayOfMonth == "*" && dayOfWeek == "*")
+        {
+            dayOfWeek = "?";
+        }
+        else if (dayOfMonth == "*" && dayOfWeek != "*")
+        {
+            dayOfMonth = "?";
+        }
+        else if (dayOfMonth != "*" && dayOfWeek == "*")
+        {
+            dayOfWeek = "?";
+        }
+        else if (dayOfMonth != "*" && dayOfWeek != "*")
+        {
+            // Keep day-of-month semantics and make day-of-week non-restrictive.
+            dayOfWeek = "?";
+        }
+
+        return $"0 {minute} {hour} {dayOfMonth} {month} {dayOfWeek}";
     }
 }
