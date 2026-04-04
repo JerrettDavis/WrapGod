@@ -71,7 +71,7 @@ Here's the complete `.csproj` with every WrapGod property explained:
     <!--
       WrapGodConfigPath (default: $(MSBuildProjectDirectory)\wrapgod.config.json)
       Optional configuration file for renaming types/members, excluding members,
-      or overriding generation behavior. See CONFIGURATION.md.
+      or overriding generation behavior. See ../guide/configuration.md.
     -->
     <WrapGodConfigPath>$(MSBuildProjectDirectory)\wrapgod.config.json</WrapGodConfigPath>
 
@@ -249,10 +249,10 @@ the generated wrapper interface. Your tests now compile against wrapper
 interfaces backed by NSubstitute instead of Moq.
 
 For complete working examples of bidirectional library swaps, see the
-[`examples/MoqToNSubstitute`](../examples/MoqToNSubstitute) and
-[`examples/NSubstituteToMoq`](../examples/NSubstituteToMoq) example
+[`examples/MoqToNSubstitute`](../../examples/MoqToNSubstitute) and
+[`examples/NSubstituteToMoq`](../../examples/NSubstituteToMoq) example
 packs, plus the bidirectional migration packs under
-[`examples/migrations/`](../examples/migrations/).
+[`examples/migrations/`](../../examples/migrations/).
 
 ---
 
@@ -303,7 +303,7 @@ Your code compiles and runs against either version. If it calls a member
 that doesn't exist at runtime, it gets a clear exception instead of a
 `MissingMethodException`.
 
-See [COMPATIBILITY.md](COMPATIBILITY.md) for the full reference.
+See [compatibility.md](../guide/compatibility.md) for the full reference.
 
 ---
 
@@ -375,7 +375,7 @@ command:
 The `analyze` command exits with a non-zero code when diagnostics exceed
 the configured threshold, and can emit SARIF 2.1.0 for integration with
 GitHub Code Scanning or other security tooling. See
-[RFC-0054](rfc/0054-structured-diagnostics-contract-and-reporting.md) for
+[RFC-0054](../engineering/rfc/0054-structured-diagnostics-contract-and-reporting.md) for
 the diagnostics contract.
 
 ---
@@ -420,7 +420,7 @@ After migration, all four apps:
   `Company.Assertions` package -- no changes in any consuming app
 
 The full case study with four migrated applications is at
-[`examples/case-studies/company-assertions-migration`](../examples/case-studies/company-assertions-migration).
+[`examples/case-studies/company-assertions-migration`](../../examples/case-studies/company-assertions-migration).
 
 ### Why this scales
 
@@ -439,9 +439,9 @@ The full case study with four migrated applications is at
 
 ## Further Reading
 
-- [QUICKSTART.md](QUICKSTART.md) -- three paths from zero to wrapped
-- [CONFIGURATION.md](CONFIGURATION.md) -- JSON, attribute, and Fluent DSL configuration
-- [COMPATIBILITY.md](COMPATIBILITY.md) -- LCD, Targeted, and Adaptive modes
-- [MSBUILD-INTEGRATION.md](MSBUILD-INTEGRATION.md) -- MSBuild targets deep dive
-- [ANALYZERS.md](ANALYZERS.md) -- full diagnostics reference
-- [ARCHITECTURE.md](ARCHITECTURE.md) -- pipeline internals and component reference
+- [quickstart.md](../guide/quickstart.md) -- three paths from zero to wrapped
+- [configuration.md](../guide/configuration.md) -- JSON, attribute, and Fluent DSL configuration
+- [compatibility.md](../guide/compatibility.md) -- LCD, Targeted, and Adaptive modes
+- [msbuild-integration.md](../guide/msbuild-integration.md) -- MSBuild targets deep dive
+- [analyzers.md](../guide/analyzers.md) -- full diagnostics reference
+- [architecture.md](../guide/architecture.md) -- pipeline internals and component reference
