@@ -1,57 +1,52 @@
+using AutoMapper;
+using Microsoft.Extensions.Logging.Abstractions;
+
 namespace AutoMapperApp;
 
 public static class AutoMapperBridge
 {
-    public static OrderDto ToOrderDto(DomainOrder source)
-    {
-        return new OrderDto
-        {
-            OrderId = source.Id,
-            CustomerName = source.Customer.Name,
-            Address = new AddressDto
-            {
-                Street = source.Customer.Address.Street,
-                City = source.Customer.Address.City,
-                State = source.Customer.Address.State
-            },
-            Items = source.Lines.Select(l => new OrderLineDto
-            {
-                Sku = l.Sku,
-                Quantity = l.Quantity,
-                UnitPrice = l.UnitPrice,
-                LineTotal = l.Quantity * l.UnitPrice
-            }).ToList(),
-            DiscountCode = source.DiscountCode,
-            ShippingFee = source.ShippingFee,
-            Total = source.Lines.Sum(x => x.Quantity * x.UnitPrice)
-        };
-    }
+    private static readonly IMapper Mapper = CreateMapper();
 
-    public static DomainOrder ToDomainOrder(OrderDto source)
+    public static OrderDto ToOrderDto(DomainOrder source) => Mapper.Map<OrderDto>(source);
+
+    public static DomainOrder ToDomainOrder(OrderDto source) => Mapper.Map<DomainOrder>(source);
+
+    private static IMapper CreateMapper()
     {
-        return new DomainOrder
+        var config = new MapperConfiguration(cfg =>
         {
-            Id = source.OrderId,
-            Customer = new Customer
-            {
-                Name = source.CustomerName,
-                Address = source.Address == null
-                    ? new Address()
-                    : new Address
-                    {
-                        Street = source.Address.Street,
-                        City = source.Address.City,
-                        State = source.Address.State
-                    }
-            },
-            Lines = source.Items.Select(i => new OrderLine
-            {
-                Sku = i.Sku,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice
-            }).ToList(),
-            DiscountCode = source.DiscountCode,
-            ShippingFee = source.ShippingFee
-        };
+            cfg.CreateMap<OrderLine, OrderLineDto>()
+                .ForMember(d => d.LineTotal, opt => opt.MapFrom(s => s.Quantity * s.UnitPrice));
+
+            cfg.CreateMap<OrderLineDto, OrderLine>();
+            cfg.CreateMap<Address, AddressDto>();
+            cfg.CreateMap<AddressDto, Address>();
+
+            cfg.CreateMap<DomainOrder, OrderDto>()
+                .ForMember(d => d.OrderId, opt => opt.MapFrom(s => s.Id))
+                .ForMember(d => d.CustomerName, opt => opt.MapFrom(s => s.Customer.Name))
+                .ForMember(d => d.Address, opt => opt.MapFrom(s => s.Customer.Address))
+                .ForMember(d => d.Items, opt => opt.MapFrom(s => s.Lines))
+                .ForMember(d => d.Total, opt => opt.MapFrom(s => s.Lines.Sum(x => x.Quantity * x.UnitPrice)));
+
+            cfg.CreateMap<OrderDto, DomainOrder>()
+                .ForMember(d => d.Id, opt => opt.MapFrom(s => s.OrderId))
+                .ForMember(d => d.Customer, opt => opt.MapFrom(s => new Customer
+                {
+                    Name = s.CustomerName,
+                    Address = s.Address == null
+                        ? new Address()
+                        : new Address
+                        {
+                            Street = s.Address.Street,
+                            City = s.Address.City,
+                            State = s.Address.State
+                        }
+                }))
+                .ForMember(d => d.Lines, opt => opt.MapFrom(s => s.Items));
+        }, NullLoggerFactory.Instance);
+
+        config.AssertConfigurationIsValid();
+        return config.CreateMapper();
     }
 }
