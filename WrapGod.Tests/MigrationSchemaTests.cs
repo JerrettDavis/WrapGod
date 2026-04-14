@@ -442,6 +442,36 @@ public sealed class MigrationSchemaTests(ITestOutputHelper output) : TinyBddXuni
         })
         .AssertPassed();
 
+    [Scenario("Deserializing rule with numeric 'kind' throws JsonException")]
+    [Fact]
+    public Task NumericKindThrows() =>
+        Given("a JSON rule object with a numeric kind value", () =>
+        {
+            var json = """
+                {
+                  "schema": "wrapgod-migration/1.0",
+                  "library": "L",
+                  "from": "1.0",
+                  "to": "2.0",
+                  "rules": [{ "id": "r1", "kind": "0" }]
+                }
+                """;
+            return json;
+        })
+        .Then("deserialization throws JsonException", json =>
+        {
+            try
+            {
+                MigrationSchemaSerializer.Deserialize(json);
+                return false;
+            }
+            catch (JsonException)
+            {
+                return true;
+            }
+        })
+        .AssertPassed();
+
     [Scenario("Deserializing null JSON returns null")]
     [Fact]
     public Task DeserializeNullJson() =>

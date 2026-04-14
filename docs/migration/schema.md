@@ -71,7 +71,7 @@ A type was moved to a different namespace.
 ```
 
 ### `changeParameter`
-A method parameter was renamed, retyped, or had its default value changed.
+A method parameter was renamed or retyped.
 
 ```json
 {
@@ -220,4 +220,4 @@ The serializer uses camelCase property names, indented output, and supports `//`
 
 ## JSON Schema Validation
 
-The JSON Schema file is located at [`schemas/wrapgod-migration.v1.schema.json`](../../../schemas/wrapgod-migration.v1.schema.json).
+The JSON Schema file is located at [`schemas/wrapgod-migration.v1.schema.json`](../../schemas/wrapgod-migration.v1.schema.json).

@@ -102,16 +102,29 @@ public sealed class MigrationRuleConverter : JsonConverter<MigrationRule>
     }
 
     /// <summary>
-    /// Tries to parse a camelCase kind string to a <see cref="MigrationRuleKind"/> value.
-    /// Supports both camelCase (<c>renameType</c>) and PascalCase (<c>RenameType</c>) inputs.
+    /// Maps each camelCase kind string to its <see cref="MigrationRuleKind"/> value.
+    /// Only known, named kind strings are accepted; numeric strings are rejected.
     /// </summary>
-    private static bool TryParseKind(string value, out MigrationRuleKind kind)
-    {
-        // Normalize to PascalCase for Enum.TryParse
-        var pascal = value.Length > 0
-            ? char.ToUpperInvariant(value[0]) + value.Substring(1)
-            : value;
+    private static readonly Dictionary<string, MigrationRuleKind> KindStringMap =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["renameType"]             = MigrationRuleKind.RenameType,
+            ["renameMember"]           = MigrationRuleKind.RenameMember,
+            ["renameNamespace"]        = MigrationRuleKind.RenameNamespace,
+            ["changeParameter"]        = MigrationRuleKind.ChangeParameter,
+            ["removeMember"]           = MigrationRuleKind.RemoveMember,
+            ["addRequiredParameter"]   = MigrationRuleKind.AddRequiredParameter,
+            ["changeTypeReference"]    = MigrationRuleKind.ChangeTypeReference,
+            ["splitMethod"]            = MigrationRuleKind.SplitMethod,
+            ["extractParameterObject"] = MigrationRuleKind.ExtractParameterObject,
+            ["propertyToMethod"]       = MigrationRuleKind.PropertyToMethod,
+            ["moveMember"]             = MigrationRuleKind.MoveMember,
+        };
 
-        return Enum.TryParse(pascal, ignoreCase: true, out kind);
-    }
+    /// <summary>
+    /// Tries to parse a camelCase kind string to a <see cref="MigrationRuleKind"/> value.
+    /// Only named kind strings are accepted; numeric strings are rejected.
+    /// </summary>
+    private static bool TryParseKind(string value, out MigrationRuleKind kind) =>
+        KindStringMap.TryGetValue(value, out kind);
 }

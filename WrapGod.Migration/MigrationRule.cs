@@ -64,7 +64,7 @@ public sealed class RenameNamespaceRule : MigrationRule
     public string NewNamespace { get; set; } = string.Empty;
 }
 
-/// <summary>A method parameter was changed (type, name, position, or default value).</summary>
+/// <summary>A method parameter's name and/or type was changed.</summary>
 public sealed class ChangeParameterRule : MigrationRule
 {
     /// <inheritdoc/>
