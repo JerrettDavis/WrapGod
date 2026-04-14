@@ -29,8 +29,8 @@ public static class MigrationSchemaSerializer
         return JsonSerializer.Deserialize<MigrationSchema>(json, Options);
     }
 
-    /// <summary>Returns the shared serializer options used by this serializer.</summary>
-    public static JsonSerializerOptions GetOptions() => Options;
+    /// <summary>Returns a copy of the serializer options used by this serializer.</summary>
+    public static JsonSerializerOptions GetOptions() => new JsonSerializerOptions(Options);
 
     private static JsonSerializerOptions CreateOptions()
     {
