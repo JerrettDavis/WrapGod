@@ -1,0 +1,101 @@
+{
+  "schema": "wrapgod-migration/1.0",
+  "library": "MudBlazor",
+  "from": "6.0.0",
+  "to": "7.0.0",
+  "generatedFrom": "manifest-diff",
+  "lastEdited": "2026-04-01T00:00:00Z",
+  "rules": [
+    {
+      "id": "rename-Button-to-MudButton",
+      "kind": "renameType",
+      "confidence": "auto",
+      "oldName": "MudBlazor.Button",
+      "newName": "MudBlazor.MudButton"
+    },
+    {
+      "id": "rename-Color-prop",
+      "kind": "renameMember",
+      "confidence": "verified",
+      "typeName": "MudBlazor.MudButton",
+      "oldMemberName": "Color",
+      "newMemberName": "ButtonColor"
+    },
+    {
+      "id": "rename-ns-components",
+      "kind": "renameNamespace",
+      "confidence": "auto",
+      "oldNamespace": "MudBlazor.Components",
+      "newNamespace": "MudBlazor"
+    },
+    {
+      "id": "change-param-size",
+      "kind": "changeParameter",
+      "confidence": "manual",
+      "typeName": "MudBlazor.MudButton",
+      "methodName": "SetSize",
+      "oldParameterName": "size",
+      "newParameterName": "buttonSize",
+      "oldParameterType": "int",
+      "newParameterType": "MudBlazor.Size"
+    },
+    {
+      "id": "remove-legacy-ctor",
+      "kind": "removeMember",
+      "confidence": "manual",
+      "note": "The legacy constructor has been removed. Use the primary constructor instead.",
+      "typeName": "MudBlazor.MudButton",
+      "memberName": ".ctor"
+    },
+    {
+      "id": "add-required-theme",
+      "kind": "addRequiredParameter",
+      "confidence": "manual",
+      "typeName": "MudBlazor.MudThemeProvider",
+      "methodName": "Apply",
+      "parameterName": "theme",
+      "parameterType": "MudBlazor.MudTheme",
+      "position": 0
+    },
+    {
+      "id": "change-ilist-to-ireadonly",
+      "kind": "changeTypeReference",
+      "confidence": "auto",
+      "oldType": "System.Collections.Generic.IList`1",
+      "newType": "System.Collections.Generic.IReadOnlyList`1"
+    },
+    {
+      "id": "split-render",
+      "kind": "splitMethod",
+      "confidence": "manual",
+      "typeName": "MudBlazor.MudCard",
+      "oldMethodName": "Render",
+      "newMethodNames": ["RenderHeader", "RenderBody", "RenderFooter"]
+    },
+    {
+      "id": "extract-dialog-params",
+      "kind": "extractParameterObject",
+      "confidence": "manual",
+      "typeName": "MudBlazor.MudDialog",
+      "methodName": "ShowAsync",
+      "parameterObjectType": "MudBlazor.DialogParameters",
+      "extractedParameters": ["title", "content"]
+    },
+    {
+      "id": "prop-to-method-disabled",
+      "kind": "propertyToMethod",
+      "confidence": "auto",
+      "typeName": "MudBlazor.MudButton",
+      "oldPropertyName": "Disabled",
+      "newMethodName": "SetDisabled"
+    },
+    {
+      "id": "move-get-color-helper",
+      "kind": "moveMember",
+      "confidence": "verified",
+      "oldTypeName": "MudBlazor.Utilities",
+      "newTypeName": "MudBlazor.MudHelpers",
+      "memberName": "GetColor"
+    }
+  ]
+}

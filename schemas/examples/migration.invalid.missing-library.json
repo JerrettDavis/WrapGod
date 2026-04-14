@@ -1,0 +1,6 @@
+{
+  "schema": "wrapgod-migration/1.0",
+  "from": "6.0.0",
+  "to": "7.0.0",
+  "rules": []
+}

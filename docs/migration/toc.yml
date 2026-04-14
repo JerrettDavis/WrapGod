@@ -6,3 +6,6 @@
 
 - name: Automation Guide
   href: automation.md
+
+- name: Migration Schema
+  href: schema.md
