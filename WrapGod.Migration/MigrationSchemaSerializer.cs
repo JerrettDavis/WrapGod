@@ -41,7 +41,7 @@ public static class MigrationSchemaSerializer
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             ReadCommentHandling = JsonCommentHandling.Skip,
         };
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false));
         options.Converters.Add(new MigrationRuleConverter());
         return options;
     }

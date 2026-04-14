@@ -172,7 +172,7 @@ public sealed class ExtractParameterObjectRule : MigrationRule
     public List<string> ExtractedParameters { get; set; } = [];
 }
 
-/// <summary>A property was converted to a method or a method was converted to a property.</summary>
+/// <summary>A property was converted to a method.</summary>
 public sealed class PropertyToMethodRule : MigrationRule
 {
     /// <inheritdoc/>

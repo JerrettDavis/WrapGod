@@ -160,7 +160,7 @@ Several parameters were extracted into a dedicated parameter-object type.
 ```
 
 ### `propertyToMethod`
-A property was converted to a method (or vice-versa).
+A property was converted to a method.
 
 ```json
 {
@@ -208,7 +208,7 @@ var schema = new MigrationSchema
     Library = "MudBlazor",
     From = "6.0.0",
     To = "7.0.0",
-    Rules = [new RenameTypeRule { Id = "r1", OldName = "Button", NewName = "MudButton" }],
+    Rules = [new RenameTypeRule { Id = "r1", OldName = "MudBlazor.Button", NewName = "MudBlazor.MudButton" }],
 };
 string json = MigrationSchemaSerializer.Serialize(schema);
 

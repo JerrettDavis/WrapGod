@@ -32,7 +32,7 @@ public enum MigrationRuleKind
     /// <summary>Several parameters were extracted into a parameter object.</summary>
     ExtractParameterObject,
 
-    /// <summary>A property was converted to a method (or vice-versa).</summary>
+    /// <summary>A property was converted to a method.</summary>
     PropertyToMethod,
 
     /// <summary>A member was moved to a different type.</summary>
