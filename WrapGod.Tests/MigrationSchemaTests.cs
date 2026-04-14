@@ -330,13 +330,20 @@ public sealed class MigrationSchemaTests(ITestOutputHelper output) : TinyBddXuni
     [Scenario("Null properties are omitted from JSON")]
     [Fact]
     public Task NullPropertiesOmitted() =>
-        Given("a schema with null GeneratedFrom and null Note", () =>
+        Given("a schema with null GeneratedFrom, null LastEdited, and a rule with null Note", () =>
         {
-            var schema = new MigrationSchema { Library = "L", From = "1", To = "2" };
+            var schema = new MigrationSchema
+            {
+                Library = "L",
+                From = "1",
+                To = "2",
+                Rules = [new RenameTypeRule { Id = "r1", OldName = "A", NewName = "B" }],
+            };
             return MigrationSchemaSerializer.Serialize(schema);
         })
         .Then("JSON does not contain 'generatedFrom'", json => !json.Contains("\"generatedFrom\""))
         .And("JSON does not contain 'lastEdited'", json => !json.Contains("\"lastEdited\""))
+        .And("JSON does not contain 'note'", json => !json.Contains("\"note\""))
         .AssertPassed();
 
     [Scenario("Comments in JSON are skipped during deserialization")]

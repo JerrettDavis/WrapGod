@@ -71,6 +71,26 @@ public sealed class MigrationRuleConverter : JsonConverter<MigrationRule>
         [MigrationRuleKind.MoveMember]             = typeof(MoveMemberRule),
     };
 
+    static MigrationRuleConverter()
+    {
+        ValidateKindMappings();
+    }
+
+    private static void ValidateKindMappings()
+    {
+        var allKinds = new System.Collections.Generic.HashSet<MigrationRuleKind>(
+            (MigrationRuleKind[])Enum.GetValues(typeof(MigrationRuleKind)));
+        var typeMappedKinds = new System.Collections.Generic.HashSet<MigrationRuleKind>(KindToType.Keys);
+        var stringMappedKinds = new System.Collections.Generic.HashSet<MigrationRuleKind>(KindStringMap.Values);
+
+        if (!typeMappedKinds.SetEquals(stringMappedKinds) || !typeMappedKinds.SetEquals(allKinds))
+        {
+            throw new InvalidOperationException(
+                "MigrationRuleConverter kind mappings are out of sync. " +
+                "Ensure KindToType and KindStringMap cover exactly the same MigrationRuleKind values.");
+        }
+    }
+
     /// <inheritdoc/>
     public override MigrationRule Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -79,6 +99,9 @@ public sealed class MigrationRuleConverter : JsonConverter<MigrationRule>
 
         if (!root.TryGetProperty("kind", out var kindElement))
             throw new JsonException("Migration rule is missing required 'kind' property.");
+
+        if (kindElement.ValueKind != JsonValueKind.String)
+            throw new JsonException("Migration rule 'kind' property must be a string.");
 
         var kindString = kindElement.GetString()
             ?? throw new JsonException("Migration rule 'kind' property must be a non-null string.");
@@ -90,8 +113,7 @@ public sealed class MigrationRuleConverter : JsonConverter<MigrationRule>
         if (!KindToType.TryGetValue(kind, out var concreteType))
             throw new JsonException($"No concrete type registered for kind '{kind}'.");
 
-        var rawJson = root.GetRawText();
-        return (MigrationRule?)JsonSerializer.Deserialize(rawJson, concreteType, options)
+        return (MigrationRule?)JsonSerializer.Deserialize(root, concreteType, options)
             ?? throw new JsonException($"Failed to deserialize migration rule of kind '{kind}'.");
     }
 

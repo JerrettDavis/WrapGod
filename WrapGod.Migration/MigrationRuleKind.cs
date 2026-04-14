@@ -14,7 +14,7 @@ public enum MigrationRuleKind
     /// <summary>A type was moved to a different namespace.</summary>
     RenameNamespace,
 
-    /// <summary>A method parameter was changed (type, name, position, or default).</summary>
+    /// <summary>A method parameter was changed (type or name).</summary>
     ChangeParameter,
 
     /// <summary>A member was removed with no direct replacement.</summary>
