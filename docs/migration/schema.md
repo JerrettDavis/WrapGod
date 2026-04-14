@@ -22,7 +22,7 @@ The `WrapGod.Migration` project provides the schema model for describing migrati
 | `library` | ✓ | NuGet package or library name. |
 | `from` | ✓ | Source (old) library version. |
 | `to` | ✓ | Target (new) library version. |
-| `generatedFrom` | | How the schema was produced: `manifest-diff` or `manual`. |
+| `generatedFrom` | | How the schema was produced, e.g. `manifest-diff` or `manual`. |
 | `lastEdited` | | ISO-8601 timestamp of the last manual edit. |
 | `rules` | ✓ | Array of migration rule objects. |
 

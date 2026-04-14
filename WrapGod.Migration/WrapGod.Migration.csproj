@@ -9,8 +9,5 @@
     <PackageReference Include="System.Text.Json" Version="9.0.5" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
-  </ItemGroup>
 
 </Project>
