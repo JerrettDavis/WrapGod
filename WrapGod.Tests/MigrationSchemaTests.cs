@@ -528,10 +528,10 @@ public sealed class MigrationSchemaTests(ITestOutputHelper output) : TinyBddXuni
         .And("Manual is defined", _ => Enum.IsDefined(RuleConfidence.Manual))
         .AssertPassed();
 
-    [Scenario("GetOptions returns shared serializer options")]
+    [Scenario("GetOptions returns configured serializer options")]
     [Fact]
-    public Task GetOptionsReturnsOptions() =>
-        Given("MigrationSchemaSerializer options", () => MigrationSchemaSerializer.GetOptions())
+    public Task GetOptionsReturnsConfiguredOptions() =>
+        Given("configured MigrationSchemaSerializer options", () => MigrationSchemaSerializer.GetOptions())
         .Then("options are not null", opts => opts != null)
         .And("options use camelCase", opts => opts.PropertyNamingPolicy == JsonNamingPolicy.CamelCase)
         .And("options write indented", opts => opts.WriteIndented)
