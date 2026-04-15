@@ -33,6 +33,7 @@
     <Using Include="WrapGod.TypeMap" />
     <Using Include="WrapGod.TypeMap.Generation" />
     <Using Include="Json.Schema" />
+    <Using Include="WrapGod.Migration" />
     <Using Include="System.Text.Json" />
     <Using Include="TinyBDD" />
     <Using Include="TinyBDD.Xunit" />
@@ -60,6 +61,7 @@
     <ProjectReference Include="..\WrapGod.Fluent\WrapGod.Fluent.csproj" />
     <ProjectReference Include="..\WrapGod.Runtime\WrapGod.Runtime.csproj" />
     <ProjectReference Include="..\WrapGod.Cli\WrapGod.Cli.csproj" />
+    <ProjectReference Include="..\WrapGod.Migration\WrapGod.Migration.csproj" />
   </ItemGroup>
 
 </Project>

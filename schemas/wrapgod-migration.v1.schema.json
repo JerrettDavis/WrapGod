@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/JerrettDavis/WrapGod/main/schemas/wrapgod-migration.v1.schema.json",
+  "title": "WrapGod Migration Schema v1",
+  "description": "Describes a set of migration rules for upgrading user code from one library version to another.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "library", "from", "to", "rules"],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "wrapgod-migration/1.0",
+      "description": "Schema version identifier."
+    },
+    "library": {
+      "type": "string",
+      "minLength": 1,
+      "description": "NuGet package or library name, e.g. MudBlazor."
+    },
+    "from": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source (old) library version."
+    },
+    "to": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Target (new) library version."
+    },
+    "generatedFrom": {
+      "type": ["string", "null"],
+      "description": "How this schema was produced, e.g. 'manifest-diff' or 'manual'."
+    },
+    "lastEdited": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of the last manual edit."
+    },
+    "rules": {
+      "type": "array",
+      "description": "The migration rules contained in this schema.",
+      "items": { "$ref": "#/$defs/migrationRule" }
+    }
+  },
+  "$defs": {
+    "ruleConfidence": {
+      "type": "string",
+      "enum": ["auto", "verified", "manual"],
+      "description": "How confidently this rule can be applied automatically."
+    },
+    "ruleBase": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable, human-readable rule identifier."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Discriminator that identifies the concrete rule type."
+        },
+        "confidence": { "$ref": "#/$defs/ruleConfidence" },
+        "note": {
+          "type": ["string", "null"],
+          "description": "Optional human-readable migration note."
+        }
+      }
+    },
+    "renameTypeRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "oldName", "newName"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "renameType" },
+        "confidence": {},
+        "note": {},
+        "oldName": { "type": "string", "minLength": 1, "description": "Fully-qualified old type name." },
+        "newName": { "type": "string", "minLength": 1, "description": "Fully-qualified new type name." }
+      }
+    },
+    "renameMemberRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "typeName", "oldMemberName", "newMemberName"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "renameMember" },
+        "confidence": {},
+        "note": {},
+        "typeName": { "type": "string", "minLength": 1 },
+        "oldMemberName": { "type": "string", "minLength": 1 },
+        "newMemberName": { "type": "string", "minLength": 1 }
+      }
+    },
+    "renameNamespaceRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "oldNamespace", "newNamespace"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "renameNamespace" },
+        "confidence": {},
+        "note": {},
+        "oldNamespace": { "type": "string", "minLength": 1 },
+        "newNamespace": { "type": "string", "minLength": 1 }
+      }
+    },
+    "changeParameterRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "typeName", "methodName", "oldParameterName"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "changeParameter" },
+        "confidence": {},
+        "note": {},
+        "typeName": { "type": "string", "minLength": 1 },
+        "methodName": { "type": "string", "minLength": 1 },
+        "oldParameterName": { "type": "string", "minLength": 1 },
+        "newParameterName": { "type": ["string", "null"] },
+        "oldParameterType": { "type": ["string", "null"] },
+        "newParameterType": { "type": ["string", "null"] }
+      }
+    },
+    "removeMemberRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "typeName", "memberName"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "removeMember" },
+        "confidence": {},
+        "note": {},
+        "typeName": { "type": "string", "minLength": 1 },
+        "memberName": { "type": "string", "minLength": 1 }
+      }
+    },
+    "addRequiredParameterRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "typeName", "methodName", "parameterName", "parameterType", "position"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "addRequiredParameter" },
+        "confidence": {},
+        "note": {},
+        "typeName": { "type": "string", "minLength": 1 },
+        "methodName": { "type": "string", "minLength": 1 },
+        "parameterName": { "type": "string", "minLength": 1 },
+        "parameterType": { "type": "string", "minLength": 1 },
+        "position": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "changeTypeReferenceRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "oldType", "newType"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "changeTypeReference" },
+        "confidence": {},
+        "note": {},
+        "oldType": { "type": "string", "minLength": 1 },
+        "newType": { "type": "string", "minLength": 1 }
+      }
+    },
+    "splitMethodRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "typeName", "oldMethodName", "newMethodNames"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "splitMethod" },
+        "confidence": {},
+        "note": {},
+        "typeName": { "type": "string", "minLength": 1 },
+        "oldMethodName": { "type": "string", "minLength": 1 },
+        "newMethodNames": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        }
+      }
+    },
+    "extractParameterObjectRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "typeName", "methodName", "parameterObjectType", "extractedParameters"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "extractParameterObject" },
+        "confidence": {},
+        "note": {},
+        "typeName": { "type": "string", "minLength": 1 },
+        "methodName": { "type": "string", "minLength": 1 },
+        "parameterObjectType": { "type": "string", "minLength": 1 },
+        "extractedParameters": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        }
+      }
+    },
+    "propertyToMethodRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "typeName", "oldPropertyName", "newMethodName"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "propertyToMethod" },
+        "confidence": {},
+        "note": {},
+        "typeName": { "type": "string", "minLength": 1 },
+        "oldPropertyName": { "type": "string", "minLength": 1 },
+        "newMethodName": { "type": "string", "minLength": 1 }
+      }
+    },
+    "moveMemberRule": {
+      "allOf": [{ "$ref": "#/$defs/ruleBase" }],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "oldTypeName", "newTypeName", "memberName"],
+      "properties": {
+        "id": {},
+        "kind": { "type": "string", "const": "moveMember" },
+        "confidence": {},
+        "note": {},
+        "oldTypeName": { "type": "string", "minLength": 1 },
+        "newTypeName": { "type": "string", "minLength": 1 },
+        "memberName": { "type": "string", "minLength": 1 }
+      }
+    },
+    "migrationRule": {
+      "oneOf": [
+        { "$ref": "#/$defs/renameTypeRule" },
+        { "$ref": "#/$defs/renameMemberRule" },
+        { "$ref": "#/$defs/renameNamespaceRule" },
+        { "$ref": "#/$defs/changeParameterRule" },
+        { "$ref": "#/$defs/removeMemberRule" },
+        { "$ref": "#/$defs/addRequiredParameterRule" },
+        { "$ref": "#/$defs/changeTypeReferenceRule" },
+        { "$ref": "#/$defs/splitMethodRule" },
+        { "$ref": "#/$defs/extractParameterObjectRule" },
+        { "$ref": "#/$defs/propertyToMethodRule" },
+        { "$ref": "#/$defs/moveMemberRule" }
+      ]
+    }
+  }
+}

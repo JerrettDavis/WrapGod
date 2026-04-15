@@ -11,4 +11,5 @@
   <Project Path="WrapGod.Cli/WrapGod.Cli.csproj" />
   <Project Path="WrapGod.Benchmarks/WrapGod.Benchmarks.csproj" />
   <Project Path="WrapGod.Targets/WrapGod.Targets.csproj" />
+  <Project Path="WrapGod.Migration/WrapGod.Migration.csproj" />
 </Solution>
