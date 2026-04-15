@@ -37,6 +37,7 @@ public static class MigrationSchemaSerializer
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
             WriteIndented = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             ReadCommentHandling = JsonCommentHandling.Skip,
@@ -96,6 +97,9 @@ public sealed class MigrationRuleConverter : JsonConverter<MigrationRule>
     {
         using var doc = JsonDocument.ParseValue(ref reader);
         var root = doc.RootElement;
+
+        if (root.ValueKind != JsonValueKind.Object)
+            throw new JsonException("Migration rule must be a JSON object.");
 
         if (!root.TryGetProperty("kind", out var kindElement))
             throw new JsonException("Migration rule is missing required 'kind' property.");
