@@ -101,8 +101,19 @@ public sealed class MigrationRuleConverter : JsonConverter<MigrationRule>
         if (root.ValueKind != JsonValueKind.Object)
             throw new JsonException("Migration rule must be a JSON object.");
 
-        if (!root.TryGetProperty("kind", out var kindElement))
+        // Case-insensitive lookup to be consistent with PropertyNameCaseInsensitive = true.
+        JsonElement? kindElementNullable = null;
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (prop.Name.Equals("kind", StringComparison.OrdinalIgnoreCase))
+            {
+                kindElementNullable = prop.Value;
+                break;
+            }
+        }
+        if (kindElementNullable is null)
             throw new JsonException("Migration rule is missing required 'kind' property.");
+        var kindElement = kindElementNullable.Value;
 
         if (kindElement.ValueKind != JsonValueKind.String)
             throw new JsonException("Migration rule 'kind' property must be a string.");
