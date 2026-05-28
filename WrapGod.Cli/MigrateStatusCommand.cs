@@ -2,6 +2,7 @@ using System.CommandLine;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WrapGod.Migration;
 using WrapGod.Migration.Engine.State;
 
 namespace WrapGod.Cli;
@@ -16,7 +17,9 @@ internal static class MigrateStatusCommand
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // NOTE: progressPct, library, from, to may be null and MUST be emitted as
+        // explicit JSON null so downstream tooling can distinguish "missing" from
+        // "not applicable" (e.g. progressPct == null means 0-rules schema).
     };
 
     public static Command Create()
@@ -28,8 +31,8 @@ internal static class MigrateStatusCommand
             IsRequired = true,
         };
 
-        var projectOption = new Option<string?>(
-            ["--project", "-p"],
+        var projectDirOption = new Option<string?>(
+            ["--project-dir", "-p"],
             "Project directory used to resolve a relative --schema path (default: current directory).");
 
         var jsonOption = new Option<bool>(
@@ -43,7 +46,7 @@ internal static class MigrateStatusCommand
         var command = new Command("status", "Report migration progress from the state file without running any migration")
         {
             schemaOption,
-            projectOption,
+            projectDirOption,
             jsonOption,
             verboseOption,
         };
@@ -51,11 +54,11 @@ internal static class MigrateStatusCommand
         command.SetHandler((context) =>
         {
             var schema = context.ParseResult.GetValueForOption(schemaOption)!;
-            var project = context.ParseResult.GetValueForOption(projectOption);
+            var projectDir = context.ParseResult.GetValueForOption(projectDirOption);
             var json = context.ParseResult.GetValueForOption(jsonOption);
             var verbose = context.ParseResult.GetValueForOption(verboseOption);
 
-            context.ExitCode = Handle(schema, project, json, verbose);
+            context.ExitCode = Handle(schema, projectDir, json, verbose);
         });
 
         return command;
@@ -83,6 +86,28 @@ internal static class MigrateStatusCommand
             return 1;
         }
 
+        // ── Load schema (for library/from/to metadata + total rule count) ───────────────────
+        MigrationSchema? schema = null;
+        string? currentHash = null;
+        try
+        {
+            var schemaJson = File.ReadAllText(schemaPath, System.Text.Encoding.UTF8);
+            currentHash = MigrationStateStore.ComputeSchemaHash(schemaJson);
+            try
+            {
+                schema = MigrationSchemaSerializer.Deserialize(schemaJson);
+            }
+            catch (JsonException)
+            {
+                // Schema couldn't be parsed — non-fatal, we just don't show library/from/to or totalRules
+                schema = null;
+            }
+        }
+        catch (IOException)
+        {
+            // Non-fatal — schema read failed; skip hash and metadata
+        }
+
         // ── Load state ───────────────────────────────────────────────────────────────────────
         var state = MigrationStateStore.Load(schemaPath, out var wasCorrupt, out var backupPath);
 
@@ -102,7 +127,13 @@ internal static class MigrateStatusCommand
             // State file simply doesn't exist — info-only, not an error.
             if (jsonOutput)
             {
-                var sentinel = new { status = "no-runs-recorded" };
+                var sentinel = new
+                {
+                    status = "no-runs-recorded",
+                    library = schema?.Library,
+                    from = schema?.From,
+                    to = schema?.To,
+                };
                 Console.WriteLine(JsonSerializer.Serialize(sentinel, JsonOutputOptions));
             }
             else
@@ -115,32 +146,33 @@ internal static class MigrateStatusCommand
             return 0;
         }
 
-        // ── Compute schema hash and detect drift ─────────────────────────────────────────────
-        string? currentHash = null;
-        bool schemaChanged = false;
-        try
-        {
-            var schemaJson = File.ReadAllText(schemaPath, System.Text.Encoding.UTF8);
-            currentHash = MigrationStateStore.ComputeSchemaHash(schemaJson);
-            schemaChanged = state.SchemaHasChanged(currentHash);
-        }
-        catch (IOException)
-        {
-            // Non-fatal — skip hash comparison
-        }
+        var schemaChanged = currentHash is not null && state.SchemaHasChanged(currentHash);
 
         // ── Detect synthetic <state> SkippedRewrite (corruption recovery marker from #197) ──
         var hasStateRecoveryEntry = state.Skipped.Any(s =>
             string.Equals(s.RuleId, "<state>", StringComparison.Ordinal));
 
+        // ── Progress calculation ─────────────────────────────────────────────────────────────
+        // totalRules from the schema (source of truth); appliedRules = distinct rule IDs in state.Applied
+        var totalRules = schema?.Rules.Count ?? 0;
+        var appliedRules = state.Applied
+            .Select(a => a.RuleId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        double? progressPct = totalRules == 0
+            ? (double?)null
+            : (double)appliedRules / totalRules;
+
         // ── Emit output ──────────────────────────────────────────────────────────────────────
         if (jsonOutput)
         {
-            return EmitJson(state, schemaChanged, currentHash, hasStateRecoveryEntry);
+            return EmitJson(state, schema, schemaChanged, currentHash, hasStateRecoveryEntry,
+                totalRules, appliedRules, progressPct);
         }
         else
         {
-            return EmitHumanReadable(state, schemaChanged, hasStateRecoveryEntry, verbose);
+            return EmitHumanReadable(state, schema, schemaChanged, hasStateRecoveryEntry, verbose,
+                totalRules, appliedRules, progressPct);
         }
     }
 
@@ -148,9 +180,13 @@ internal static class MigrateStatusCommand
 
     private static int EmitJson(
         MigrationState state,
+        MigrationSchema? schema,
         bool schemaChanged,
         string? currentHash,
-        bool hasStateRecoveryEntry)
+        bool hasStateRecoveryEntry,
+        int totalRules,
+        int appliedRules,
+        double? progressPct)
     {
         var appliedByRule = state.Applied
             .GroupBy(a => a.RuleId, StringComparer.Ordinal)
@@ -180,12 +216,18 @@ internal static class MigrateStatusCommand
 
         var output = new
         {
+            library = schema?.Library,
+            from = schema?.From,
+            to = schema?.To,
             schema = state.Schema,
             schemaHash = state.SchemaHash,
             schemaChanged,
             currentSchemaHash = currentHash,
             startedAt = state.StartedAt,
             lastRunAt = state.LastRunAt,
+            totalRules,
+            appliedRules,
+            progressPct,
             summary = new
             {
                 total = state.Summary.TotalRules,
@@ -207,18 +249,46 @@ internal static class MigrateStatusCommand
 
     private static int EmitHumanReadable(
         MigrationState state,
+        MigrationSchema? schema,
         bool schemaChanged,
         bool hasStateRecoveryEntry,
-        bool verbose)
+        bool verbose,
+        int totalRules,
+        int appliedRules,
+        double? progressPct)
     {
         Console.WriteLine("WrapGod migrate status");
         Console.WriteLine(new string('-', 40));
+
+        // Migration metadata header (library + from → to)
+        if (schema is not null && !string.IsNullOrEmpty(schema.Library))
+        {
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "Migration: {0} {1} -> {2}", schema.Library, schema.From, schema.To));
+        }
 
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "Schema:     {0}", state.Schema));
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
             "Started:    {0:yyyy-MM-dd HH:mm:ss} UTC", state.StartedAt.UtcDateTime));
         Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
             "Last run:   {0:yyyy-MM-dd HH:mm:ss} UTC", state.LastRunAt.UtcDateTime));
+        Console.WriteLine();
+
+        // Progress ratio line
+        if (totalRules > 0 && progressPct.HasValue)
+        {
+            var pctInt = (int)Math.Round(progressPct.Value * 100.0, MidpointRounding.AwayFromZero);
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "Progress: {0} / {1} rules applied ({2}%)",
+                appliedRules, totalRules, pctInt));
+        }
+        else
+        {
+            // Zero-rules edge case — display "n/a"
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "Progress: {0} / {1} rules applied (n/a)",
+                appliedRules, totalRules));
+        }
         Console.WriteLine();
 
         // Schema hash line

@@ -438,7 +438,7 @@ public sealed class MigrateStatusCliTests
     /// <summary>
     /// SCENARIO: Edge-06 — help text lists expected flags.
     /// </summary>
-    [Scenario("Edge-06: help text lists --schema and --json flags")]
+    [Scenario("Edge-06: help text lists --schema, --json, --verbose, --project-dir flags")]
     [Fact]
     public async Task Status_Help_ListsAllFlags()
     {
@@ -446,6 +446,8 @@ public sealed class MigrateStatusCliTests
         Assert.Equal(0, exitCode);
         Assert.Contains("--schema", stdout);
         Assert.Contains("--json", stdout);
+        Assert.Contains("--verbose", stdout);
+        Assert.Contains("--project-dir", stdout);
     }
 
     /// <summary>
@@ -479,7 +481,7 @@ public sealed class MigrateStatusCliTests
     }
 
     /// <summary>
-    /// SCENARIO: Edge-08 — --project resolves relative --schema.
+    /// SCENARIO: Edge-08 — --project-dir resolves relative --schema.
     /// </summary>
     [Scenario("Edge-08: --project-dir resolves relative --schema path")]
     [Fact]
@@ -492,10 +494,125 @@ public sealed class MigrateStatusCliTests
             var schemaFileName = Path.GetFileName(schemaPath);
 
             var (exitCode, stdout, _) = await InvokeAsync(
-                $"status --schema \"{schemaFileName}\" --project \"{dir}\"");
+                $"status --schema \"{schemaFileName}\" --project-dir \"{dir}\"");
 
             Assert.Equal(0, exitCode); // no manual
             Assert.Contains("5", stdout);
+        }
+        finally { SafeDelete(dir); }
+    }
+
+    /// <summary>
+    /// SCENARIO: Edge-09 — schema with zero rules: human output shows "n/a", JSON
+    /// has <c>progressPct: null</c>. Per plan §200.c table row "Status_ZeroRules_HandlesNa".
+    /// </summary>
+    [Scenario("Edge-09: schema with zero rules -> human output 'n/a', JSON progressPct null")]
+    [Fact]
+    public async Task Status_ZeroRules_HandlesNa()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            // Default schema fixture in WriteSchemaAsync already has "rules": [] (0 rules)
+            // and the BuildState helper here uses (0,0,0) to match.
+            var schemaPath = await WriteStateAsync(dir, BuildState(0, 0, 0));
+
+            // Human-readable mode → "n/a"
+            var (humanExit, humanStdout, _) = await InvokeAsync($"status --schema \"{schemaPath}\"");
+            Assert.Equal(0, humanExit);
+            Assert.Contains("n/a", humanStdout, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("0 / 0", humanStdout);
+
+            // JSON mode → progressPct is null
+            var (jsonExit, jsonStdout, _) = await InvokeAsync($"status --schema \"{schemaPath}\" --json");
+            Assert.Equal(0, jsonExit);
+            using var doc = JsonDocument.Parse(jsonStdout);
+            Assert.True(doc.RootElement.TryGetProperty("progressPct", out var pctEl),
+                "JSON must have 'progressPct' field");
+            Assert.Equal(JsonValueKind.Null, pctEl.ValueKind);
+
+            // Schema metadata is included
+            Assert.True(doc.RootElement.TryGetProperty("library", out var libEl),
+                "JSON must have 'library' field");
+            Assert.Equal("TestLib", libEl.GetString());
+            Assert.True(doc.RootElement.TryGetProperty("from", out var fromEl),
+                "JSON must have 'from' field");
+            Assert.Equal("1.0.0", fromEl.GetString());
+            Assert.True(doc.RootElement.TryGetProperty("to", out var toEl),
+                "JSON must have 'to' field");
+            Assert.Equal("2.0.0", toEl.GetString());
+        }
+        finally { SafeDelete(dir); }
+    }
+
+    /// <summary>
+    /// SCENARIO: Edge-10 — progressPct + ratio line populated when totalRules > 0.
+    /// Belt-and-suspenders for plan §200.b Happy-01 + Happy-02. Verifies the
+    /// "N / M rules applied (P%)" human-mode line and the JSON progressPct numeric value.
+    /// </summary>
+    [Scenario("Edge-10: progressPct + ratio line — totalRules>0, applied<total")]
+    [Fact]
+    public async Task Status_ProgressRatio_PopulatedWhenTotalRulesNonZero()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            // Write a schema with 5 rules; state has 3 applied (distinct rule IDs)
+            var schemaPath = Path.Combine(dir, "schema.wrapgod-migration.json");
+            await File.WriteAllTextAsync(schemaPath, """
+                {
+                  "schemaVersion": "1.0",
+                  "library": "Serilog",
+                  "from": "2.12.0",
+                  "to": "3.1.1",
+                  "rules": [
+                    { "kind": "renameType", "id": "R-001", "from": "Serilog.Foo", "to": "Serilog.Bar" },
+                    { "kind": "renameType", "id": "R-002", "from": "Serilog.Baz", "to": "Serilog.Qux" },
+                    { "kind": "renameType", "id": "R-003", "from": "Serilog.A", "to": "Serilog.B" },
+                    { "kind": "renameType", "id": "R-004", "from": "Serilog.C", "to": "Serilog.D" },
+                    { "kind": "renameType", "id": "R-005", "from": "Serilog.E", "to": "Serilog.F" }
+                  ]
+                }
+                """);
+
+            // 3 applied rule IDs (distinct), 0 skipped, 0 manual
+            var state = new MigrationState
+            {
+                Schema = "schema.wrapgod-migration.json",
+                SchemaHash = "sha256:aabbccdd",
+                StartedAt = new DateTimeOffset(2026, 4, 1, 12, 0, 0, TimeSpan.Zero),
+                LastRunAt = new DateTimeOffset(2026, 4, 2, 9, 14, 33, TimeSpan.Zero),
+                Summary = new MigrationStateSummary { TotalRules = 5, Applied = 3, Skipped = 0, Manual = 0 },
+                Applied =
+                [
+                    new AppliedRewrite("R-001", "src/a.cs", 10, "old", "new"),
+                    new AppliedRewrite("R-002", "src/b.cs", 11, "old", "new"),
+                    new AppliedRewrite("R-003", "src/c.cs", 12, "old", "new"),
+                ],
+                Skipped = [],
+                Manual = [],
+            };
+            MigrationStateStore.Save(schemaPath, state);
+
+            // Human-readable mode
+            var (humanExit, humanStdout, _) = await InvokeAsync($"status --schema \"{schemaPath}\"");
+            Assert.Equal(0, humanExit);
+            Assert.Contains("3 / 5 rules applied", humanStdout);
+            Assert.Contains("60%", humanStdout); // 3/5 = 0.60
+            Assert.Contains("Serilog 2.12.0 -> 3.1.1", humanStdout);
+
+            // JSON mode
+            var (jsonExit, jsonStdout, _) = await InvokeAsync($"status --schema \"{schemaPath}\" --json");
+            Assert.Equal(0, jsonExit);
+            using var doc = JsonDocument.Parse(jsonStdout);
+            Assert.True(doc.RootElement.TryGetProperty("progressPct", out var pctEl));
+            Assert.Equal(JsonValueKind.Number, pctEl.ValueKind);
+            Assert.Equal(0.6, pctEl.GetDouble(), precision: 5);
+            Assert.Equal("Serilog", doc.RootElement.GetProperty("library").GetString());
+            Assert.Equal("2.12.0", doc.RootElement.GetProperty("from").GetString());
+            Assert.Equal("3.1.1", doc.RootElement.GetProperty("to").GetString());
+            Assert.Equal(5, doc.RootElement.GetProperty("totalRules").GetInt32());
+            Assert.Equal(3, doc.RootElement.GetProperty("appliedRules").GetInt32());
         }
         finally { SafeDelete(dir); }
     }

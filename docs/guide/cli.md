@@ -592,7 +592,7 @@ wrap-god migrate status --schema <path> [options]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--schema`, `-s` | Path to the migration schema JSON file. The state file is the sibling `<schema>.state.json`. | **Required** |
-| `--project`, `-p` | Project directory used to resolve a relative `--schema` path | Current directory |
+| `--project-dir`, `-p` | Project directory used to resolve a relative `--schema` path | Current directory |
 | `--json` | Emit output as JSON instead of human-readable text | `false` |
 | `--verbose`, `-v` | Include per-rule details and per-file applied lists in human-readable mode | `false` |
 
@@ -622,7 +622,7 @@ wrap-god migrate status --schema mudblazor.6.0-to-7.0.wrapgod-migration.json
 # With project directory (for relative schema path)
 wrap-god migrate status \
   --schema mudblazor.6.0-to-7.0.wrapgod-migration.json \
-  --project ./src
+  --project-dir ./src
 
 # JSON output (useful for tooling / CI)
 wrap-god migrate status \
@@ -640,9 +640,12 @@ wrap-god migrate status \
 ```
 WrapGod migrate status
 ----------------------------------------
+Migration: MudBlazor 6.0.0 -> 7.0.0
 Schema:     mudblazor.6.0-to-7.0.wrapgod-migration.json
 Started:    2026-04-01 12:00:00 UTC
 Last run:   2026-04-02 09:14:33 UTC
+
+Progress: 38 / 47 rules applied (81%)
 
 Schema hash: sha256:ab12cd34... (matches current schema)
 
@@ -664,11 +667,17 @@ Manual rules (require human intervention):
 
 ```json
 {
+  "library": "MudBlazor",
+  "from": "6.0.0",
+  "to": "7.0.0",
   "schema": "mudblazor.6.0-to-7.0.wrapgod-migration.json",
   "schemaHash": "sha256:ab12cd34...",
   "schemaChanged": false,
   "startedAt": "2026-04-01T12:00:00+00:00",
   "lastRunAt": "2026-04-02T09:14:33+00:00",
+  "totalRules": 47,
+  "appliedRules": 38,
+  "progressPct": 0.81,
   "summary": {
     "total": 47,
     "applied": 38,
