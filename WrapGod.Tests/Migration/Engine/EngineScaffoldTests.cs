@@ -222,14 +222,11 @@ public sealed class EngineScaffoldTests(ITestOutputHelper output) : TinyBddXunit
             var rule = MakeRule();
             var rewriter = new NullRewriter();
             var result = rewriter.TryRewrite(root, rule, ctx);
-            return (Root: root, Result: result);
+            return (Root: root, Result: result, Ctx: ctx);
         })
-        .Then("result is null", t => t.Result is null)
-        .And("Applied is empty", t =>
-        {
-            // null result means no mutation was applied
-            return true; // NullRewriter never calls RecordApplied
-        })
+        .Then("rewrite returned null", t => t.Result is null)
+        .And("ctx.Applied count is 0", t => t.Ctx.Applied.Count == 0)
+        .And("ctx.Skipped count is 0", t => t.Ctx.Skipped.Count == 0)
         .AssertPassed();
 
     [Scenario("Applied collection is not externally castable to mutable List")]
