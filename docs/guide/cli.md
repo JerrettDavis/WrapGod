@@ -22,6 +22,7 @@ wrap-god [command] [options]
 - [`migrate generate`](#migrate-generate) -- Generate a draft migration schema from two library versions
 - [`migrate apply`](#migrate-apply) -- Apply a migration schema to a codebase (with --dry-run support)
 - [`migrate status`](#migrate-status) -- Report migration progress from the state file
+- [`migrate verify`](#migrate-verify) -- Optionally build the project and correlate compiler diagnostics to migration rules
 - [`ci bootstrap`](#ci-bootstrap) -- Generate recommended CI workflow files
 - [`ci parity`](#ci-parity) -- Compare CI config against the recommended baseline
 
@@ -811,6 +812,139 @@ Manual rules (require human intervention):
 ```
 
 > **See also:** [Migration state file format](../migration/state.md)
+
+---
+
+### `migrate verify`
+
+**Synopsis:** Optionally build the migrated project and correlate compiler diagnostics back to migration rules via ±3-line proximity. Always informational — never blocks `migrate apply`.
+
+**Usage:**
+```
+wrap-god migrate verify [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--schema`, `-s` | Path to the migration schema JSON. The state file is the sibling `<schema>.state.json`. When omitted, auto-detected from `--project-dir`. | Auto-detected |
+| `--project-dir`, `-p` | Project root directory for build and auto-detection | Current directory |
+| `--no-build` | Skip `dotnet build`; only report state-file summary | `false` |
+| `--json` | Emit output as JSON instead of human-readable text | `false` |
+| `--verbose`, `-v` | Include per-diagnostic details in human-readable mode | `false` |
+| `--build-config` | Build configuration passed to `dotnet build` | `Debug` |
+| `--baseline` | Pre-migration diagnostic snapshot JSON for net-new computation | (none) |
+
+**Exit codes:**
+
+| Code | Meaning |
+|------|---------|
+| `0` | Verify ran (even when attributed errors exist — verify is non-gating) |
+| `1` | IO error (baseline file not found, etc.) |
+| `2` | Bad arguments |
+
+**Behavior:**
+
+1. Locates the state file (sibling of `--schema`, or auto-detected via `*.wrapgod-migration.json.state.json` in `--project-dir`). If absent, exits 0 with a note.
+2. Checks the schema hash and warns when the schema has changed since the last `apply` run.
+3. (Unless `--no-build`) Spawns `dotnet build --nologo --no-restore` and captures combined stdout + stderr.
+4. Parses diagnostics using the Roslyn/MSBuild format: `path(line,col): error|warning CODE: message`.
+5. Attributes each diagnostic to the nearest `AppliedRewrite` in the state file within ±3 lines of the same file. Tiebreak: smallest distance; if equal, the rewrite appearing latest in the state wins.
+6. Loads `--baseline` (if provided) and classifies matching diagnostics as pre-existing.
+7. Reports: attributed errors per rule, unattributed errors, and pre-existing counts.
+
+**Graceful degradation:**
+- `dotnet` not on PATH → exits 0 with stderr note; no build attempted.
+- No state file found → exits 0 with "no migration state; nothing to verify".
+- `--baseline` path does not exist → exits 1 with error.
+
+**Attribution algorithm:**
+
+A diagnostic at `(file F, line L)` is attributed to rewrite `R` when:
+- `R.File == F` (case-insensitive on Windows), AND
+- `|R.Line - L| ≤ 3`
+
+When multiple rewrites match, the one closest to the diagnostic line wins; ties are broken by the rewrite appearing later in the state file (i.e. most recently applied).
+
+**Examples:**
+
+```bash
+# Human-readable verification (auto-detects schema from project dir)
+wrap-god migrate verify --project-dir ./src
+
+# Explicit schema + verbose per-diagnostic listing
+wrap-god migrate verify \
+  --schema mudblazor.6.0-to-7.0.wrapgod-migration.json \
+  --verbose
+
+# JSON output for CI tooling
+wrap-god migrate verify \
+  --schema mudblazor.6.0-to-7.0.wrapgod-migration.json \
+  --json
+
+# Skip build (build ran as a separate CI job)
+wrap-god migrate verify \
+  --schema mudblazor.6.0-to-7.0.wrapgod-migration.json \
+  --no-build
+
+# Compute net-new errors vs. a pre-migration baseline snapshot
+wrap-god migrate verify \
+  --schema mudblazor.6.0-to-7.0.wrapgod-migration.json \
+  --baseline pre-migration-diagnostics.json
+```
+
+**Output (human-readable):**
+
+```
+WrapGod migrate verify
+----------------------
+Project:  ./src
+Schema:   mudblazor.6.0-to-7.0.wrapgod-migration.json
+Baseline: (none)
+
+Build:    FAILED (50 error(s), 3 warning(s))
+
+Attribution:
+  MUD-003   38 error(s), 0 warning(s)
+  MUD-017   12 error(s), 0 warning(s)
+  Unattributed: 0 error(s), 3 warning(s) (likely pre-existing or unrelated)
+```
+
+**Output (`--json`):**
+
+```json
+{
+  "schema": "mudblazor.6.0-to-7.0.wrapgod-migration.json",
+  "projectDir": "./src",
+  "schemaChanged": false,
+  "noBuild": false,
+  "build": { "exitCode": 1, "launched": true, "errors": 50, "warnings": 3 },
+  "baselineDiagnosticsLoaded": 0,
+  "state": { "applied": 47, "skipped": 6, "manual": 3 },
+  "attribution": [
+    {
+      "ruleId": "MUD-003",
+      "errors": 38,
+      "warnings": 0,
+      "diagnostics": [
+        { "file": "src/Dialogs/ConfirmDialog.cs", "line": 42, "code": "CS1501", "message": "...", "severity": "error" }
+      ]
+    }
+  ],
+  "unattributed": [
+    { "file": "src/Other.cs", "line": 100, "code": "CS0618", "message": "deprecated", "severity": "warning" }
+  ]
+}
+```
+
+**Common gotchas:**
+
+- **`--no-restore`**: `verify` passes `--no-restore` to `dotnet build`, so a `dotnet restore` must have been run previously. In fresh CI checkouts, add a restore step before `verify`.
+- **Schema drift**: If you edit the schema after `apply`, the attribution results may not align. The command warns when it detects this.
+- **Case-sensitive paths on Linux**: The ±3-line match is case-insensitive on Windows but case-sensitive on Linux/macOS. Ensure paths in the state file match the actual filesystem casing.
+
+> **See also:** [Attribution semantics](../migration/verifying.md) · [State file format](../migration/state.md)
 
 ---
 

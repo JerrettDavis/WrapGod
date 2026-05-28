@@ -9,7 +9,7 @@ public sealed class CliCommandTests
     private static readonly string[] ExpectedRootCommands =
         ["analyze", "ci", "doctor", "explain", "extract", "generate", "init", "migrate"];
 
-    private static readonly string[] ExpectedMigrateCommands = ["apply", "generate", "init", "status"];
+    private static readonly string[] ExpectedMigrateCommands = ["apply", "generate", "init", "status", "verify"];
 
     private static readonly string[] ExpectedCiCommands = ["bootstrap", "parity"];
 
