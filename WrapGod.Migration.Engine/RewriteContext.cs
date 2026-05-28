@@ -86,7 +86,13 @@ public sealed class RewriteContext
         ArgumentNullException.ThrowIfNull(originalText);
         ArgumentNullException.ThrowIfNull(replacementText);
 
-        _applied.Add(new AppliedRewrite(rule.Id, FilePath, line, originalText, replacementText));
+        _applied.Add(new AppliedRewrite(
+            rule.Id,
+            FilePath,
+            line,
+            originalText,
+            replacementText,
+            DateTimeOffset.UtcNow));
     }
 
     /// <summary>Records a rewrite that was skipped.</summary>

@@ -190,3 +190,5 @@ representative state file.
 - [Migration Engine](engine.md) — `MigrationEngine`, `IRuleRewriter`, `RewriteContext`
 - [Migration Schema](schema.md) — schema model and rule kinds
 - [`migrate status` CLI command](../guide/cli.md#migrate-status) — read-only progress report from the state file
+- [`migrate verify` CLI command](../guide/cli.md#migrate-verify) — build + diagnostic attribution using state file data
+- [Verifying a migration](verifying.md) — attribution algorithm, baseline workflow, graceful degradation
