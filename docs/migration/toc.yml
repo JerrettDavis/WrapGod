@@ -1,20 +1,38 @@
 - name: Overview
   href: index.md
 
+- name: Applying Migrations
+  href: applying.md
+
+- name: Authoring a Migration Schema
+  href: authoring.md
+
+- name: Migration Schema Reference
+  href: schema.md
+
+- name: Migration Engine
+  href: engine.md
+
+- name: Rewriters
+  href: rewriters.md
+
+- name: Schema Generation
+  href: schema-generation.md
+
+- name: Migration State
+  href: state.md
+
+- name: Verifying a Migration
+  href: verifying.md
+
 - name: Migration Playbook
   href: playbook.md
 
 - name: Automation Guide
   href: automation.md
 
-- name: Migration Schema
-  href: schema.md
-
-- name: Migration Engine
-  href: engine.md
-
-- name: A-Level Rewriters
-  href: rewriters.md
-
 - name: Examples
   href: examples.md
+
+- name: CLI Reference
+  href: ../guide/cli.md
