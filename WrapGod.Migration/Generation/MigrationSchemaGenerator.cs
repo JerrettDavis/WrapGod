@@ -23,12 +23,23 @@ public static class MigrationSchemaGenerator
     /// <param name="diff">The diff to convert. Must contain at least two version labels.</param>
     /// <param name="library">The NuGet package / library name (e.g. <c>"MudBlazor"</c>).</param>
     /// <param name="options">Optional tuning options. If <see langword="null"/>, defaults are used.</param>
+    /// <param name="stableIdToFullName">
+    /// Optional lookup from <c>StableId</c> to fully-qualified type name for types that are
+    /// <em>stable</em> across versions (present in both, neither added nor removed). When provided,
+    /// the generator resolves <c>TypeName</c>/<c>DeclaringType</c> fields on rules emitted for
+    /// changed members (e.g. <see cref="ChangeParameterRule"/>) using this map instead of falling
+    /// back to the raw StableId. The CLI command (<c>migrate generate</c>) builds this map from
+    /// the merged <c>ApiManifest</c>. Callers without the manifest may omit it; in that case the
+    /// declaring-type name falls back to the entry's <c>FullName</c> (if found in
+    /// <c>diff.RemovedTypes</c>/<c>AddedTypes</c>) or to the raw <c>StableId</c> as a last resort.
+    /// </param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="diff"/> or <paramref name="library"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="library"/> is empty/whitespace, or when <paramref name="diff"/> contains fewer than two version labels.</exception>
     public static MigrationSchema FromDiff(
         VersionDiff diff,
         string library,
-        MigrationSchemaGeneratorOptions? options = null)
+        MigrationSchemaGeneratorOptions? options = null,
+        IReadOnlyDictionary<string, string>? stableIdToFullName = null)
     {
         ArgumentNullException.ThrowIfNull(diff);
         ArgumentNullException.ThrowIfNull(library);
@@ -130,7 +141,7 @@ public static class MigrationSchemaGenerator
                         ? RuleConfidence.Verified
                         : RuleConfidence.Auto;
 
-                    var declaringType = GetDeclaringTypeName(removed.DeclaringTypeStableId, diff);
+                    var declaringType = GetDeclaringTypeName(removed.DeclaringTypeStableId, diff, stableIdToFullName);
                     var rule = new RenameMemberRule
                     {
                         Confidence = confidence,
@@ -148,7 +159,7 @@ public static class MigrationSchemaGenerator
             }
 
             // No match — emit RemoveMemberRule with Manual confidence
-            var declaringTypeName = GetDeclaringTypeName(removed.DeclaringTypeStableId, diff);
+            var declaringTypeName = GetDeclaringTypeName(removed.DeclaringTypeStableId, diff, stableIdToFullName);
             unsortedRules.Add((new SortKey(2, declaringTypeName, removed.Name), new RemoveMemberRule
             {
                 Confidence = RuleConfidence.Manual,
@@ -161,7 +172,7 @@ public static class MigrationSchemaGenerator
         // ── 4. Changed members ─────────────────────────────────────────────────────────────
         foreach (var changed in diff.ChangedMembers ?? [])
         {
-            var declaringType = GetDeclaringTypeName(changed.DeclaringTypeStableId, diff);
+            var declaringType = GetDeclaringTypeName(changed.DeclaringTypeStableId, diff, stableIdToFullName);
 
             // Return type changed → ChangeTypeReferenceRule
             if (changed.OldReturnType != null && changed.NewReturnType != null &&
@@ -323,12 +334,24 @@ public static class MigrationSchemaGenerator
     {
         if (candidates.Count == 0) return (null, 0.0);
 
+        // Plan §193: for methods, require identical parameter arity.
+        // Parse arity from the member StableId. If the removed member has no parameter list
+        // (e.g., property/field/event), skip the arity guard entirely.
+        int? removedArity = TryParseArityFromStableId(removed.StableId);
+
         AddedMemberEntry? best = null;
         double bestSim = -1;
         int bestCount = 0;
 
         foreach (var candidate in candidates)
         {
+            // Arity guard: only applies when BOTH sides have parsable parameter lists.
+            if (removedArity is int ra)
+            {
+                int? candArity = TryParseArityFromStableId(candidate.StableId);
+                if (candArity is int ca && ca != ra) continue;
+            }
+
             double sim = Similarity.JaroWinkler(removed.Name, candidate.Name);
             if (sim > bestSim)
             {
@@ -342,7 +365,7 @@ public static class MigrationSchemaGenerator
             }
         }
 
-        if (bestSim < options.RenameSimilarityThreshold)
+        if (best == null || bestSim < options.RenameSimilarityThreshold)
             return (null, bestSim);
 
         if (bestCount > 1)
@@ -351,6 +374,11 @@ public static class MigrationSchemaGenerator
             AddedMemberEntry? winner = null;
             foreach (var candidate in candidates)
             {
+                if (removedArity is int ra2)
+                {
+                    int? candArity = TryParseArityFromStableId(candidate.StableId);
+                    if (candArity is int ca && ca != ra2) continue;
+                }
                 double sim = Similarity.JaroWinkler(removed.Name, candidate.Name);
                 if (Math.Abs(sim - bestSim) < 1e-10)
                 {
@@ -441,25 +469,68 @@ public static class MigrationSchemaGenerator
         return result;
     }
 
-    private static string GetDeclaringTypeName(string declaringTypeStableId, VersionDiff diff)
+    private static string GetDeclaringTypeName(
+        string declaringTypeStableId,
+        VersionDiff diff,
+        IReadOnlyDictionary<string, string>? stableIdToFullName)
     {
         if (string.IsNullOrEmpty(declaringTypeStableId)) return declaringTypeStableId;
 
-        // Try to find the type in removed types first (member removed from old version)
+        // 1. Caller-supplied lookup is authoritative (covers STABLE types not in the diff).
+        if (stableIdToFullName != null &&
+            stableIdToFullName.TryGetValue(declaringTypeStableId, out var stableName) &&
+            !string.IsNullOrEmpty(stableName))
+        {
+            return stableName;
+        }
+
+        // 2. Try removed types (members removed from old version).
         foreach (var t in diff.RemovedTypes ?? [])
         {
             if (t.StableId == declaringTypeStableId)
                 return t.FullName;
         }
-        // Then in added types
+        // 3. Then added types.
         foreach (var t in diff.AddedTypes ?? [])
         {
             if (t.StableId == declaringTypeStableId)
                 return t.FullName;
         }
 
-        // Fall back: use stable ID directly
+        // 4. Last resort: best-effort cleanup of common StableId prefixes (e.g., "T:Foo.Bar").
+        //    Strip a leading "T:" if present, which is the docfx/Roslyn convention.
+        if (declaringTypeStableId.StartsWith("T:", StringComparison.Ordinal))
+            return declaringTypeStableId.Substring(2);
+
         return declaringTypeStableId;
+    }
+
+    /// <summary>
+    /// Parses the parameter arity out of an <see cref="ApiMemberNode.StableId"/>-style identifier.
+    /// The format is <c>typeStableId.memberName(paramTypes)</c> per the manifest contract.
+    /// Returns <see langword="null"/> when no parameter list is present (properties, fields, events).
+    /// </summary>
+    private static int? TryParseArityFromStableId(string memberStableId)
+    {
+        if (string.IsNullOrEmpty(memberStableId)) return null;
+        int open = memberStableId.LastIndexOf('(');
+        int close = memberStableId.LastIndexOf(')');
+        if (open < 0 || close < 0 || close <= open) return null;
+
+        // Inside parens. "()" → 0 params; otherwise count comma separators at depth 0.
+        var inner = memberStableId.AsSpan(open + 1, close - open - 1).Trim();
+        if (inner.IsEmpty) return 0;
+
+        int count = 1;
+        int depth = 0;
+        for (int i = 0; i < inner.Length; i++)
+        {
+            char c = inner[i];
+            if (c == '<' || c == '[' || c == '(') depth++;
+            else if (c == '>' || c == ']' || c == ')') depth--;
+            else if (c == ',' && depth == 0) count++;
+        }
+        return count;
     }
 
     private static int FindNewParameterIndex(List<string> oldParams, List<string> newParams)
