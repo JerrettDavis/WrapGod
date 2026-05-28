@@ -4,6 +4,7 @@ using TinyBDD.Xunit;
 using WrapGod.Migration;
 using WrapGod.Migration.Engine;
 using WrapGod.Migration.Engine.Rewriters.Structural;
+using WrapGod.Tests.Migration.Engine.Fixtures;
 using Xunit.Abstractions;
 
 namespace WrapGod.Tests.Migration.Engine.Rewriters;
@@ -162,5 +163,49 @@ public sealed class MoveMemberRewriterTests(ITestOutputHelper output) : TinyBddX
     public Task MoveMemberRewriter_Kind_IsMoveMember() =>
         Given("a MoveMemberRewriter instance", () => Make())
         .Then("Kind is moveMember", r => r.Kind == "moveMember")
+        .AssertPassed();
+
+    // ── regression: review feedback (cross-namespace using injection) ────────
+
+    [Scenario("Cross-namespace MoveMember: MigrationEngine injects the new namespace using directive")]
+    [Fact]
+    public Task MoveMember_CrossNamespace_InjectsUsingDirective() =>
+        Given("source uses 'OldNs.Helper.Do()' and rule moves Helper to NewNs", () =>
+        {
+            var source = "namespace App;\nclass C { void M() { var x = OldNs.Helper.Do(); } }";
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    new MoveMemberRule
+                    {
+                        Id = "MM-USE-01",
+                        OldTypeName = "OldNs.Helper",
+                        NewTypeName = "NewNs.Helper",
+                        MemberName = "Do",
+                        Confidence = RuleConfidence.Auto,
+                    },
+                ],
+            };
+
+            var fs = new InMemoryFileSystem().WithFile("c.cs", source);
+            // Use CreateDefault-equivalent engine that includes the B-level rewriters.
+            var engine = MigrationEngine.CreateDefault();
+            // We can't easily inject fs into CreateDefault. Use the internal ctor directly:
+            var engineWithFs = new MigrationEngine(
+                new IRuleRewriter[]
+                {
+                    new MoveMemberRewriter(),
+                },
+                fs);
+            return engineWithFs.Apply(schema, ["c.cs"]);
+        })
+        .Then("rewritten file contains 'using NewNs;'", r =>
+            r.RewrittenFiles.ContainsKey("c.cs") &&
+            r.RewrittenFiles["c.cs"].Contains("using NewNs;"))
+        .And("rewritten file contains NewNs.Helper.Do", r =>
+            r.RewrittenFiles["c.cs"].Contains("NewNs.Helper.Do") ||
+            r.RewrittenFiles["c.cs"].Contains("Helper.Do"))
         .AssertPassed();
 }

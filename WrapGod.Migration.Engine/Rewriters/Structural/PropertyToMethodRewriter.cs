@@ -73,6 +73,15 @@ internal sealed class PropertyToMethodRewriter : IRuleRewriter
                 return node;
             }
 
+            // Skip nameof contents (defence-in-depth — rewriting an assignment LHS
+            // inside nameof would also be incorrect).
+            if (IsInsideNameOf(node))
+            {
+                if (!ReferenceEquals(newRight, node.Right))
+                    return node.WithRight(newRight);
+                return node;
+            }
+
             // Check receiver type (use original tree root for heuristic)
             var inferredType = RewriterHelpers.TryInferReceiverTypeName(leftMae, _root);
             if (inferredType is not null &&
@@ -123,6 +132,11 @@ internal sealed class PropertyToMethodRewriter : IRuleRewriter
             {
                 return visited;
             }
+
+            // Skip: nameof(obj.OldProp) — rewriting to nameof(obj.GetOldProp()) breaks
+            // the reflection-style semantics. Leave nameof contents untouched.
+            if (IsInsideNameOf(visited))
+                return visited;
 
             // Check receiver type
             var inferredType = RewriterHelpers.TryInferReceiverTypeName(visited, _root);
@@ -205,6 +219,32 @@ internal sealed class PropertyToMethodRewriter : IRuleRewriter
                 newMae,
                 SyntaxFactory.ArgumentList())
                 .WithTriviaFrom(original);
+        }
+
+        /// <summary>
+        /// Returns true if <paramref name="node"/> is syntactically inside a
+        /// <c>nameof(...)</c> invocation. <c>nameof</c> takes its argument as a
+        /// reflection-style identifier reference; rewriting the contents would
+        /// break the resulting string and is never the intended behavior.
+        /// </summary>
+        private static bool IsInsideNameOf(SyntaxNode node)
+        {
+            for (var current = node.Parent; current is not null; current = current.Parent)
+            {
+                if (current is InvocationExpressionSyntax inv &&
+                    inv.Expression is IdentifierNameSyntax id &&
+                    id.Identifier.ValueText == "nameof")
+                {
+                    return true;
+                }
+
+                // nameof is always in an expression context; once we reach a statement
+                // boundary we can stop walking.
+                if (current is StatementSyntax)
+                    break;
+            }
+
+            return false;
         }
     }
 }

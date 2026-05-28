@@ -175,4 +175,59 @@ public sealed class SplitMethodRewriterTests(ITestOutputHelper output) : TinyBdd
         .Then("result is null (different type — no match)", t => t.Result is null)
         .And("no Applied entries", t => t.Ctx.Applied.Count == 0)
         .AssertPassed();
+
+    // ── regression: review feedback ──────────────────────────────────────────
+
+    [Scenario("Replacement call is indented at exactly the original column (no double-indent)")]
+    [Fact]
+    public Task SplitMethod_Indentation_NotDoubled() =>
+        Given("source with 8-space-indented 'card.Render();' and 2 replacement methods", () =>
+        {
+            var src = "class C {\n    void M() {\n        Card card = new Card();\n        card.Render();\n    }\n}";
+            var (root, ctx) = Parse(src);
+            var result = Make().TryRewrite(root, RenderRule(), ctx);
+            return result!.ToFullString();
+        })
+        .Then("result is not null and replacement statements are present", s =>
+            s.Contains("RenderHeader") && s.Contains("RenderBody") && s.Contains("RenderFooter"))
+        .And("first replacement line starts with exactly 8 spaces (not 16)", s =>
+        {
+            // Find the RenderHeader line and inspect its leading whitespace.
+            var lines = s.Replace("\r\n", "\n").Split('\n');
+            var header = lines.FirstOrDefault(l => l.Contains("RenderHeader"));
+            if (header is null) return false;
+            int leadingSpaces = 0;
+            foreach (var ch in header)
+            {
+                if (ch == ' ') leadingSpaces++;
+                else break;
+            }
+            return leadingSpaces == 8;
+        })
+        .And("subsequent replacement lines also have 8 spaces", s =>
+        {
+            var lines = s.Replace("\r\n", "\n").Split('\n');
+            var body = lines.FirstOrDefault(l => l.Contains("RenderBody"));
+            if (body is null) return false;
+            int leadingSpaces = 0;
+            foreach (var ch in body) { if (ch == ' ') leadingSpaces++; else break; }
+            return leadingSpaces == 8;
+        })
+        .AssertPassed();
+
+    [Scenario("await context emits SkippedRewrite with async/await reason (not value-consumed)")]
+    [Fact]
+    public Task SplitMethod_AwaitContext_EmitsAsyncReason() =>
+        Given("source with 'await card.Render();' inside an async method", () =>
+        {
+            var src = "class C { async System.Threading.Tasks.Task M() { Card card = new Card(); await card.Render(); } }";
+            var (root, ctx) = Parse(src);
+            var result = Make().TryRewrite(root, RenderRule(), ctx);
+            return (Result: result, Ctx: ctx);
+        })
+        .Then("Skipped contains entry with async/await reason", t =>
+            t.Ctx.Skipped.Any(s => s.Reason.Contains("async/await")))
+        .And("Skipped reason does NOT incorrectly say 'return value is consumed'", t =>
+            !t.Ctx.Skipped.Any(s => s.RuleId == "SM-001" && s.Reason.Contains("return value is consumed")))
+        .AssertPassed();
 }

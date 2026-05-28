@@ -166,4 +166,22 @@ public sealed class ExtractParameterObjectRewriterTests(ITestOutputHelper output
         .Then("result is null (no match — different type)", t => t.Result is null)
         .And("no Applied entries", t => t.Ctx.Applied.Count == 0)
         .AssertPassed();
+
+    // ── regression: review feedback ──────────────────────────────────────────
+
+    [Scenario("Mixed positional + named arguments emit SkippedRewrite (no silent data loss)")]
+    [Fact]
+    public Task ExtractParamObj_MixedPositionalAndNamed_ProducesSkipped() =>
+        Given("source with mixed args 'dlg.ShowAsync(\"T\", content: c)'", () =>
+        {
+            var src = @"class C { void M() { Dialog dlg = new Dialog(); dlg.ShowAsync(""T"", content: c); } }";
+            var (root, ctx) = Parse(src);
+            var result = Make().TryRewrite(root, DialogRule(), ctx);
+            return (Result: result, Ctx: ctx);
+        })
+        .Then("result is null (no rewrite applied)", t => t.Result is null)
+        .And("no Applied entries (positional arg was NOT silently dropped)", t => t.Ctx.Applied.Count == 0)
+        .And("Skipped contains 'mixed positional and named' reason", t =>
+            t.Ctx.Skipped.Any(s => s.Reason.Contains("mixed positional and named")))
+        .AssertPassed();
 }

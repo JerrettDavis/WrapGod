@@ -65,6 +65,23 @@ internal sealed class ExtractParameterObjectRewriter : IRuleRewriter
             var namedExtracted = new List<ArgumentSyntax>();
             var remaining = new List<ArgumentSyntax>();
             bool allPositional = args.All(a => a.NameColon == null);
+            bool anyNamed = args.Any(a => a.NameColon is not null);
+            bool anyPositional = args.Any(a => a.NameColon is null);
+
+            // Mixed positional + named arguments cannot be safely rewritten by a
+            // syntax-only rewriter — we can't know which positional arg corresponds
+            // to which extracted parameter. Emit SkippedRewrite to preserve the
+            // "ambiguity → skip, never wrong rewrite" contract (no silent data loss).
+            if (anyNamed && anyPositional)
+            {
+                _ctx.RecordSkipped(
+                    _rule,
+                    visited.Span,
+                    line: RewriterHelpers.LineOf(visited),
+                    reason: "mixed positional and named arguments not supported: " +
+                            "cannot unambiguously map positional args to extracted parameters");
+                return visited;
+            }
 
             foreach (var arg in args)
             {
@@ -76,10 +93,8 @@ internal sealed class ExtractParameterObjectRewriter : IRuleRewriter
                     else
                         remaining.Add(arg);
                 }
-                else
-                {
-                    // Positional arg — handled below
-                }
+                // Positional args in all-positional calls are handled in the block below.
+                // Positional args in mixed calls are already excluded above.
             }
 
             // Handle all-positional case
@@ -144,9 +159,10 @@ internal sealed class ExtractParameterObjectRewriter : IRuleRewriter
                     propName = char.ToUpperInvariant(pName[0]) + pName[1..];
                 }
 
-                // Build: Prop = value with spaces around =
+                // Build: Prop = value with single spaces around =
+                // (Trailing space on = token; value expression with stripped leading trivia.)
                 var valueExpr = arg.Expression
-                    .WithLeadingTrivia(SyntaxFactory.Space)
+                    .WithLeadingTrivia(SyntaxTriviaList.Empty)
                     .WithTrailingTrivia(SyntaxTriviaList.Empty);
 
                 var assignment = SyntaxFactory.AssignmentExpression(

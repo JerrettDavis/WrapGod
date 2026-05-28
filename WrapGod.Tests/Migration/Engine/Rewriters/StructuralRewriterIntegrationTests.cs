@@ -74,20 +74,23 @@ public sealed class StructuralRewriterIntegrationTests(ITestOutputHelper output)
 
     // ── Tests ────────────────────────────────────────────────────────────────
 
-    [Scenario("BLevelRulesCompose: all 4 B-level rules are applied to BLevelBefore fixture")]
+    [Scenario("BLevelRulesCompose_ProducesExpectedOutput matches hand-authored fixture byte-for-byte")]
     [Fact]
     public Task BLevelRulesCompose_ProducesExpectedOutput() =>
-        Given("the BLevel synthetic before fixture and rules schema", () =>
+        Given("the BLevel synthetic before/after fixtures and rules schema", () =>
         {
             var before = LoadFixture("BLevelBefore.cs.txt");
+            var expectedAfter = LoadFixture("BLevelAfter.cs.txt");
             var rulesJson = LoadFixture("BLevelRules.json");
             var schema = MigrationSchemaSerializer.Deserialize(rulesJson)
                 ?? throw new InvalidOperationException("Failed to load BLevelRules.json");
 
             var (actual, ctx) = ApplyRulesInOrder(before, schema);
-            return (Actual: actual, Ctx: ctx);
+            return (Actual: actual, Expected: expectedAfter, Ctx: ctx);
         })
-        .Then("at least 4 rewrites were applied (one per B-level rule)", t =>
+        .Then("the normalized rewritten text matches the expected fixture byte-for-byte", t =>
+            NormalizeNewlines(t.Actual) == NormalizeNewlines(t.Expected))
+        .And("at least 4 rewrites were applied (one per B-level rule)", t =>
             t.Ctx.Applied.Count >= 4)
         .And("SplitMethod rule SM-B01 was applied", t =>
             t.Ctx.Applied.Any(a => a.RuleId == "SM-B01"))

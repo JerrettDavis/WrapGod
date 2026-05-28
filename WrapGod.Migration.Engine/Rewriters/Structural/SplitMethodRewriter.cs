@@ -75,10 +75,20 @@ internal sealed class SplitMethodRewriter : IRuleRewriter
             if (parent is ExpressionStatementSyntax)
                 return visited;
 
-            // It's either chained or in a value-consumed context — emit SkippedRewrite
-            var reason = IsChainedCall(visited)
-                ? $"split-method '{_rule.OldMethodName}' skipped: chained-call cannot be safely split"
-                : $"split-method '{_rule.OldMethodName}' skipped: return value is consumed, manual review required";
+            // Classify the non-statement context with an accurate reason string.
+            string reason;
+            if (parent is AwaitExpressionSyntax)
+            {
+                reason = $"split-method '{_rule.OldMethodName}' skipped: async/await context — split unsafe";
+            }
+            else if (IsChainedCall(visited))
+            {
+                reason = $"split-method '{_rule.OldMethodName}' skipped: chained-call cannot be safely split";
+            }
+            else
+            {
+                reason = $"split-method '{_rule.OldMethodName}' skipped: return value is consumed, manual review required";
+            }
 
             _ctx.RecordSkipped(
                 _rule,
@@ -176,18 +186,18 @@ internal sealed class SplitMethodRewriter : IRuleRewriter
 
             var result = new List<StatementSyntax>();
 
-            // 1. Commented-out original
+            // Build the MIGRATION comment to attach as leading trivia on the first
+            // replacement statement. (Mirrors RemoveMemberRewriter's trivia-only pattern.)
             var commentLine = $"// MIGRATION: {_rule.Id} split-method — original: {originalText}";
-            var commentStmt = SyntaxFactory.EmptyStatement(
-                SyntaxFactory.Token(
-                    leading: leadingTrivia
-                        .Add(SyntaxFactory.Comment(commentLine))
-                        .Add(SyntaxFactory.CarriageReturnLineFeed),
-                    kind: SyntaxKind.SemicolonToken,
-                    trailing: SyntaxTriviaList.Empty))
-                .WithLeadingTrivia(SyntaxTriviaList.Empty);
 
-            // 2. Comment line as leading trivia on first new call
+            // Detect the indentation portion of the original statement's leading trivia
+            // (everything from the last newline onward). This is the slice we need to
+            // reapply BEFORE the call after the comment line. Using only this slice
+            // (not the entire leadingTrivia, which may include blank lines preceding
+            // the original statement) prevents the "double-indent / blank line"
+            // artifact that arises when leadingTrivia is naively duplicated.
+            var indentOnly = ExtractIndent(leadingTrivia);
+
             // Build new call statements for each replacement method
             var newMethodNames = _rule.NewMethodNames;
             for (int i = 0; i < newMethodNames.Count; i++)
@@ -199,16 +209,21 @@ internal sealed class SplitMethodRewriter : IRuleRewriter
 
                 if (i == 0)
                 {
-                    // Attach the comment as leading trivia
+                    // First replacement: original leading trivia (indent + any preceding
+                    // blank lines) + the migration comment + newline + indent for the call.
                     var firstLeading = leadingTrivia
                         .Add(SyntaxFactory.Comment(commentLine))
                         .Add(SyntaxFactory.CarriageReturnLineFeed)
-                        .AddRange(leadingTrivia);
+                        .AddRange(indentOnly);
                     newStmt = newStmt.WithLeadingTrivia(firstLeading);
                 }
                 else
                 {
-                    newStmt = newStmt.WithLeadingTrivia(leadingTrivia);
+                    // Subsequent replacements: newline (to start a new line) + indent
+                    var subsequentLeading = SyntaxTriviaList.Empty
+                        .Add(SyntaxFactory.CarriageReturnLineFeed)
+                        .AddRange(indentOnly);
+                    newStmt = newStmt.WithLeadingTrivia(subsequentLeading);
                 }
 
                 if (i == newMethodNames.Count - 1)
@@ -226,6 +241,32 @@ internal sealed class SplitMethodRewriter : IRuleRewriter
 
             replacements = result;
             return true;
+        }
+
+        /// <summary>
+        /// Extracts the indentation portion of a leading trivia list — everything
+        /// after the last end-of-line trivia. If no end-of-line is present, returns
+        /// the entire list. This isolates the column-indent from any preceding
+        /// blank lines or comments so the indent can be re-applied on subsequent
+        /// replacement statements without duplicating blank lines.
+        /// </summary>
+        private static SyntaxTriviaList ExtractIndent(SyntaxTriviaList leadingTrivia)
+        {
+            int lastEol = -1;
+            for (int i = 0; i < leadingTrivia.Count; i++)
+            {
+                if (leadingTrivia[i].IsKind(SyntaxKind.EndOfLineTrivia))
+                    lastEol = i;
+            }
+
+            if (lastEol < 0)
+                return leadingTrivia;
+
+            // Take everything AFTER the last EOL (indentation whitespace).
+            var indent = SyntaxTriviaList.Empty;
+            for (int i = lastEol + 1; i < leadingTrivia.Count; i++)
+                indent = indent.Add(leadingTrivia[i]);
+            return indent;
         }
 
         /// <summary>

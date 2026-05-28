@@ -172,4 +172,37 @@ public sealed class PropertyToMethodRewriterTests(ITestOutputHelper output) : Ti
         Given("a PropertyToMethodRewriter instance", () => Make())
         .Then("Kind is propertyToMethod", r => r.Kind == "propertyToMethod")
         .AssertPassed();
+
+    // ── regression: review feedback ──────────────────────────────────────────
+
+    [Scenario("nameof(btn.Disabled) is NOT rewritten — reflection-style semantics preserved")]
+    [Fact]
+    public Task PropertyToMethod_InsideNameOf_NotRewritten() =>
+        Given("source with 'var s = nameof(btn.Disabled);' and SetDisabled rule", () =>
+        {
+            var src = "class C { void M() { Button btn = new Button(); var s = nameof(btn.Disabled); } }";
+            var (root, ctx) = Parse(src);
+            var result = Make().TryRewrite(root, DisabledRule("SetDisabled"), ctx);
+            return (Result: result, Ctx: ctx);
+        })
+        .Then("result is null (no rewrite applied inside nameof)", t => t.Result is null)
+        .And("no Applied entries — Disabled was NOT rewritten", t => t.Ctx.Applied.Count == 0)
+        .AssertPassed();
+
+    [Scenario("Mixed: nameof(btn.Disabled) preserved AND btn.Disabled = true is rewritten")]
+    [Fact]
+    public Task PropertyToMethod_MixedNameOfAndAssignment_OnlyAssignmentRewritten() =>
+        Given("source with both nameof use and a real assignment", () =>
+        {
+            var src = "class C { void M() { Button btn = new Button(); var s = nameof(btn.Disabled); btn.Disabled = true; } }";
+            var (root, ctx) = Parse(src);
+            var result = Make().TryRewrite(root, DisabledRule("SetDisabled"), ctx);
+            return (Result: result, Ctx: ctx);
+        })
+        .Then("result is not null", t => t.Result is not null)
+        .And("Applied count is 1 (only the assignment, not the nameof)", t => t.Ctx.Applied.Count == 1)
+        .And("nameof(btn.Disabled) is preserved", t => t.Result!.ToString().Contains("nameof(btn.Disabled)"))
+        .And("btn.SetDisabled(true) appears (assignment was rewritten)", t =>
+            t.Result!.ToString().Contains("SetDisabled(true)"))
+        .AssertPassed();
 }
