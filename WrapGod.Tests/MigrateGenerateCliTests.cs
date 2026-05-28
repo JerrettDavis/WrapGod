@@ -452,4 +452,110 @@ public sealed class MigrateGenerateCliTests
             SafeDelete(tempDir);
         }
     }
+
+    /// <summary>
+    /// SCENARIO: Required flags missing (no args at all) → System.CommandLine emits usage with non-zero exit.
+    /// Distinct from <see cref="Generate_NeitherPackageNorAssembly_Fails"/> which provides versions but no mode flag.
+    /// </summary>
+    [Scenario("No args provided → fails with usage from System.CommandLine")]
+    [Fact]
+    public async Task Generate_NoArgs_FailsWithUsage()
+    {
+        var (exitCode, stdout, stderr) = await InvokeAsync("generate");
+
+        Assert.NotEqual(0, exitCode);
+        // System.CommandLine prints missing-required messages and usage hints to stderr (or stdout).
+        var combined = (stdout ?? "") + (stderr ?? "");
+        Assert.False(string.IsNullOrWhiteSpace(combined),
+            "Some output must explain that required arguments are missing");
+        // The required options are --from and --to; their names should appear in the diagnostic output.
+        Assert.True(
+            combined.Contains("--from", StringComparison.OrdinalIgnoreCase) ||
+            combined.Contains("required", StringComparison.OrdinalIgnoreCase),
+            "Missing-required diagnostic must mention --from or 'required'");
+    }
+
+    /// <summary>
+    /// SCENARIO: Package + valid-format version that doesn't exist on NuGet → exit 1.
+    /// Distinct from <see cref="Generate_InvalidFromVersion_Fails"/> (format error, no network needed).
+    /// TODO: Make this offline-testable by injecting a mock NuGet resolver.
+    /// </summary>
+    [Scenario("NuGet mode with unresolvable version → exit 1")]
+    [Trait("Category", "Network")]
+    [Fact]
+    public async Task Generate_UnresolvableVersion_Fails()
+    {
+        var tempDir = CreateTempDir();
+        var outputPath = Path.Combine(tempDir, "unresolvable.wrapgod-migration.json");
+        try
+        {
+            var (exitCode, _, stderr) = await InvokeAsync(
+                $"generate --package Serilog --from 99.99.99 --to 99.99.100 --output \"{outputPath}\"");
+
+            Assert.Equal(1, exitCode);
+            Assert.False(string.IsNullOrWhiteSpace(stderr));
+            // Resolver throws InvalidOperationException with "not found" / version label in message.
+            Assert.True(
+                stderr.Contains("not found", StringComparison.OrdinalIgnoreCase) ||
+                stderr.Contains("99.99.99", StringComparison.Ordinal) ||
+                stderr.Contains("version", StringComparison.OrdinalIgnoreCase),
+                $"Stderr should mention 'not found' / version; got: {stderr}");
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// SCENARIO: Temp-then-rename write pattern leaves no .tmp file on disk after a successful run,
+    /// AND leaves no .tmp file on disk after a failed write (simulated by making the temp path unwritable).
+    /// This is the file-system-observable assertion that Fix #1 (partial-output cleanup) produces.
+    /// </summary>
+    [Scenario("Write pattern: no .tmp file remains after success or write failure")]
+    [Fact]
+    public async Task Generate_TempFileCleanup_NoStrayTmpAfterRun()
+    {
+        var runtimeDll = RuntimeDllPath;
+        if (!File.Exists(runtimeDll)) return;
+
+        var tempDir = CreateTempDir();
+        try
+        {
+            // ─ 1) Happy path: after a successful run, no .tmp file should remain. ─
+            var outputPath = Path.Combine(tempDir, "happy.wrapgod-migration.json");
+            var (exitCode, _, _) = await InvokeAsync(
+                $"generate --from-assembly \"{runtimeDll}\" --to-assembly \"{runtimeDll}\" " +
+                $"--from 1.0.0 --to 2.0.0 --output \"{outputPath}\"");
+
+            Assert.Equal(0, exitCode);
+            Assert.True(File.Exists(outputPath), "Final output file must exist");
+            Assert.False(File.Exists(outputPath + ".tmp"),
+                "No .tmp file should remain after a successful write/rename");
+
+            // ─ 2) Failure path: pre-create a *directory* at the .tmp path so the write fails. ─
+            //     The handler must still leave no orphan files: neither output nor .tmp.
+            var failOutput = Path.Combine(tempDir, "fail.wrapgod-migration.json");
+            var failTmp = failOutput + ".tmp";
+            Directory.CreateDirectory(failTmp); // blocks file write at the temp path
+
+            var (failExit, _, failStderr) = await InvokeAsync(
+                $"generate --from-assembly \"{runtimeDll}\" --to-assembly \"{runtimeDll}\" " +
+                $"--from 1.0.0 --to 2.0.0 --output \"{failOutput}\"");
+
+            // We expect a write failure (exit 1) and no output file left behind.
+            Assert.Equal(1, failExit);
+            Assert.False(File.Exists(failOutput),
+                "No partial output file should be left on disk after a write failure");
+            Assert.False(string.IsNullOrWhiteSpace(failStderr));
+            // The blocking directory is intentional fixture state; the handler must not have
+            // mutated it into a file.
+            Assert.True(Directory.Exists(failTmp),
+                "Blocking directory remains a directory (write failed cleanly)");
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
 }

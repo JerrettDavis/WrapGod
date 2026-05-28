@@ -8,7 +8,14 @@ namespace WrapGod.Cli;
 
 internal static class MigrateGenerateCommand
 {
-    private static readonly JsonSerializerOptions JsonSummaryOptions = new() { WriteIndented = true };
+    // Plan §4.4 requires explicit CamelCase. Without an explicit policy, the JSON output
+    // would rely on anonymous-type field casing as a coincidence; future field additions
+    // could silently break the convention.
+    private static readonly JsonSerializerOptions JsonSummaryOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+    };
 
     public static Command Create()
     {
@@ -223,8 +230,9 @@ internal static class MigrateGenerateCommand
         schema.To = to;
         schema.GeneratedFrom = "manifest-diff";
 
-        // ── Write output ──────────────────────────────────────────────────────────────────────
+        // ── Write output (temp-then-rename so Ctrl+C never leaves a partial file) ─────────────
         var schemaJson = MigrationSchemaSerializer.Serialize(schema);
+        var tempPath = resolvedOutput + ".tmp";
 
         try
         {
@@ -232,7 +240,9 @@ internal static class MigrateGenerateCommand
             if (!string.IsNullOrEmpty(dir))
                 Directory.CreateDirectory(dir);
 
-            await File.WriteAllTextAsync(resolvedOutput, schemaJson, cancellationToken);
+            await File.WriteAllTextAsync(tempPath, schemaJson, cancellationToken);
+            // Atomic rename; throws if destination exists (we already guarded above).
+            File.Move(tempPath, resolvedOutput, overwrite: false);
         }
         catch (OperationCanceledException)
         {
@@ -243,6 +253,14 @@ internal static class MigrateGenerateCommand
         {
             Console.Error.WriteLine($"Error writing output file '{resolvedOutput}': {ex.Message}");
             return 1;
+        }
+        finally
+        {
+            // Always clean up the temp file if it still exists (cancellation, exception, etc.)
+            if (File.Exists(tempPath))
+            {
+                try { File.Delete(tempPath); } catch { /* best-effort cleanup */ }
+            }
         }
 
         // ── Zero-rules warning ────────────────────────────────────────────────────────────────
