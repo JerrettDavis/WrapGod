@@ -1,0 +1,31 @@
+{
+  "schema": "examples/migrations/serilog-v2-to-v3/schema/serilog.2.x-to-3.x.wrapgod-migration.json",
+  "schemaHash": "sha256:f3da3516b2bb26f2b765ec95c9037f3cc9423538e1d48f8f4d0034f616d5b7a4",
+  "startedAt": "2026-05-28T00:00:00.0000000+00:00",
+  "lastRunAt": "2026-05-28T00:00:00.0000000+00:00",
+  "summary": {
+    "totalRules": 2,
+    "applied": 1,
+    "skipped": 0,
+    "manual": 1
+  },
+  "applied": [
+    {
+      "ruleId": "SERILOG-NS-001",
+      "file": "Program.cs",
+      "line": 2,
+      "originalText": "Serilog.Sinks.RollingFile",
+      "replacedWith": "Serilog"
+    }
+  ],
+  "skipped": [],
+  "manual": [
+    {
+      "ruleId": "SERILOG-RM-001",
+      "note": "WriteTo.RollingFile(...) was removed in v3. Replace with WriteTo.File(path, rollingInterval: RollingInterval.Day). The engine cannot safely apply this in a fluent chain without semantic type resolution; review manually. Also update the path pattern from '{Date}' to the plain path (v3 appends the date automatically).",
+      "matchedFiles": [
+        "Program.cs"
+      ]
+    }
+  ]
+}

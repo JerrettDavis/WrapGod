@@ -3,6 +3,12 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# WrapGod: migration engine runtime state files (written next to the schema when migrate apply runs)
+# The example committed state file lives in state/ — schema/ state files are transient.
+examples/migrations/**/schema/*.state.json
+# WrapGod: CLI output directory
+examples/output/
+
 # dotenv files
 .env
 
