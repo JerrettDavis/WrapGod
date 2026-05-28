@@ -19,6 +19,7 @@ wrap-god [command] [options]
 - [`doctor`](#doctor) -- Validate environment setup and project health
 - [`explain`](#explain) -- Show traceability info for a type or member
 - [`migrate init`](#migrate-init) -- Analyze a project and generate a migration plan
+- [`migrate generate`](#migrate-generate) -- Generate a draft migration schema from two library versions
 - [`ci bootstrap`](#ci-bootstrap) -- Generate recommended CI workflow files
 - [`ci parity`](#ci-parity) -- Compare CI config against the recommended baseline
 
@@ -451,6 +452,127 @@ Next steps:
   1. Review migration-plan.json for categorized actions
   2. Add WrapGod.Analyzers to your project for code fix suggestions
   3. Run 'dotnet build' to see WG2001/WG2002 diagnostics
+```
+
+---
+
+---
+
+### `migrate generate`
+
+**Synopsis:** Generate a draft `MigrationSchema` JSON file by extracting and diffing two versions of a NuGet package (or two local assemblies).
+
+**Usage:**
+```
+wrap-god migrate generate [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--package` | NuGet package ID (e.g., `MudBlazor`). Mutually exclusive with `--from-assembly`/`--to-assembly`. | -- |
+| `--from` | Source version (e.g., `6.0.0`). **Required.** | -- |
+| `--to` | Target version (e.g., `7.0.0`). **Required.** | -- |
+| `--from-assembly` | Path to the baseline DLL. Mutually exclusive with `--package`. | -- |
+| `--to-assembly` | Path to the target DLL. Mutually exclusive with `--package`. | -- |
+| `--output`, `-o` | Output path for the schema JSON | `{library}.{from}-to-{to}.wrapgod-migration.json` |
+| `--source` | Private NuGet feed URL | nuget.org |
+| `--tfm` | Target framework moniker override (e.g., `net8.0`) | Auto-detected |
+| `--rule-id-prefix` | Prefix for generated rule IDs (e.g., `MUD` → `MUD-001`) | Derived from library name |
+| `--no-rename-detection` | Disable rename detection; all removed types/members emit `RemoveMemberRule` | `false` |
+| `--json` | Emit the final summary as JSON to stdout | `false` |
+
+**Modes (mutually exclusive):**
+
+- **NuGet mode:** Supply `--package`, `--from`, and `--to`. WrapGod resolves both versions from NuGet and diffs them.
+- **Local assembly mode:** Supply `--from-assembly` and `--to-assembly` (plus `--from` and `--to` as version labels).
+
+**Exit codes:**
+
+| Code | Meaning |
+|------|---------|
+| `0` | Schema written successfully (may have 0 rules — a warning is printed) |
+| `1` | Runtime failure (missing files, network error, invalid version, output file already exists) |
+| `2` | Input validation error (conflicting flags, missing required mode) |
+
+**Behavior:**
+
+1. Resolves both assemblies (NuGet download or local path validation).
+2. Extracts API manifests via `AssemblyExtractor`.
+3. Diffs both manifests via `MultiVersionExtractor`.
+4. Feeds the diff into `MigrationSchemaGenerator.FromDiff()` to produce a draft schema.
+5. Serializes the schema via `MigrationSchemaSerializer` and writes it to `--output`.
+6. Prints a summary (or JSON summary if `--json` is set).
+
+If the two versions have identical APIs, a schema with 0 rules is written and a warning is printed to stderr. The exit code is still `0`.
+
+**Examples:**
+
+```bash
+# NuGet mode: diff MudBlazor 6.0.0 → 7.0.0
+wrap-god migrate generate \
+  --package MudBlazor \
+  --from 6.0.0 --to 7.0.0
+
+# Local assembly mode
+wrap-god migrate generate \
+  --from-assembly ./lib/v6/MudBlazor.dll \
+  --to-assembly ./lib/v7/MudBlazor.dll \
+  --from 6.0.0 --to 7.0.0 \
+  --output mudblazor-migration.wrapgod-migration.json
+
+# Custom rule-id prefix
+wrap-god migrate generate \
+  --package Serilog \
+  --from 2.12.0 --to 3.1.1 \
+  --rule-id-prefix SLG
+
+# JSON summary output
+wrap-god migrate generate \
+  --package FluentValidation \
+  --from 10.4.0 --to 11.0.0 \
+  --json
+
+# Disable rename detection (all removals become manual rules)
+wrap-god migrate generate \
+  --package Newtonsoft.Json \
+  --from 12.0.3 --to 13.0.3 \
+  --no-rename-detection
+```
+
+**Output (default human-readable):**
+
+```
+WrapGod migrate generate
+----------------------------------------
+Library:  MudBlazor
+From:     6.0.0
+To:       7.0.0
+Rules:    47 total
+  auto:      31
+  verified:  9
+  manual:    7
+Output:   mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json
+```
+
+**Output (`--json`):**
+
+```json
+{
+  "library": "MudBlazor",
+  "from": "6.0.0",
+  "to": "7.0.0",
+  "outputPath": "mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json",
+  "rules": {
+    "total": 47,
+    "byConfidence": {
+      "auto": 31,
+      "verified": 9,
+      "manual": 7
+    }
+  }
+}
 ```
 
 ---

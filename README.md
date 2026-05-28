@@ -59,6 +59,7 @@ For the full walkthrough — extracting manifests, configuring rules, running an
 | `wrap-god analyze` | Detect direct vendor usage in your codebase |
 | `wrap-god diff` | Compare two manifest versions and report breaking changes |
 | `wrap-god merge` | Merge multiple version manifests into one |
+| `wrap-god migrate generate` | Generate a draft migration schema from two library versions (NuGet or local DLLs) |
 
 Install: `dotnet tool install -g WrapGod.Cli`
 

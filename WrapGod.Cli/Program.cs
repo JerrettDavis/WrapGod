@@ -15,7 +15,7 @@ var rootCommand = new RootCommand("WrapGod CLI -- extract manifests, generate wr
     AnalyzeCommand.Create(),
     DoctorCommand.Create(),
     ExplainCommand.Create(),
-    MigrateInitCommand.Create(),
+    MigrateCommandBuilder.Build(),
     ciCommand
 };
 
