@@ -1,11 +1,12 @@
-# A-Level Syntax Rewriters
+# Rewriters
 
-`WrapGod.Migration.Engine` ships seven concrete `IRuleRewriter` implementations that
-handle the most common breaking changes using syntax-only analysis (no `SemanticModel`
-required). Each rewriter handles one `MigrationRuleKind` and can safely operate on
-code that does not compile.
+`WrapGod.Migration.Engine` ships eleven concrete `IRuleRewriter` implementations
+organized in two levels. All rewriters use syntax-only analysis (no `SemanticModel`
+required) and can safely operate on code that does not compile.
 
 ## Rewriter Catalogue
+
+### A-Level (Syntactic)
 
 | Class | `Kind` | Rule type | What it transforms |
 |---|---|---|---|
@@ -16,6 +17,15 @@ code that does not compile.
 | `RemoveMemberRewriter` | `removeMember` | `RemoveMemberRule` | Call-site expression statements |
 | `AddRequiredParameterRewriter` | `addRequiredParameter` | `AddRequiredParameterRule` | Argument lists |
 | `ChangeTypeReferenceRewriter` | `changeTypeReference` | `ChangeTypeReferenceRule` | Type-position syntax nodes |
+
+### B-Level (Structural)
+
+| Class | `Kind` | Rule type | What it transforms |
+|---|---|---|---|
+| `SplitMethodRewriter` | `splitMethod` | `SplitMethodRule` | One call → N sequential statements with MIGRATION comment |
+| `ExtractParameterObjectRewriter` | `extractParameterObject` | `ExtractParameterObjectRule` | Named args → `new OptionsType { … }` argument |
+| `PropertyToMethodRewriter` | `propertyToMethod` | `PropertyToMethodRule` | Property reads/writes → method invocations |
+| `MoveMemberRewriter` | `moveMember` | `MoveMemberRule` | Static-style `OldType.Member` → `NewType.Member` |
 
 ---
 
@@ -209,6 +219,157 @@ var t = typeof(IList<int>);
 // After
 IReadOnlyList<string> items;
 var t = typeof(IReadOnlyList<int>);
+```
+
+---
+
+## B-Level Structural Rewriters
+
+B-level rewriters handle structural breaking changes that go beyond simple identifier
+replacement. They share the same contracts as A-level rewriters but reason about the
+surrounding statement or expression context.
+
+---
+
+### SplitMethodRewriter
+
+One call site is replaced with multiple sequential calls, with the original call
+commented-out as a `MIGRATION` annotation.
+
+**Statement context only.** Calls whose return value is consumed (e.g., `var x = Foo()`)
+or chained invocations (e.g., `Foo().Bar()`) are skipped with a descriptive reason.
+
+```csharp
+// Rule:
+//   TypeName = "Panel"
+//   OldMethodName = "Refresh"
+//   NewMethodNames = ["RefreshLayout", "RefreshContent"]
+
+// Before
+panel.Refresh();
+
+// After
+// MIGRATION: SM-001 split-method — original: panel.Refresh();
+panel.RefreshLayout();
+panel.RefreshContent();
+```
+
+**Skipped cases:**
+
+```csharp
+// Return value consumed → SkippedRewrite
+var html = panel.Refresh();
+
+// Chained call → SkippedRewrite
+panel.Refresh().ToString();
+```
+
+---
+
+### ExtractParameterObjectRewriter
+
+Collapses a set of individually-named arguments into a new parameter object literal.
+Named arguments matching the rule's `ExtractedParameters` list are extracted into an
+object initializer. Non-extracted arguments are preserved in the argument list alongside
+the new object. Positional-only calls where arguments cannot be unambiguously mapped are
+skipped.
+
+```csharp
+// Rule:
+//   TypeName = "Dialog"
+//   MethodName = "Show"
+//   ParameterObjectType = "ShowOptions"
+//   ExtractedParameters = ["title", "message"]
+
+// Before
+dlg.Show(title: "Hello", message: "World");
+
+// After
+dlg.Show(new ShowOptions { Title = "Hello", Message = "World" });
+```
+
+Extra arguments not in `ExtractedParameters` are preserved:
+
+```csharp
+// Before
+dlg.Show(title: "Hello", message: "World", callback: cb);
+
+// After
+dlg.Show(callback: cb, new ShowOptions { Title = "Hello", Message = "World" });
+```
+
+**Skipped cases:**
+
+```csharp
+// More positional args than extracted params → SkippedRewrite
+dlg.Show("Hello", "World", cb);
+```
+
+---
+
+### PropertyToMethodRewriter
+
+Property reads become no-argument method calls; property writes become single-argument
+method calls. The `NewMethodName` in the rule is used verbatim for both contexts.
+
+```csharp
+// Rule:
+//   TypeName = "Button"
+//   OldPropertyName = "Disabled"
+//   NewMethodName = "SetDisabled"
+
+// Write context: Before
+btn.Disabled = true;
+
+// Write context: After
+btn.SetDisabled(true);
+
+// Read context (with NewMethodName = "GetDisabled")
+// Before
+var b = btn.Disabled;
+
+// After
+var b = btn.GetDisabled();
+```
+
+**Skipped cases:**
+
+```csharp
+// Compound-assignment → SkippedRewrite
+btn.Disabled++;
+btn.Disabled += 1;
+```
+
+---
+
+### MoveMemberRewriter
+
+Redirects a static-style member access from one type to another. The receiver must match
+the old type's short name syntactically (or the fully-qualified old type name). Instance
+calls where the receiver is inferred to be a variable of a different type are skipped.
+
+```csharp
+// Rule:
+//   OldTypeName = "LegacyHelper"
+//   NewTypeName = "ModernHelper"
+//   MemberName = "ComputeHash"
+
+// Before
+var h = LegacyHelper.ComputeHash();
+
+// After
+var h = ModernHelper.ComputeHash();
+```
+
+**Skipped cases:**
+
+```csharp
+// Receiver inferred as a different type → SkippedRewrite
+SomeOtherType legacyHelper = ...;
+legacyHelper.ComputeHash();    // skipped: instance call cannot be moved syntactically
+
+// Lowercase unresolvable identifier → SkippedRewrite (assumed instance variable)
+legacyHelper.ComputeHash();    // skipped
 ```
 
 ---

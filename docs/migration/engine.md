@@ -95,11 +95,12 @@ public sealed class MyRenameRewriter : IRuleRewriter
 - **No semantic lookup.** The engine works on syntax only so it can operate on
   broken code; rewriters must not require a `SemanticModel`.
 
-## Rewriters shipping in #195
+## Rewriters
 
-Seven concrete `IRuleRewriter` implementations are now available under
-`WrapGod.Migration.Engine.Rewriters`. See [A-Level Rewriters](rewriters.md) for the
-full catalogue, per-rewriter contracts, and before/after examples.
+Eleven concrete `IRuleRewriter` implementations are available. See [Rewriters](rewriters.md)
+for the full catalogue, per-rewriter contracts, and before/after examples.
+
+### A-level (#195)
 
 | Class | `Kind` | Rule type |
 |---|---|---|
@@ -110,6 +111,15 @@ full catalogue, per-rewriter contracts, and before/after examples.
 | `RemoveMemberRewriter` | `removeMember` | `RemoveMemberRule` |
 | `AddRequiredParameterRewriter` | `addRequiredParameter` | `AddRequiredParameterRule` |
 | `ChangeTypeReferenceRewriter` | `changeTypeReference` | `ChangeTypeReferenceRule` |
+
+### B-level structural (#202)
+
+| Class | `Kind` | Rule type |
+|---|---|---|
+| `SplitMethodRewriter` | `splitMethod` | `SplitMethodRule` |
+| `ExtractParameterObjectRewriter` | `extractParameterObject` | `ExtractParameterObjectRule` |
+| `PropertyToMethodRewriter` | `propertyToMethod` | `PropertyToMethodRule` |
+| `MoveMemberRewriter` | `moveMember` | `MoveMemberRule` |
 
 ## Orchestrator — `MigrationEngine` (#196)
 
@@ -126,7 +136,7 @@ public sealed class MigrationEngine
     // Primary constructors
     public MigrationEngine(IEnumerable<IRuleRewriter> rewriters);
 
-    // Convenience: pre-loads all 7 A-level rewriters.
+    // Convenience: pre-loads all 11 rewriters (7 A-level + 4 B-level).
     public static MigrationEngine CreateDefault();
 
     // Apply all auto rules to files, write results to disk.
@@ -208,6 +218,7 @@ detected. The `Applied` list contains no entries for manual rules.
 
 - **#202** — B-level structural rewriters (`SplitMethod`,
   `ExtractParameterObject`, `PropertyToMethod`, `MoveMember`).
+- **#203** — End-to-end example with a real library migration (Serilog v2 → v3).
 
 ## State-tracking (idempotent re-runs)
 

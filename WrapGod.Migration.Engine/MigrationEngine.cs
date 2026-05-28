@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using WrapGod.Migration;
 using WrapGod.Migration.Engine.Rewriters;
+using WrapGod.Migration.Engine.Rewriters.Structural;
 
 namespace WrapGod.Migration.Engine;
 
@@ -82,12 +83,13 @@ public sealed class MigrationEngine
     // ── Factory ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates a <see cref="MigrationEngine"/> pre-loaded with all seven A-level
+    /// Creates a <see cref="MigrationEngine"/> pre-loaded with all A-level and B-level
     /// rewriters that ship with this package.
     /// </summary>
     public static MigrationEngine CreateDefault() =>
         new(
         [
+            // A-level rewriters
             new RenameTypeRewriter(),
             new RenameNamespaceRewriter(),
             new RenameMemberRewriter(),
@@ -95,6 +97,11 @@ public sealed class MigrationEngine
             new RemoveMemberRewriter(),
             new AddRequiredParameterRewriter(),
             new ChangeTypeReferenceRewriter(),
+            // B-level structural rewriters
+            new SplitMethodRewriter(),
+            new ExtractParameterObjectRewriter(),
+            new PropertyToMethodRewriter(),
+            new MoveMemberRewriter(),
         ]);
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -368,13 +375,17 @@ public sealed class MigrationEngine
                 ChangeTypeReferenceRule ctr => Rewriters.RewriterHelpers.Namespace(ctr.NewType),
                 RenameNamespaceRule rnr => rnr.NewNamespace,
                 RenameTypeRule rtr => Rewriters.RewriterHelpers.Namespace(rtr.NewName),
+                // B-level: MoveMember introduces the new type's namespace at call sites.
+                MoveMemberRule mmr => Rewriters.RewriterHelpers.Namespace(mmr.NewTypeName),
                 _ => null,
             };
 
             // Only inject if:
             // 1. The namespace is non-trivial (not empty = no namespace prefix)
             // 2. At least one applied rewrite is attributed to this rule
-            // 3. The namespace is not already present
+            // 3. The namespace is not already present (exact match or any descendant)
+            //    e.g., `using NewNs.Sub` is treated as covering `NewNs` for purposes
+            //    of deduping — preserves the "AlreadyPresent_NotDuplicated" contract.
             if (string.IsNullOrEmpty(ns))
                 continue;
 
@@ -382,7 +393,12 @@ public sealed class MigrationEngine
             if (!ruleWasApplied)
                 continue;
 
-            if (!existingUsings.Contains(ns) && !toInject.Contains(ns))
+            bool alreadyCovered =
+                existingUsings.Contains(ns) ||
+                existingUsings.Any(u =>
+                    u.StartsWith(ns + ".", StringComparison.Ordinal));
+
+            if (!alreadyCovered && !toInject.Contains(ns))
                 toInject.Add(ns);
         }
 
@@ -397,9 +413,16 @@ public sealed class MigrationEngine
             : SyntaxFactory.LineFeed;
 
         // Build new using directives and prepend them to the compilation unit.
+        // `SyntaxFactory.UsingDirective(name)` produces a directive whose `using` keyword
+        // has no trailing whitespace by default. We patch the keyword's trailing trivia
+        // explicitly to avoid output like `usingNewNs;`.
         var newUsings = toInject.Select(ns =>
-            SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(ns))
-                .WithTrailingTrivia(trailing));
+        {
+            var directive = SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(ns));
+            return directive
+                .WithUsingKeyword(directive.UsingKeyword.WithTrailingTrivia(SyntaxFactory.Space))
+                .WithTrailingTrivia(trailing);
+        });
 
         return compilationUnit.AddUsings([.. newUsings]);
     }

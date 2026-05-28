@@ -1,0 +1,42 @@
+{
+  "schema": "wrapgod-migration/1.0",
+  "library": "TestApp.BLevel",
+  "from": "1.0.0",
+  "to": "2.0.0",
+  "generatedFrom": "manual",
+  "rules": [
+    {
+      "kind": "splitMethod",
+      "id": "SM-B01",
+      "confidence": "auto",
+      "typeName": "Panel",
+      "oldMethodName": "Refresh",
+      "newMethodNames": ["RefreshLayout", "RefreshContent"]
+    },
+    {
+      "kind": "extractParameterObject",
+      "id": "EPO-B01",
+      "confidence": "auto",
+      "typeName": "OptionsDialog",
+      "methodName": "Show",
+      "parameterObjectType": "ShowOptions",
+      "extractedParameters": ["title", "message"]
+    },
+    {
+      "kind": "propertyToMethod",
+      "id": "PTM-B01",
+      "confidence": "auto",
+      "typeName": "StatusButton",
+      "oldPropertyName": "Active",
+      "newMethodName": "SetActive"
+    },
+    {
+      "kind": "moveMember",
+      "id": "MM-B01",
+      "confidence": "auto",
+      "oldTypeName": "LegacyHelper",
+      "newTypeName": "ModernHelper",
+      "memberName": "ComputeHash"
+    }
+  ]
+}
