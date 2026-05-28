@@ -131,16 +131,17 @@ public sealed class SerilogMigrationE2ETests(ITestOutputHelper output) : TinyBdd
         {
             CopyDirectory(BeforeDir, tempDir);
 
-            var (exitCode, stdOut, stdErr) = await InvokeMigrateApplyAsync(SchemaFile, tempDir);
+            // Copy the schema to a temp location too — otherwise the engine writes a
+            // state file next to the real committed schema, mutating the fixture.
+            var tempSchema = Path.Combine(tempDir, Path.GetFileName(SchemaFile));
+            File.Copy(SchemaFile, tempSchema, overwrite: true);
+
+            var (exitCode, stdOut, stdErr) = await InvokeMigrateApplyAsync(tempSchema, tempDir);
 
             Assert.True(exitCode == 0,
                 $"migrate apply failed (exit {exitCode}).\nstdout:\n{stdOut}\nstderr:\n{stdErr}");
 
-            var afterFiles = Directory
-                .GetFiles(AfterDir, "*.cs", SearchOption.AllDirectories)
-                .Select(f => Path.GetRelativePath(AfterDir, f))
-                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            var afterFiles = EnumerateFixtureFiles(AfterDir);
 
             var diffs = new List<string>();
             foreach (var rel in afterFiles)
@@ -172,7 +173,23 @@ public sealed class SerilogMigrationE2ETests(ITestOutputHelper output) : TinyBdd
     }
 
     /// <summary>
-    /// Happy-02: summary shows 1 applied + 1 manual (100% coverage of all 2 rules).
+    /// Enumerates committed fixture .cs files under <paramref name="root"/>, excluding
+    /// build outputs (obj/, bin/) that may exist locally when the example projects have
+    /// been built. Returns paths relative to <paramref name="root"/>.
+    /// </summary>
+    private static List<string> EnumerateFixtureFiles(string root) =>
+        Directory
+            .GetFiles(root, "*.cs", SearchOption.AllDirectories)
+            .Where(f =>
+                !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Select(f => Path.GetRelativePath(root, f))
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    /// <summary>
+    /// Happy-02: summary reflects 2 applied (renameNamespace hits both .cs files) +
+    /// 2 manual (renameMember + removeMember).
     /// Satisfies BDD scenario 2 from MIGRATION-ENGINE-PLAN.md §203.b.
     /// </summary>
     [Scenario("Happy-02: Status_ShowsExpectedSummary_AfterApply")]
@@ -186,13 +203,18 @@ public sealed class SerilogMigrationE2ETests(ITestOutputHelper output) : TinyBdd
         {
             CopyDirectory(BeforeDir, tempDir);
 
-            var (exitCode, stdOut, _) = await InvokeMigrateApplyAsync(SchemaFile, tempDir);
+            // Copy the schema to temp too so the state file write doesn't touch the
+            // committed fixture next to the real schema.
+            var tempSchema = Path.Combine(tempDir, Path.GetFileName(SchemaFile));
+            File.Copy(SchemaFile, tempSchema, overwrite: true);
+
+            var (exitCode, stdOut, _) = await InvokeMigrateApplyAsync(tempSchema, tempDir);
 
             Assert.Equal(0, exitCode);
-            // 1 rename-namespace rule applied automatically
-            Assert.Contains("1 rewrites", stdOut, StringComparison.OrdinalIgnoreCase);
-            // 1 rename-member rule surfaced as manual
-            Assert.Contains("1 rules require human intervention", stdOut,
+            // renameNamespace fires on both .cs files → 2 rewrites
+            Assert.Contains("2 rewrites", stdOut, StringComparison.OrdinalIgnoreCase);
+            // 2 manual-confidence rules: renameMember (SERILOG-RM-001) + removeMember (SERILOG-RX-001)
+            Assert.Contains("2 rules require human intervention", stdOut,
                 StringComparison.OrdinalIgnoreCase);
         }
         finally

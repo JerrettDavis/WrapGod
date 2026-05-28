@@ -301,6 +301,16 @@ public sealed class MigrationEngine
             if (fileModified)
             {
                 currentRoot = InjectMissingUsings(currentRoot, autoRules, ctx2, sourceText);
+
+                // ── Duplicate-using cleanup post-pass ──────────────────────────
+                // Rewriters such as RenameNamespace, ChangeTypeReference, and
+                // MoveMember may collapse a previously-distinct namespace onto
+                // one that already appears earlier in the file. Strip exact
+                // duplicates here so the engine never produces output like
+                //     using Serilog;
+                //     using Serilog;
+                // which compiles but trips IDE "redundant using" warnings.
+                currentRoot = DeduplicateUsings(currentRoot);
             }
 
             allApplied.AddRange(ctx2.Applied);
@@ -425,6 +435,76 @@ public sealed class MigrationEngine
         });
 
         return compilationUnit.AddUsings([.. newUsings]);
+    }
+
+    /// <summary>
+    /// Removes duplicate <c>using</c> directives from <paramref name="root"/> when it is
+    /// a <see cref="CompilationUnitSyntax"/>. Two directives are considered duplicates
+    /// when their parsed <c>Name</c> texts compare equal under ordinal comparison and
+    /// their <c>GlobalKeyword</c>, <c>StaticKeyword</c>, and <c>Alias</c> shape match.
+    /// The first occurrence is kept (preserving its leading and trailing trivia); every
+    /// subsequent duplicate is dropped entirely.
+    /// </summary>
+    /// <remarks>
+    /// Runs as a post-pass after all rule rewrites + <see cref="InjectMissingUsings"/>.
+    /// Necessary because <see cref="Rewriters.RenameNamespaceRewriter"/>,
+    /// <see cref="Rewriters.ChangeTypeReferenceRewriter"/>, and
+    /// <see cref="Rewriters.Structural.MoveMemberRewriter"/> can each collapse a
+    /// previously-distinct namespace onto one that already appears earlier in the file.
+    /// </remarks>
+    /// <param name="root">The rewritten syntax root.</param>
+    /// <returns>The cleaned-up root, or the input unchanged when no duplicates exist.</returns>
+    private static Microsoft.CodeAnalysis.SyntaxNode DeduplicateUsings(
+        Microsoft.CodeAnalysis.SyntaxNode root)
+    {
+        if (root is not CompilationUnitSyntax compilationUnit)
+            return root;
+
+        if (compilationUnit.Usings.Count < 2)
+            return root;
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var keptUsings = new List<UsingDirectiveSyntax>(compilationUnit.Usings.Count);
+        bool anyDropped = false;
+
+        foreach (var u in compilationUnit.Usings)
+        {
+            var key = UsingKey(u);
+
+            if (seen.Add(key))
+            {
+                keptUsings.Add(u);
+            }
+            else
+            {
+                anyDropped = true;
+            }
+        }
+
+        if (!anyDropped)
+            return root;
+
+        return compilationUnit.WithUsings(SyntaxFactory.List(keptUsings));
+    }
+
+    /// <summary>
+    /// Builds a normalised key for a <see cref="UsingDirectiveSyntax"/> so that two
+    /// directives compare equal iff they import the same thing in the same flavour.
+    /// Distinguishes <c>using</c>, <c>using static</c>, <c>global using</c>, and
+    /// <c>using X = Y</c> aliases — none of those are interchangeable.
+    /// </summary>
+    private static string UsingKey(UsingDirectiveSyntax u)
+    {
+        var name        = u.Name?.ToString() ?? string.Empty;
+        var isGlobal    = u.GlobalKeyword.IsKind(SyntaxKind.GlobalKeyword);
+        var isStatic    = u.StaticKeyword.IsKind(SyntaxKind.StaticKeyword);
+        var aliasName   = u.Alias?.Name.Identifier.ValueText ?? string.Empty;
+
+        return string.Concat(
+            isGlobal ? "g|" : "_|",
+            isStatic ? "s|" : "_|",
+            aliasName, "|",
+            name);
     }
 
     /// <summary>

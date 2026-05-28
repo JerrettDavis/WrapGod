@@ -111,9 +111,13 @@ public sealed class MigrationParityTests
             var engine = MigrationEngine.CreateDefault();
             engine.Apply(schema, csFiles);
 
-            // Diff every .cs file in after/ against the migrated temp dir
+            // Diff every committed .cs fixture in after/ against the migrated temp dir.
+            // Exclude obj/ and bin/ which may exist locally when after/ has been built.
             var afterFiles = Directory
                 .GetFiles(AfterDir, "*.cs", SearchOption.AllDirectories)
+                .Where(f =>
+                    !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                    !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
                 .Select(f => Path.GetRelativePath(AfterDir, f))
                 .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -155,8 +159,10 @@ public sealed class MigrationParityTests
     }
 
     /// <summary>
-    /// Verifies that the engine reports the expected rule outcomes:
-    /// 1 applied (SERILOG-NS-001) + 1 manual (SERILOG-RM-001).
+    /// Verifies the schema currently exercises three distinct rule kinds and that the
+    /// engine reports the expected applied + manual counts.
+    /// Auto:   SERILOG-NS-001 (renameNamespace) → applies in both .cs files.
+    /// Manual: SERILOG-RM-001 (renameMember) + SERILOG-RX-001 (removeMember).
     /// </summary>
     [Fact]
     public async Task Apply_ReturnsExpected_AppliedAndManualCounts()
@@ -178,13 +184,13 @@ public sealed class MigrationParityTests
             var engine = MigrationEngine.CreateDefault();
             var result = engine.Apply(schema, csFiles);
 
-            // SERILOG-NS-001 (renameNamespace) is auto-applicable → Applied
-            Assert.True(result.Applied.Count >= 1,
-                $"Expected at least 1 applied rewrite; got {result.Applied.Count}");
+            // SERILOG-NS-001 (renameNamespace) is auto-applicable → 2 Applied (one per file)
+            Assert.True(result.Applied.Count >= 2,
+                $"Expected at least 2 applied rewrites; got {result.Applied.Count}");
 
-            // SERILOG-RM-001 (renameMember, manual confidence) → Manual list
-            Assert.True(result.Manual.Count >= 1,
-                $"Expected at least 1 manual rule; got {result.Manual.Count}");
+            // SERILOG-RM-001 + SERILOG-RX-001 are manual-confidence → 2 entries
+            Assert.True(result.Manual.Count >= 2,
+                $"Expected at least 2 manual rules; got {result.Manual.Count}");
 
             // DryRun flag should be false (this is a real apply)
             Assert.False(result.DryRun);

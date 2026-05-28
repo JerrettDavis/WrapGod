@@ -10,3 +10,4 @@ Strategies and automation for migrating codebases between library versions and a
 - [A-Level Rewriters](rewriters.md) — Seven concrete `IRuleRewriter` implementations: `RenameType`, `RenameNamespace`, `RenameMember`, `ChangeParameter`, `RemoveMember`, `AddRequiredParameter`, `ChangeTypeReference`
 - [Migration State](state.md) — `MigrationState`, `MigrationStateStore`, `StatefulMigrationEngine`: state file location, SHA-256 schema hash, idempotent re-runs, corruption recovery
 - [Applying Migrations](applying.md) — `wrap-god migrate apply` consumer workflow: dry-run, glob filtering, idempotence, state management
+- [Examples](examples.md) — End-to-end, CI-validated examples (Serilog v2 → v3 upgrade walkthrough + bidirectional comparisons)

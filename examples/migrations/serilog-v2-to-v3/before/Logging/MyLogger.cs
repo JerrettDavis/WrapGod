@@ -1,4 +1,5 @@
 using Serilog;
+using Serilog.Sinks.RollingFile;
 
 namespace SerilogV2Sample.Logging;
 

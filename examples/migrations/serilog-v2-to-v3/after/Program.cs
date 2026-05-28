@@ -1,5 +1,4 @@
 using Serilog;
-using Serilog;
 using SerilogV2Sample.Logging;
 
 // ── Serilog v2 bootstrap ──────────────────────────────────────────────────

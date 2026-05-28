@@ -462,6 +462,104 @@ public sealed class MigrationEngineTests(ITestOutputHelper output) : TinyBddXuni
         .AssertPassed();
 
     // ══════════════════════════════════════════════════════════════════════════
+    // Group: duplicate-using cleanup (PR #218 review must-fix #1)
+    // ══════════════════════════════════════════════════════════════════════════
+
+    [Scenario("DedupUsings-01: RenameNamespace collapses onto an existing using → result has no duplicates")]
+    [Fact]
+    public Task DedupUsings01_RenameNamespace_CollapseOntoExistingUsing_NoDuplicate() =>
+        Given("file has 'using A; using B.Sub;' and rule renames B.Sub → A", () =>
+        {
+            // Real-world scenario from the Serilog v2→v3 example:
+            //   using Serilog;
+            //   using Serilog.Sinks.RollingFile;   ← gets renamed to Serilog
+            // Result MUST NOT be two `using Serilog;` lines.
+            var source = "using A;\nusing B.Sub;\nclass C { }";
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    new RenameNamespaceRule
+                    {
+                        Id = "RNS-DEDUP",
+                        OldNamespace = "B.Sub",
+                        NewNamespace = "A"
+                    }
+                ]
+            };
+            var fs = new InMemoryFileSystem().WithFile("c.cs", source);
+            var engine = EngineWithFs(fs);
+            return engine.Apply(schema, ["c.cs"]);
+        })
+        .Then("c.cs was rewritten", r => r.RewrittenFiles.ContainsKey("c.cs"))
+        .And("'using A;' appears exactly once",
+            r => CountOccurrences(r.RewrittenFiles["c.cs"], "using A;") == 1)
+        .And("'using B.Sub' is gone",
+            r => !r.RewrittenFiles["c.cs"].Contains("using B.Sub"))
+        .AssertPassed();
+
+    [Scenario("DedupUsings-02: pre-existing duplicate usings unrelated to a rename are preserved as-is when no rewrite happens")]
+    [Fact]
+    public Task DedupUsings02_NoRewrite_PreservesInput() =>
+        Given("file has two identical 'using X;' lines and no rule matches", () =>
+        {
+            // The dedup post-pass only runs when fileModified == true. A file we
+            // don't touch must stay byte-equal to its input.
+            var source = "using X;\nusing X;\nclass C { }";
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    new RenameNamespaceRule
+                    {
+                        Id = "RNS-NOOP",
+                        OldNamespace = "NoSuchNamespace",
+                        NewNamespace = "Whatever"
+                    }
+                ]
+            };
+            var fs = new InMemoryFileSystem().WithFile("c.cs", source);
+            var engine = EngineWithFs(fs);
+            engine.Apply(schema, ["c.cs"]);
+            return fs.Files["c.cs"];
+        })
+        .Then("file on disk is unchanged", content => content == "using X;\nusing X;\nclass C { }")
+        .AssertPassed();
+
+    [Scenario("DedupUsings-03: 'using static X;' and 'using X;' are distinct — neither is dropped")]
+    [Fact]
+    public Task DedupUsings03_StaticAndNonStatic_BothPreserved() =>
+        Given("file has 'using X;' AND 'using static X;' with a triggering rename rule", () =>
+        {
+            // Triggers a rewrite (so the dedup post-pass runs), then verifies that
+            // `using static X;` is NOT considered a duplicate of `using X;`.
+            var source = "using OldNs;\nusing X;\nusing static X;\nclass C { }";
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    new RenameNamespaceRule
+                    {
+                        Id = "RNS-NORMAL",
+                        OldNamespace = "OldNs",
+                        NewNamespace = "NewNs"
+                    }
+                ]
+            };
+            var fs = new InMemoryFileSystem().WithFile("c.cs", source);
+            var engine = EngineWithFs(fs);
+            return engine.Apply(schema, ["c.cs"]);
+        })
+        .Then("c.cs was rewritten", r => r.RewrittenFiles.ContainsKey("c.cs"))
+        .And("'using X;' is still present", r => r.RewrittenFiles["c.cs"].Contains("using X;"))
+        .And("'using static X;' is still present",
+            r => r.RewrittenFiles["c.cs"].Contains("using static X;"))
+        .AssertPassed();
+
+    // ══════════════════════════════════════════════════════════════════════════
     // Group: review-feedback regression tests
     // ══════════════════════════════════════════════════════════════════════════
 
