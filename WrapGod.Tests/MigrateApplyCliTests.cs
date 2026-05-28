@@ -4,6 +4,7 @@ using TinyBDD;
 using TinyBDD.Xunit;
 using WrapGod.Cli;
 using WrapGod.Migration;
+using WrapGod.Migration.Engine.State;
 using Xunit.Abstractions;
 
 namespace WrapGod.Tests;
@@ -217,6 +218,8 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
             // First run
             await InvokeAsync($"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\"");
             var contentAfterFirst = await File.ReadAllTextAsync(csPath);
+            var stateBefore = MigrationStateStore.Load(schemaPath, out _, out _);
+            Assert.NotNull(stateBefore);
 
             // Second run
             var (exitCode, stdout, _) = await InvokeAsync(
@@ -227,6 +230,11 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
             Assert.Equal(contentAfterFirst, contentAfterSecond);
             // Second run should report 0 modifications
             Assert.Contains("0 modified", stdout, StringComparison.OrdinalIgnoreCase);
+
+            // State file Applied list is stable across the idempotent re-run.
+            var stateAfter = MigrationStateStore.Load(schemaPath, out _, out _);
+            Assert.NotNull(stateAfter);
+            Assert.Equal(stateBefore.Applied.Count, stateAfter.Applied.Count);
         }
         finally
         {
@@ -325,12 +333,27 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
 
             Assert.Equal(0, exitCode);
             using var doc = JsonDocument.Parse(stdout);
-            Assert.True(doc.RootElement.TryGetProperty("applied",       out _), "JSON must have 'applied'");
-            Assert.True(doc.RootElement.TryGetProperty("skipped",       out _), "JSON must have 'skipped'");
-            Assert.True(doc.RootElement.TryGetProperty("manual",        out _), "JSON must have 'manual'");
-            Assert.True(doc.RootElement.TryGetProperty("dryRun",        out _), "JSON must have 'dryRun'");
-            Assert.True(doc.RootElement.TryGetProperty("filesScanned",  out _), "JSON must have 'filesScanned'");
-            Assert.True(doc.RootElement.TryGetProperty("filesModified", out _), "JSON must have 'filesModified'");
+            // ── Required keys ──────────────────────────────────────────────────────────────
+            Assert.True(doc.RootElement.TryGetProperty("applied",        out _), "JSON must have 'applied'");
+            Assert.True(doc.RootElement.TryGetProperty("skipped",        out _), "JSON must have 'skipped'");
+            Assert.True(doc.RootElement.TryGetProperty("manual",         out _), "JSON must have 'manual'");
+            Assert.True(doc.RootElement.TryGetProperty("dryRun",         out _), "JSON must have 'dryRun'");
+            Assert.True(doc.RootElement.TryGetProperty("filesScanned",   out _), "JSON must have 'filesScanned'");
+            Assert.True(doc.RootElement.TryGetProperty("filesModified",  out _), "JSON must have 'filesModified'");
+            // ── New CI-consumer fields ──────────────────────────────────────────────────────
+            Assert.True(doc.RootElement.TryGetProperty("stateRecovered", out _), "JSON must have 'stateRecovered' (null when not recovered)");
+            Assert.True(doc.RootElement.TryGetProperty("skippedDetails", out var skipped), "JSON must have 'skippedDetails'");
+            Assert.Equal(JsonValueKind.Array, skipped.ValueKind);
+            Assert.True(doc.RootElement.TryGetProperty("manualDetails",  out var manual),  "JSON must have 'manualDetails'");
+            Assert.Equal(JsonValueKind.Array, manual.ValueKind);
+            Assert.True(doc.RootElement.TryGetProperty("appliedByRule",  out var byRule),  "JSON must have 'appliedByRule'");
+            Assert.Equal(JsonValueKind.Array, byRule.ValueKind);
+            // ── For a successful single-rule run, expect ≥1 entry under appliedByRule ──────
+            Assert.True(byRule.GetArrayLength() >= 1, "appliedByRule should contain at least one entry");
+            var first = byRule[0];
+            Assert.True(first.TryGetProperty("ruleId",    out _), "appliedByRule entries must have 'ruleId'");
+            Assert.True(first.TryGetProperty("kind",      out _), "appliedByRule entries must have 'kind'");
+            Assert.True(first.TryGetProperty("fileCount", out _), "appliedByRule entries must have 'fileCount'");
         }
         finally
         {
@@ -408,15 +431,18 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
     }
 
     /// <summary>
-    /// Scenario 10: No --schema flag → exit code is non-zero (required option missing).
+    /// Scenario 10: No --schema flag → exit code 2 per plan §4.3 (bad args).
+    /// The command validates the option itself rather than relying on
+    /// System.CommandLine's default IsRequired behavior (which returns 1).
     /// </summary>
-    [Scenario("Sad-04: no --schema flag → non-zero exit from System.CommandLine")]
+    [Scenario("Sad-04: no --schema flag → exit 2 (bad args, per plan §4.3)")]
     [Fact]
     public async Task Apply_NoSchemaFlag_Fails()
     {
-        var (exitCode, _, _) = await InvokeAsync("apply");
+        var (exitCode, _, stderr) = await InvokeAsync("apply");
 
-        Assert.NotEqual(0, exitCode);
+        Assert.Equal(2, exitCode);
+        Assert.Contains("--schema", stderr, StringComparison.OrdinalIgnoreCase);
     }
 
     // ════════════════════════════════════════════════════════════════════════════════════════
@@ -479,11 +505,12 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
     }
 
     /// <summary>
-    /// Scenario 13: --dry-run on a read-only directory → exit 0 (never writes).
+    /// Scenario 13: --dry-run leaves files unchanged on disk, even when the source
+    /// file is marked read-only (dry-run never writes, regardless of permissions).
     /// </summary>
-    [Scenario("Edge-03: --dry-run on directory where writes would fail → exit 0")]
+    [Scenario("Edge-03: --dry-run leaves files unchanged, even read-only files")]
     [Fact]
-    public async Task Apply_DryRun_NeverWrites_SoReadOnlyDirIsOk()
+    public async Task Apply_DryRun_LeavesFilesUnchanged()
     {
         var tempDir = CreateTempDir();
         try
@@ -493,14 +520,26 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
             await File.WriteAllTextAsync(schemaPath, MakeRenameSchema());
             await File.WriteAllTextAsync(csPath, SourceWithMatch);
 
-            // Dry-run never writes; should always succeed regardless of write permissions
-            var (exitCode, _, _) = await InvokeAsync(
-                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --dry-run");
+            // Mark the target file read-only so any write attempt would fail loudly.
+            var originalAttrs = File.GetAttributes(csPath);
+            File.SetAttributes(csPath, originalAttrs | FileAttributes.ReadOnly);
 
-            Assert.Equal(0, exitCode);
-            // Source file is unchanged
-            var content = await File.ReadAllTextAsync(csPath);
-            Assert.Contains("OldWidget", content, StringComparison.Ordinal);
+            try
+            {
+                var (exitCode, _, _) = await InvokeAsync(
+                    $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --dry-run");
+
+                Assert.Equal(0, exitCode);
+                // Source file is byte-for-byte unchanged.
+                var content = await File.ReadAllTextAsync(csPath);
+                Assert.Contains("OldWidget", content, StringComparison.Ordinal);
+                Assert.DoesNotContain("NewWidget", content, StringComparison.Ordinal);
+            }
+            finally
+            {
+                // Restore so SafeDelete can clean up.
+                File.SetAttributes(csPath, originalAttrs);
+            }
         }
         finally
         {
@@ -585,9 +624,9 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
 
     /// <summary>
     /// Scenario 17: Corrupt state file → engine recovers (archives to .bak),
-    /// run completes, output mentions recovery.
+    /// run completes, output mentions recovery via prominent banner.
     /// </summary>
-    [Scenario("Edge-07: corrupt state file → engine recovers with .bak and continues")]
+    [Scenario("Edge-07: corrupt state file → recovery banner appears in human mode")]
     [Fact]
     public async Task Apply_CorruptState_RecoversWithBackup()
     {
@@ -604,12 +643,54 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
             await File.WriteAllTextAsync(statePath, "{ this is NOT valid json }}}");
 
             // Engine should recover and complete successfully
-            var (exitCode, _, _) = await InvokeAsync(
+            var (exitCode, stdout, _) = await InvokeAsync(
                 $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\"");
 
             Assert.Equal(0, exitCode);
             // Backup of the corrupt file should exist
             Assert.True(File.Exists(statePath + ".bak"), "Corrupt state file should be archived to .bak");
+            // Prominent banner is printed BEFORE the standard summary header.
+            Assert.Contains("WARNING",       stdout, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("state",         stdout, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("===",           stdout, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// Scenario 17b: Corrupt state file → --json mode surfaces a top-level
+    /// stateRecovered object with an archivedTo field (not buried in the skipped array).
+    /// </summary>
+    [Scenario("Edge-07b: corrupt state file → JSON mode emits stateRecovered.archivedTo")]
+    [Fact]
+    public async Task Apply_CorruptState_JsonHasStateRecovered()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "test.wrapgod-migration.json");
+            var csPath     = Path.Combine(tempDir, "Widget.cs");
+            await File.WriteAllTextAsync(schemaPath, MakeRenameSchema());
+            await File.WriteAllTextAsync(csPath, SourceWithMatch);
+
+            var statePath = schemaPath + ".state.json";
+            await File.WriteAllTextAsync(statePath, "{ corrupt }");
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --json");
+
+            Assert.Equal(0, exitCode);
+            using var doc = JsonDocument.Parse(stdout);
+            Assert.True(doc.RootElement.TryGetProperty("stateRecovered", out var recovered),
+                "JSON must have 'stateRecovered'");
+            Assert.NotEqual(JsonValueKind.Null, recovered.ValueKind);
+            Assert.True(recovered.TryGetProperty("archivedTo", out var archived),
+                "stateRecovered must have 'archivedTo'");
+            Assert.False(string.IsNullOrWhiteSpace(archived.GetString()),
+                "archivedTo should point at the .bak path");
         }
         finally
         {
@@ -722,6 +803,85 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
                 $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --verbose");
 
             Assert.Equal(0, exitCode);
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// Scenario 21 (plan §199.a step 5): --dry-run prints a unified-diff-style preview
+    /// per file that would be modified.
+    /// </summary>
+    [Scenario("Edge-11: --dry-run prints a unified-diff preview per file")]
+    [Fact]
+    public async Task Apply_DryRun_PrintsDiff()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "test.wrapgod-migration.json");
+            var csPath     = Path.Combine(tempDir, "Widget.cs");
+            await File.WriteAllTextAsync(schemaPath, MakeRenameSchema());
+            await File.WriteAllTextAsync(csPath, SourceWithMatch);
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --dry-run");
+
+            Assert.Equal(0, exitCode);
+            // Unified-diff style markers must appear when there is a would-be change.
+            Assert.Contains("--- a/", stdout, StringComparison.Ordinal);
+            Assert.Contains("+++ b/", stdout, StringComparison.Ordinal);
+            // The change itself should be visible: old line removed (-), new line added (+).
+            Assert.Contains("-",       stdout, StringComparison.Ordinal);
+            Assert.Contains("+",       stdout, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// Scenario 22 (plan §199.a step 5): --dry-run truncates per-file diff output at
+    /// MaxInlineDiffLinesPerFile (20) and dumps the full diff to .wrapgod/dryrun-*.diff.
+    /// </summary>
+    [Scenario("Edge-12: --dry-run truncates inline diff and writes a dump file")]
+    [Fact]
+    public async Task Apply_DryRun_TruncatesDiff()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "test.wrapgod-migration.json");
+            await File.WriteAllTextAsync(schemaPath, MakeRenameSchema());
+
+            // Build a large source where every line references OldWidget so the diff
+            // is many lines long — guaranteed to exceed the 20-line inline cap.
+            var sb = new System.Text.StringBuilder();
+            sb.Append("namespace MyApp { class OldWidget { } class Consumer {\n");
+            for (var i = 0; i < 60; i++)
+                sb.Append("    OldWidget w").Append(i).Append(" = null;\n");
+            sb.Append("} }\n");
+
+            var csPath = Path.Combine(tempDir, "Big.cs");
+            await File.WriteAllTextAsync(csPath, sb.ToString());
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --dry-run");
+
+            Assert.Equal(0, exitCode);
+            // Truncation hint should appear in the human-readable output.
+            Assert.Contains("truncated", stdout, StringComparison.OrdinalIgnoreCase);
+            // The .wrapgod/dryrun-*.diff dump file must exist.
+            var dumpDir = Path.Combine(tempDir, ".wrapgod");
+            Assert.True(Directory.Exists(dumpDir), ".wrapgod directory must be created for dump file");
+            var dumpFiles = Directory.GetFiles(dumpDir, "dryrun-*.diff");
+            Assert.NotEmpty(dumpFiles);
+            // Dump file should contain more diff lines than the inline preview.
+            var dumpContent = await File.ReadAllTextAsync(dumpFiles[0]);
+            Assert.True(dumpContent.Length > 0, "Dump file must have content");
         }
         finally
         {

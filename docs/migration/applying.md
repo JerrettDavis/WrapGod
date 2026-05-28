@@ -109,22 +109,64 @@ Use this information to guide manual edits after the automated apply step.
 
 If the state file contains invalid JSON (e.g., was truncated by an interrupted write), the
 command automatically archives it to `{statePath}.bak` and performs a full re-run. The
-recovery is noted in the output so you are aware it occurred.
+recovery is **surfaced as a prominent banner** in human-readable output:
+
+```
+============================================================
+WARNING: Prior state file was corrupt.
+  Archived to: /path/to/schema.json.state.json.bak
+  Re-evaluating all rules from scratch.
+============================================================
+```
+
+In `--json` mode the recovery appears as a top-level `stateRecovered` object with an
+`archivedTo` field — CI consumers can act on it without parsing the skipped array.
 
 ## JSON output mode
 
 Pass `--json` to get a machine-readable summary suitable for CI reporting:
 
-```json
+```jsonc
 {
   "dryRun": false,
   "filesScanned": 128,
   "filesModified": 22,
   "applied": 38,
   "skipped": 6,
-  "manual": 3
+  "manual": 3,
+  "stateRecovered": null,   // or { "archivedTo": "...", "note": "..." }
+  "skippedDetails": [
+    { "ruleId": "MUD-017", "file": "src/Dialogs/Confirm.cs", "line": 42, "reason": "Ambiguous: ..." }
+  ],
+  "manualDetails": [
+    { "ruleId": "MUD-003", "note": "...", "matchedFiles": ["src/Dialogs/Confirm.cs"] }
+  ],
+  "appliedByRule": [
+    { "ruleId": "MUD-001", "kind": "renameType", "fileCount": 8, "count": 12 }
+  ],
+  "dryRunDiff": null         // populated in --dry-run mode with inline + dump-file paths
 }
 ```
+
+## Dry-run diff preview
+
+When `--dry-run` is set, the human-readable output prints a unified-diff-style preview for
+every file that would be modified:
+
+```diff
+--- a/src/Components/Widget.cs
++++ b/src/Components/Widget.cs
+-    OldWidget w = null;
++    NewWidget w = null;
+```
+
+Per-file inline output is truncated at 20 lines. The full per-file diff for the entire run
+is written to `<projectRoot>/.wrapgod/dryrun-<UTC-timestamp>.diff` and the truncation hint
+references it.
+
+> The unified-diff is intentionally simple (line-level, no Myers/LCS hunking). For more
+> precise diffs, point your favorite diff tool at the dump file. A follow-up issue tracks
+> upgrading to a richer hunked diff format.
 
 ## See also
 
