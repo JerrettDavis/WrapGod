@@ -9,3 +9,4 @@ Strategies and automation for migrating codebases between library versions and a
 - [Schema Generation](schema-generation.md) — `MigrationSchemaGenerator.FromDiff` — diff → schema mapping, similarity thresholds, deterministic IDs
 - [A-Level Rewriters](rewriters.md) — Seven concrete `IRuleRewriter` implementations: `RenameType`, `RenameNamespace`, `RenameMember`, `ChangeParameter`, `RemoveMember`, `AddRequiredParameter`, `ChangeTypeReference`
 - [Migration State](state.md) — `MigrationState`, `MigrationStateStore`, `StatefulMigrationEngine`: state file location, SHA-256 schema hash, idempotent re-runs, corruption recovery
+- [Applying Migrations](applying.md) — `wrap-god migrate apply` consumer workflow: dry-run, glob filtering, idempotence, state management
