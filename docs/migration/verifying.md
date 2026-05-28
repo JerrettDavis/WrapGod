@@ -183,9 +183,18 @@ WARNING: Schema has changed since last apply. Attribution may be inaccurate.
 
 Re-run `migrate apply` to regenerate the state before running `verify` again.
 
-### Case-sensitive paths on Linux
+### Platform-aware path casing
 
-The ±3-line match normalises path separators (`\` → `/`) and uses case-insensitive comparison on Windows. On Linux and macOS the comparison is case-sensitive. Ensure the paths recorded in the state file match the actual filesystem casing — this is most commonly an issue when the schema was authored on Windows and the build runs on Linux.
+The ±3-line attribution match normalises path separators (`\` → `/`) and then compares paths using **platform-native** filesystem semantics:
+
+| Platform | Comparison | Rationale |
+|----------|------------|-----------|
+| Windows | Case-insensitive (`OrdinalIgnoreCase`) | Matches NTFS behavior: `Foo.cs` and `foo.cs` refer to the same file. |
+| Linux / macOS | Case-sensitive (`Ordinal`) | Matches POSIX behavior: `Foo.cs` and `foo.cs` are distinct files. |
+
+**Implication:** A state file authored on Windows whose `Applied` entries record paths like `src/Foo.cs` will *not* attribute diagnostics emitted as `src/foo.cs` when verified on Linux CI. Ensure the casing recorded in the state file matches the actual filesystem casing on every platform where `verify` runs. The safest convention is to record paths exactly as the compiler emits them — i.e. as they appear in the build output.
+
+If your project must support cross-platform development with mixed-case paths, normalize file paths to a canonical form (typically all-lowercase or as-they-appear-on-disk) before committing the state file to source control.
 
 ---
 

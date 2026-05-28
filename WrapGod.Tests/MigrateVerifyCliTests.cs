@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using TinyBDD;
 using WrapGod.Cli;
@@ -405,12 +406,18 @@ public sealed class MigrateVerifyCliTests
         finally { SafeDelete(dir); }
     }
 
-    // ── Scenario 11: Case-insensitive path matching ──────────────────────────
+    // ── Scenario 11a: Case-insensitive path matching (Windows-only) ─────────
 
-    [Scenario("Path matching is case-insensitive on Windows")]
+    [Scenario("Path matching is case-insensitive on Windows (matches NTFS behavior)")]
     [Fact]
-    public async Task Verify_PathCaseInsensitiveMatch()
+    public async Task Verify_PathCaseInsensitive_OnWindowsOnly()
     {
+        // The path comparer is platform-aware: OrdinalIgnoreCase on Windows,
+        // Ordinal on Linux/macOS. This test only asserts the Windows behavior.
+        // The POSIX counterpart is Verify_PathCaseSensitive_OnPosix below.
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return; // skip on non-Windows; behavior documented to differ
+
         var dir = CreateTempDir();
         try
         {
@@ -430,6 +437,43 @@ public sealed class MigrateVerifyCliTests
 
             Assert.Equal(0, exitCode);
             Assert.Contains("R-001", stdout); // matched despite case difference
+        }
+        finally { SafeDelete(dir); }
+    }
+
+    // ── Scenario 11b: Case-sensitive path matching (POSIX) ──────────────────
+
+    [Scenario("Path matching is case-sensitive on Linux/macOS (matches POSIX filesystem behavior)")]
+    [Fact]
+    public async Task Verify_PathCaseSensitive_OnPosix()
+    {
+        // Complementary to Verify_PathCaseInsensitive_OnWindowsOnly.
+        // On POSIX filesystems "Foo.cs" and "foo.cs" really are different files,
+        // so the attribution must NOT cross-match.
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            return; // skip on Windows; the inverse test covers that platform
+
+        var dir = CreateTempDir();
+        try
+        {
+            const string upperFile = "Foo.cs";
+            var lowerFile = upperFile.ToLowerInvariant(); // "foo.cs"
+
+            // Rewrite recorded with the uppercase variant
+            var applied    = new AppliedRewrite("R-001", upperFile, 5, "A", "B");
+            var schemaPath = await WriteStateAsync(dir, BuildState([applied]));
+
+            // Diagnostic comes in with the lowercase variant — distinct file on POSIX
+            var diagLine = DiagLine(lowerFile, 6, 1, "error", "CS0001", "msg");
+            var stub = new StubBuildRunner(BuildResult.Completed(diagLine, 1));
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"--schema \"{schemaPath}\" --project-dir \"{dir}\"", stub);
+
+            Assert.Equal(0, exitCode);
+            // Case-sensitive comparison → diagnostic is NOT attributed to R-001.
+            // It falls into the Unattributed bucket.
+            Assert.Contains("Unattributed", stdout, StringComparison.OrdinalIgnoreCase);
         }
         finally { SafeDelete(dir); }
     }
