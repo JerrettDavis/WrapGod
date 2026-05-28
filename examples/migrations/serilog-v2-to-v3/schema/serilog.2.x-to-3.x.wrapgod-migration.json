@@ -1,0 +1,35 @@
+{
+  "schema": "wrapgod-migration/1.0",
+  "library": "Serilog",
+  "from": "2.12.0",
+  "to": "3.1.1",
+  "generatedFrom": "manual",
+  "lastEdited": "2026-05-28T00:00:00+00:00",
+  "rules": [
+    {
+      "kind": "renameNamespace",
+      "id": "SERILOG-NS-001",
+      "confidence": "verified",
+      "oldNamespace": "Serilog.Sinks.RollingFile",
+      "newNamespace": "Serilog",
+      "note": "The Serilog.Sinks.RollingFile package is no longer needed in v3. Rolling-file support is built into Serilog.Sinks.File. Remove the old using directive (or let it collapse onto the existing 'using Serilog;' — the engine's dedup post-pass handles this automatically)."
+    },
+    {
+      "kind": "renameMember",
+      "id": "SERILOG-RM-001",
+      "confidence": "manual",
+      "typeName": "Serilog.Configuration.LoggerSinkConfiguration",
+      "oldMemberName": "RollingFile",
+      "newMemberName": "File",
+      "note": "WriteTo.RollingFile(...) was removed in v3. Replace with WriteTo.File(path, rollingInterval: RollingInterval.Day). The engine cannot safely apply this in a fluent chain without semantic type resolution; review manually. Also update the path pattern from '{Date}' to the plain path (v3 appends the date automatically)."
+    },
+    {
+      "kind": "removeMember",
+      "id": "SERILOG-RX-001",
+      "confidence": "manual",
+      "typeName": "Serilog.ILogger",
+      "memberName": "Debug",
+      "note": "Illustrative third rule (different kind). Many real Serilog v2→v3 migrations include an audit pass that flags every diagnostic-level call (Debug/Verbose) so teams can decide which to keep. The engine reports every match for human review; nothing is removed automatically."
+    }
+  ]
+}

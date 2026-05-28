@@ -3,6 +3,16 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# WrapGod: migration engine runtime state files
+# These are written next to the schema when `migrate apply` runs and normally contain
+# machine-local absolute paths. The example state file under serilog-v2-to-v3/schema/
+# is an explicit committed fixture (sanitised to relative paths) and is force-included
+# below so users can inspect what a post-apply state file looks like.
+**/*.wrapgod-migration.json.state.json
+!examples/migrations/serilog-v2-to-v3/schema/serilog.2.x-to-3.x.wrapgod-migration.json.state.json
+# WrapGod: CLI output directory
+examples/output/
+
 # dotenv files
 .env
 

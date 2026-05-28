@@ -35,4 +35,7 @@
     <Project Path="migrations/mediatr-masstransit-mediator-bidirectional/MassTransitMediatorApp/MassTransitMediatorApp.csproj" />
     <Project Path="migrations/mediatr-masstransit-mediator-bidirectional/ParityTests/ParityTests.csproj" />
   </Folder>
+  <Folder Name="/migrations/serilog-v2-to-v3/">
+    <Project Path="migrations/serilog-v2-to-v3/MigrationTests/MigrationTests.csproj" />
+  </Folder>
 </Solution>
