@@ -60,10 +60,41 @@ For the full walkthrough — extracting manifests, configuring rules, running an
 | `wrap-god diff` | Compare two manifest versions and report breaking changes |
 | `wrap-god merge` | Merge multiple version manifests into one |
 | `wrap-god migrate generate` | Generate a draft migration schema from two library versions (NuGet or local DLLs) |
+| `wrap-god migrate apply` | Apply a migration schema to a codebase (supports `--dry-run`) |
+| `wrap-god migrate status` | Report migration progress from the state file |
+| `wrap-god migrate verify` | Build the project and correlate compiler diagnostics to migration rules |
 
 Install: `dotnet tool install -g WrapGod.Cli`
 
 See [CLI Reference](docs/guide/cli.md) for full usage and options.
+
+## Migration Engine
+
+When a library you depend on ships breaking changes, WrapGod can automate the bulk of the upgrade work. The Migration Engine takes a [migration schema](docs/migration/schema.md) — a JSON file describing what changed (renames, moves, removals, restructurings) — and applies it to your codebase using Roslyn syntax rewriting. No compilation required: it handles broken code, preserves whitespace and comments, and records everything it touched so re-runs are safe.
+
+```bash
+# Generate a draft schema from two NuGet versions
+wrap-god migrate generate --package MudBlazor --from 6.0.0 --to 7.0.0
+
+# Preview changes (dry-run)
+wrap-god migrate apply \
+  --schema mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json \
+  --project-dir ./src \
+  --dry-run
+
+# Apply for real
+wrap-god migrate apply \
+  --schema mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json \
+  --project-dir ./src
+
+# Correlate any build errors to the rules that caused them
+wrap-god migrate verify \
+  --schema mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json
+```
+
+The engine supports 11 rule kinds covering everything from simple renames to method splits, parameter-object extractions, and static member moves. Library authors can ship migration schemas alongside their NuGet packages so consumers can upgrade with a single command.
+
+See [Migration Engine documentation](docs/migration/index.md) for the full guide.
 
 ## The Pipeline
 
@@ -125,6 +156,11 @@ See [examples/README.md](examples/README.md) for the full catalog.
 - [Configuration Guide](docs/guide/configuration.md) — JSON, attributes, fluent DSL, merge precedence
 - [Compatibility Modes](docs/guide/compatibility.md) — LCD, Targeted, and Adaptive modes
 - [Analyzer Diagnostics](docs/guide/analyzers.md) — WG2001, WG2002, code fixes, suppression
+- [Migration Engine](docs/migration/index.md) — automated code migration: all 11 rule kinds, consumer workflow, authoring guide
+  - [Applying Migrations](docs/migration/applying.md) — consumer workflow: dry-run, apply, status, verify
+  - [Authoring a Migration Schema](docs/migration/authoring.md) — guide for library maintainers
+  - [Migration Schema Reference](docs/migration/schema.md) — JSON format and all rule kinds
+  - [Migration Engine Internals](docs/migration/engine.md) — architecture, lifecycle, extension points
 - [Migration Playbook](docs/migration/playbook.md) — strategy selection, authoring mappings, safety model
 - [Architecture](docs/guide/architecture.md) — pipeline internals and design decisions
 - [Engineering](docs/engineering/engineering.md) — SDK, build conventions, contribution guidelines

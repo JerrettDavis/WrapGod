@@ -2,9 +2,98 @@
 
 `WrapGod.Migration.Engine` is the Roslyn-backed rewrite pipeline that consumes a
 `MigrationSchema` (authored or generated via `WrapGod.Migration`) and applies its rules
-against C# source files. This page documents the scaffold contracts that ship in
-issue #194; the concrete rewriters and the orchestrator that wire everything together
-arrive in later issues (see "What's next" below).
+against C# source files.
+
+## Overview
+
+The migration engine automates the mechanical part of upgrading a codebase from one version of a library to another. Given a [migration schema](schema.md) that describes the breaking changes (renames, moves, removals, restructurings), the engine:
+
+1. Walks every `.cs` file in your project
+2. Parses each file into a Roslyn syntax tree (no compilation needed)
+3. Applies each applicable rule through its dedicated rewriter
+4. Preserves all whitespace and comments
+5. Injects any missing `using` directives for new namespaces
+6. Writes the result back to disk atomically
+
+The engine is purely syntactic — it never requires a compilable project or a `SemanticModel`. It handles broken code gracefully, which matters when part of your upgrade is fixing the very errors the migration introduces.
+
+### When to use the migration engine
+
+| Scenario | Recommendation |
+|----------|---------------|
+| Upgrading a NuGet package that shipped a migration schema | Use `migrate apply` directly |
+| Upgrading a package with no schema available | Use `migrate generate` to draft a schema first |
+| Bulk-renaming types across a large codebase after an internal refactor | Author a schema manually; run `migrate apply` |
+| Complex structural changes (method splits, parameter objects) | Author B-level rules; run `migrate apply` with `confidence: "manual"` first |
+| Programmatic integration (CI, build scripts) | Use the `MigrationEngine` or `StatefulMigrationEngine` API directly |
+
+## Architecture Diagram
+
+```
+ ┌─────────────────────────────────────────────────────────────────────────┐
+ │  User inputs                                                             │
+ │  ─────────                                                               │
+ │  MigrationSchema JSON           Source files (.cs)                       │
+ └──────────┬──────────────────────────────────┬───────────────────────────┘
+            │                                  │
+            ▼                                  ▼
+ ┌─────────────────────┐          ┌────────────────────────┐
+ │ MigrationSchema     │          │ IMigrationFileSystem   │
+ │ (deserialized)      │          │ ReadAllText()          │
+ └──────────┬──────────┘          └──────────┬─────────────┘
+            │                               │
+            ▼                               ▼
+ ┌─────────────────────────────────────────────────────────┐
+ │                     MigrationEngine                      │
+ │  ┌───────────────────────────────────────────────────┐  │
+ │  │  Per-file loop (deduplicated paths)               │  │
+ │  │  ┌─────────────────────────────────────────────┐  │  │
+ │  │  │  CSharpSyntaxTree.ParseText()               │  │  │
+ │  │  │         │                                   │  │  │
+ │  │  │  Manual-rule scan → MatchedFiles            │  │  │
+ │  │  │         │                                   │  │  │
+ │  │  │  Auto-rule chain (sequential):              │  │  │
+ │  │  │    rule1 → IRuleRewriter.TryRewrite()       │  │  │
+ │  │  │    rule2 → IRuleRewriter.TryRewrite()       │  │  │
+ │  │  │    ...                                      │  │  │
+ │  │  │         │                                   │  │  │
+ │  │  │  Using injection post-pass                  │  │  │
+ │  │  │         │                                   │  │  │
+ │  │  │  WriteAllTextAtomic() (Apply mode only)     │  │  │
+ │  │  └─────────────────────────────────────────────┘  │  │
+ │  └───────────────────────────────────────────────────┘  │
+ │                          │                               │
+ │            MigrationResult aggregate                     │
+ └──────────────────────────┬──────────────────────────────┘
+                            │
+            ┌───────────────┼───────────────┐
+            ▼               ▼               ▼
+         Applied[]       Skipped[]       Manual[]
+```
+
+## Full Lifecycle
+
+For each file in the deduplicated `filePaths` set:
+
+1. **Read** — `IMigrationFileSystem.ReadAllText(filePath)`. `IOException` → records a `SkippedRewrite` with `RuleId = "<io>"` and continues to the next file.
+
+2. **Parse** — `CSharpSyntaxTree.ParseText(text)`. Syntax-only; no project references or compilation required. Broken code is accepted.
+
+3. **Manual scan** — For every rule with `Confidence = Manual`, the matching `IRuleRewriter` performs a read-only tree-walk to identify whether the file contains matching patterns. Matches populate `ManualRewrite.MatchedFiles`. Nothing is written.
+
+4. **Auto-rule chain** — For every rule with `Confidence = Auto` or `Verified`, in schema order:
+   - Lookup the `IRuleRewriter` whose `Kind` matches `camelCase(rule.Kind)`.
+   - If no rewriter is registered → record `SkippedRewrite("no rewriter for kind '…'")`.
+   - If found → call `TryRewrite(currentRoot, rule, ctx)`. The returned node replaces `currentRoot` for the next rule in the chain.
+   - This sequential strategy lets each rule see the output of previous rules (e.g., `Foo → Bar` then `Bar → Baz` in two passes).
+
+5. **Using injection** — After all rules run, inspect the final `CompilationUnitSyntax`. For any namespace introduced by an applied `ChangeTypeReferenceRule`, `RenameNamespaceRule`, or `RenameTypeRule` that is not already present in the file, inject a `using` directive at the top.
+
+6. **Write** — In `Apply` mode (not dry-run), write the modified file atomically: write to `{path}.tmp`, then `File.Move(tmp, path, overwrite: true)`. In `DryRun` mode, skip the write.
+
+After all files: aggregate `Applied`, `Skipped`, `Manual`, and `RewrittenFiles` into a `MigrationResult`.
+
+---
 
 ## Public contracts
 
@@ -214,11 +303,94 @@ The engine runs a syntax-only "would this rule match?" scan and populates
 `MigrationResult.Manual[].MatchedFiles` with every file where the pattern was
 detected. The `Applied` list contains no entries for manual rules.
 
-## What's next
+## Extension Points
 
-- **#202** — B-level structural rewriters (`SplitMethod`,
-  `ExtractParameterObject`, `PropertyToMethod`, `MoveMember`).
-- **#203** — End-to-end example with a real library migration (Serilog v2 → v3).
+### Writing a Custom `IRuleRewriter`
+
+If the eleven built-in rewriters do not cover your transformation, you can implement `IRuleRewriter` yourself:
+
+```csharp
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using WrapGod.Migration;
+using WrapGod.Migration.Engine;
+
+public sealed class MyCustomRewriter : IRuleRewriter
+{
+    // Must match the camelCase "kind" string in your schema JSON.
+    public string Kind => "myCustomKind";
+
+    public SyntaxNode? TryRewrite(SyntaxNode node, MigrationRule rule, RewriteContext ctx)
+    {
+        // Cast to your rule type (define it in WrapGod.Migration or a sibling project).
+        if (rule is not MyCustomRule typed)
+            return null;
+
+        // Only handle the node type you care about.
+        if (node is not SomeSpecificSyntaxNode target)
+            return null;
+
+        // Perform the transformation.
+        var replacement = BuildReplacement(target, typed);
+
+        // REQUIRED: preserve trivia so whitespace and comments are not corrupted.
+        replacement = replacement.WithTriviaFrom(target);
+
+        // Record the outcome.
+        ctx.RecordApplied(
+            rule,
+            target.Span,
+            originalText: target.ToString(),
+            replacementText: replacement.ToString(),
+            line: target.GetLocation().GetLineSpan().StartLinePosition.Line + 1);
+
+        return replacement;
+    }
+}
+```
+
+Key obligations:
+
+| Obligation | Why |
+|-----------|-----|
+| Preserve trivia via `WithTriviaFrom` | Corrupting trivia mangling whitespace or stripping comments |
+| Return `null` when no match | The orchestrator uses `null` to skip file writes when no rule matched |
+| Record `SkippedRewrite` for ambiguous matches | Ambiguous matches should be visible to the author — don't silently skip |
+| No `SemanticModel` access | The engine never has a compilation; rewriters must be syntax-only |
+| Never throw | Exceptions propagate to the orchestrator and abort the entire file |
+
+### Registering a Custom Rewriter
+
+Inject your rewriter into a `MigrationEngine` instead of using `CreateDefault()`:
+
+```csharp
+var engine = new MigrationEngine(
+    MigrationEngine.CreateDefault().Rewriters
+        .Append(new MyCustomRewriter()));
+```
+
+Or build from scratch if you only need a subset of rewriters:
+
+```csharp
+var engine = new MigrationEngine([
+    new RenameTypeRewriter(),
+    new RenameMemberRewriter(),
+    new MyCustomRewriter(),
+]);
+```
+
+### Injecting a Custom File System
+
+For testing or virtual file system scenarios, pass an `IMigrationFileSystem` via the internal constructor (exposed to `WrapGod.Tests` via `InternalsVisibleTo`):
+
+```csharp
+// In test code
+var engine = new MigrationEngine(
+    rewriters: [new RenameTypeRewriter()],
+    fileSystem: new InMemoryFileSystem(files));
+```
+
+`IMigrationFileSystem` exposes `ReadAllText(path)` and `WriteAllTextAtomic(path, content)`. The default `RealFileSystem` implementation uses `System.IO.File` with atomic writes.
 
 ## State-tracking (idempotent re-runs)
 
@@ -227,3 +399,12 @@ base engine with persistent state so that `apply` runs are idempotent. The
 state is stored in a sibling file next to the schema (e.g.
 `schema.json.state.json`). See [Migration State](state.md) for the full
 specification, hash semantics, and API reference.
+
+## See Also
+
+- [Migration Schema](schema.md) — schema format and all rule kinds
+- [Authoring a Migration Schema](authoring.md) — guide for library maintainers
+- [Rewriters](rewriters.md) — per-rewriter documentation with before/after examples
+- [Migration State](state.md) — idempotency, state file format, hash semantics
+- [Applying Migrations](applying.md) — consumer workflow
+- [Back to Migration index](./index.md)

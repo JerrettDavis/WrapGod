@@ -12,6 +12,9 @@
 - `wrap-god explain` – explain compatibility mode behavior for a manifest
 - `wrap-god migrate init` – analyze project usage and bootstrap migration plan assets
 - `wrap-god migrate generate` – generate a draft migration schema from two library versions (NuGet or local DLLs)
+- `wrap-god migrate apply` – apply a migration schema to a codebase (supports `--dry-run`)
+- `wrap-god migrate status` – read-only progress report from the state file
+- `wrap-god migrate verify` – optionally build the project and correlate compiler diagnostics to migration rules
 - `wrap-god ci bootstrap` – CI helper setup
 - `wrap-god ci parity` – CI parity report generation
 
@@ -39,6 +42,24 @@
 - `0` schema written successfully (0-rule schema emits a warning but still exits 0)
 - `1` runtime failure (missing files, network error, invalid version string, output file already exists)
 - `2` input validation error (conflicting modes, missing required mode flags)
+
+### `migrate apply`
+
+- `0` success — all applicable rules processed
+- `1` runtime error (schema not found, parse error, IO failure)
+- `2` bad arguments (required flag absent)
+
+### `migrate status`
+
+- `0` state file exists with no manual-confidence entries (or state file is missing)
+- `1` schema file not found, or state file is corrupt
+- `2` state has manual-confidence entries present — human review required
+
+### `migrate verify`
+
+- `0` verify ran (informational — even when attributed errors exist)
+- `1` IO error (baseline file not found, etc.)
+- `2` bad arguments
 
 ## Common examples
 
