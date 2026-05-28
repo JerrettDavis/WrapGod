@@ -21,6 +21,7 @@
     <ProjectReference Include="..\WrapGod.Manifest\WrapGod.Manifest.csproj" />
     <ProjectReference Include="..\WrapGod.Generator\WrapGod.Generator.csproj" />
     <ProjectReference Include="..\WrapGod.Migration\WrapGod.Migration.csproj" />
+    <ProjectReference Include="..\WrapGod.Migration.Engine\WrapGod.Migration.Engine.csproj" />
   </ItemGroup>
 
 </Project>

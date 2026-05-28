@@ -14,6 +14,7 @@ internal static class MigrateCommandBuilder
         {
             MigrateInitCommand.CreateSubCommand(),
             MigrateGenerateCommand.Create(),
+            MigrateStatusCommand.Create(),
         };
 
         return migrateCommand;

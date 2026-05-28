@@ -20,6 +20,7 @@ wrap-god [command] [options]
 - [`explain`](#explain) -- Show traceability info for a type or member
 - [`migrate init`](#migrate-init) -- Analyze a project and generate a migration plan
 - [`migrate generate`](#migrate-generate) -- Generate a draft migration schema from two library versions
+- [`migrate status`](#migrate-status) -- Report migration progress from the state file
 - [`ci bootstrap`](#ci-bootstrap) -- Generate recommended CI workflow files
 - [`ci parity`](#ci-parity) -- Compare CI config against the recommended baseline
 
@@ -574,6 +575,125 @@ Output:   mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json
   }
 }
 ```
+
+---
+
+### `migrate status`
+
+**Synopsis:** Report migration progress from the state file without running any migration.
+
+**Usage:**
+```
+wrap-god migrate status --schema <path> [options]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--schema`, `-s` | Path to the migration schema JSON file. The state file is the sibling `<schema>.state.json`. | **Required** |
+| `--project`, `-p` | Project directory used to resolve a relative `--schema` path | Current directory |
+| `--json` | Emit output as JSON instead of human-readable text | `false` |
+| `--verbose`, `-v` | Include per-rule details and per-file applied lists in human-readable mode | `false` |
+
+**Exit codes:**
+
+| Code | Meaning |
+|------|---------|
+| `0` | State file exists and has no manual-confidence entries (or state file is missing) |
+| `1` | Schema file not found, or state file is corrupt and could not be parsed |
+| `2` | State has manual-confidence entries present — human review required |
+
+**Behavior:**
+
+1. Resolves `<schema>.state.json` as the sibling of `--schema`.
+2. If the state file does not exist, prints a friendly message and exits 0 — this is not an error.
+3. If the state file is corrupt, the `MigrationStateStore` archives it to `<schema>.state.json.bak` and exits 1 with a message referencing the backup path.
+4. Computes the current schema hash and warns if the schema has changed since the last `apply` run.
+5. Highlights any `<state>` synthetic `SkippedRewrite` entries, which indicate a corruption-recovery run.
+6. Exits 2 when any `Manual`-confidence entries are present (signal that human work remains).
+
+**Examples:**
+
+```bash
+# Human-readable status
+wrap-god migrate status --schema mudblazor.6.0-to-7.0.wrapgod-migration.json
+
+# With project directory (for relative schema path)
+wrap-god migrate status \
+  --schema mudblazor.6.0-to-7.0.wrapgod-migration.json \
+  --project ./src
+
+# JSON output (useful for tooling / CI)
+wrap-god migrate status \
+  --schema mudblazor.6.0-to-7.0.wrapgod-migration.json \
+  --json
+
+# Verbose: per-rule applied breakdown, matched files for manual rules
+wrap-god migrate status \
+  --schema mudblazor.6.0-to-7.0.wrapgod-migration.json \
+  --verbose
+```
+
+**Output (default human-readable):**
+
+```
+WrapGod migrate status
+----------------------------------------
+Schema:     mudblazor.6.0-to-7.0.wrapgod-migration.json
+Started:    2026-04-01 12:00:00 UTC
+Last run:   2026-04-02 09:14:33 UTC
+
+Schema hash: sha256:ab12cd34... (matches current schema)
+
+Applied:     38   (across 22 file(s))
+Skipped:      6
+Manual:       3
+
+Skipped rules:
+  Ambiguous: two overloads of Show() in scope: 4
+  Conflict with existing declaration: 2
+
+Manual rules (require human intervention):
+  MUD-003  Parameters restructured — requires manual mapping
+  MUD-007  RemoveMember (obj.Deprecated): review and remove call sites
+  MUD-012  Namespace moved — update using directives
+```
+
+**Output (`--json`):**
+
+```json
+{
+  "schema": "mudblazor.6.0-to-7.0.wrapgod-migration.json",
+  "schemaHash": "sha256:ab12cd34...",
+  "schemaChanged": false,
+  "startedAt": "2026-04-01T12:00:00+00:00",
+  "lastRunAt": "2026-04-02T09:14:33+00:00",
+  "summary": {
+    "total": 47,
+    "applied": 38,
+    "skipped": 6,
+    "manual": 3
+  },
+  "applied": [
+    { "ruleId": "MUD-001", "fileCount": 8 },
+    { "ruleId": "MUD-002", "fileCount": 4 }
+  ],
+  "skipped": [
+    { "reason": "Ambiguous: two overloads of Show() in scope", "count": 4 }
+  ],
+  "manual": [
+    {
+      "ruleId": "MUD-003",
+      "note": "Parameters restructured — requires manual mapping",
+      "matchedFiles": ["src/Dialogs/ConfirmDialog.cs", "src/Dialogs/EditDialog.cs"]
+    }
+  ],
+  "stateRecoveryOccurred": false
+}
+```
+
+> **See also:** [Migration state file format](../migration/state.md)
 
 ---
 
