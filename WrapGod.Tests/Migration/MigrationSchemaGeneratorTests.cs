@@ -325,4 +325,115 @@ public sealed class MigrationSchemaGeneratorTests(ITestOutputHelper output) : Ti
         .And("schema.To is '4.0.0'", schema =>
             schema.To == "4.0.0")
         .AssertPassed();
+
+    [Scenario("Changed member with same-arity parameter type change produces ChangeParameterRule (Auto)")]
+    [Fact]
+    public Task FromDiff_SameArityParamChange_ProducesChangeParameterRule() =>
+        Given("FromDiff called with a diff where a method parameter type changed (same arity)", () =>
+        {
+            var diff = DiffFixtures.BuildEmptyDiff();
+            diff.ChangedMembers.Add(new ChangedMemberEntry
+            {
+                StableId = "Ns.Foo::Bar",
+                Name = "Bar",
+                DeclaringTypeStableId = "Ns.Foo",
+                ChangedIn = "2.0.0",
+                OldParameterTypes = ["System.Int32", "System.String"],
+                NewParameterTypes = ["System.Int64", "System.String"],
+            });
+            return MigrationSchemaGenerator.FromDiff(diff, "TestLib");
+        })
+        .Then("the schema contains a ChangeParameterRule for the changed slot", schema =>
+            schema.Rules.Any(r => r is ChangeParameterRule))
+        .And("the rule has Auto confidence", schema =>
+            schema.Rules.First(r => r is ChangeParameterRule).Confidence == RuleConfidence.Auto)
+        .And("the OldParameterType is System.Int32", schema =>
+            ((ChangeParameterRule)schema.Rules.First(r => r is ChangeParameterRule)).OldParameterType == "System.Int32")
+        .AssertPassed();
+
+    [Scenario("Changed member with arity shrink produces Manual ChangeParameterRule with note")]
+    [Fact]
+    public Task FromDiff_ArityShrink_ProducesManualChangeParameterRule() =>
+        Given("FromDiff called with a diff where a method's parameter count shrank from 3 to 1", () =>
+        {
+            var diff = DiffFixtures.BuildEmptyDiff();
+            diff.ChangedMembers.Add(new ChangedMemberEntry
+            {
+                StableId = "Ns.Foo::Baz",
+                Name = "Baz",
+                DeclaringTypeStableId = "Ns.Foo",
+                ChangedIn = "2.0.0",
+                OldParameterTypes = ["System.Int32", "System.String", "System.Boolean"],
+                NewParameterTypes = ["System.String"],
+            });
+            return MigrationSchemaGenerator.FromDiff(diff, "TestLib");
+        })
+        .Then("the schema contains a ChangeParameterRule", schema =>
+            schema.Rules.Any(r => r is ChangeParameterRule))
+        .And("the rule has Manual confidence", schema =>
+            schema.Rules.First(r => r is ChangeParameterRule).Confidence == RuleConfidence.Manual)
+        .And("the rule has a non-null Note describing the reshape", schema =>
+            schema.Rules.First(r => r is ChangeParameterRule).Note != null)
+        .AssertPassed();
+
+    [Scenario("Only one type relocated (below namespace-rule threshold) produces individual type rule not namespace rule")]
+    [Fact]
+    public Task FromDiff_SingleTypeRelocation_ProducesRenameTypeNotNamespaceRule() =>
+        Given("FromDiff called with only one type moved from OldNs to NewNs (below 2-type threshold)", () =>
+        {
+            var diff = DiffFixtures.BuildEmptyDiff();
+            diff.RemovedTypes.Add(new RemovedTypeEntry
+            {
+                StableId = "OldNs.Widget",
+                FullName = "OldNs.Widget",
+                LastPresentIn = "1.0.0",
+                RemovedIn = "2.0.0",
+            });
+            diff.AddedTypes.Add(new AddedTypeEntry
+            {
+                StableId = "NewNs.Widget",
+                FullName = "NewNs.Widget",
+                IntroducedIn = "2.0.0",
+            });
+            return MigrationSchemaGenerator.FromDiff(diff, "TestLib");
+        })
+        .Then("the schema does not contain a RenameNamespaceRule (only 1 type moved)", schema =>
+            !schema.Rules.Any(r => r is RenameNamespaceRule))
+        .And("the schema contains a RenameTypeRule", schema =>
+            schema.Rules.Any(r => r is RenameTypeRule))
+        .AssertPassed();
+
+    [Scenario("Library name longer than 6 chars gets truncated to 6 in rule ID prefix")]
+    [Fact]
+    public Task FromDiff_LongLibraryName_PrefixTruncatedToSix() =>
+        Given("FromDiff called with library 'VeryLongLibraryName' that produces one rule", () =>
+        {
+            var diff = DiffFixtures.BuildReturnTypeChangedDiff();
+            return MigrationSchemaGenerator.FromDiff(diff, "VeryLongLibraryName");
+        })
+        .Then("the first rule ID prefix is at most 6 chars before the dash", schema =>
+            schema.Rules[0].Id.Split('-')[0].Length <= 6)
+        .AssertPassed();
+
+    [Scenario("ChangedMember with no parameter changes and no return type change produces no rule")]
+    [Fact]
+    public Task FromDiff_ChangedMemberNoActualChange_ProducesNoRule() =>
+        Given("FromDiff called with a ChangedMemberEntry where old/new return type are the same and params are empty", () =>
+        {
+            var diff = DiffFixtures.BuildEmptyDiff();
+            diff.ChangedMembers.Add(new ChangedMemberEntry
+            {
+                StableId = "Ns.Foo::NoOp",
+                Name = "NoOp",
+                DeclaringTypeStableId = "Ns.Foo",
+                ChangedIn = "2.0.0",
+                // null old/new return type — no change
+                OldParameterTypes = [],
+                NewParameterTypes = [],
+            });
+            return MigrationSchemaGenerator.FromDiff(diff, "TestLib");
+        })
+        .Then("the schema contains no rules", schema =>
+            schema.Rules.Count == 0)
+        .AssertPassed();
 }
