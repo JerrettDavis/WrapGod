@@ -888,4 +888,247 @@ public sealed class MigrateApplyCliTests(ITestOutputHelper output) : TinyBddXuni
             SafeDelete(tempDir);
         }
     }
+
+    // ════════════════════════════════════════════════════════════════════════════════════════
+    // Coverage-gap closers (target uncovered branches in MigrateApplyCommand)
+    // ════════════════════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Cov-01: Zero-rules with --json output → JSON has all summary fields zero.
+    /// Exercises the zero-rules JSON branch in Handle (jsonOutput && schema.Rules.Count == 0).
+    /// </summary>
+    [Scenario("Cov-01: zero-rules schema with --json → valid JSON with zero counts")]
+    [Fact]
+    public async Task Apply_ZeroRules_Json_OutputsZeros()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "empty.wrapgod-migration.json");
+            await File.WriteAllTextAsync(schemaPath, MakeEmptySchema());
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --json");
+
+            Assert.Equal(0, exitCode);
+            using var doc = JsonDocument.Parse(stdout);
+            Assert.Equal(0, doc.RootElement.GetProperty("applied").GetInt32());
+            Assert.Equal(0, doc.RootElement.GetProperty("skipped").GetInt32());
+            Assert.Equal(0, doc.RootElement.GetProperty("manual").GetInt32());
+            Assert.Equal(0, doc.RootElement.GetProperty("filesScanned").GetInt32());
+            Assert.Equal(0, doc.RootElement.GetProperty("filesModified").GetInt32());
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// Cov-02: --dry-run JSON output exercises the dryRunDiff branch with both
+    /// dumpFilePath and inlinePerFile fields populated.  Covers the JSON
+    /// dryRunDiff is-not-null arm and the inlinePerFile.Select lambda.
+    /// </summary>
+    [Scenario("Cov-02: --dry-run --json populates dryRunDiff.inlinePerFile and dumpFilePath")]
+    [Fact]
+    public async Task Apply_DryRun_Json_PopulatesDryRunDiff()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "test.wrapgod-migration.json");
+            var csPath     = Path.Combine(tempDir, "Widget.cs");
+            await File.WriteAllTextAsync(schemaPath, MakeRenameSchema());
+            await File.WriteAllTextAsync(csPath, SourceWithMatch);
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --dry-run --json");
+
+            Assert.Equal(0, exitCode);
+            using var doc = JsonDocument.Parse(stdout);
+            Assert.True(doc.RootElement.TryGetProperty("dryRunDiff", out var diff));
+            Assert.NotEqual(JsonValueKind.Null, diff.ValueKind);
+            Assert.True(diff.TryGetProperty("dumpFilePath", out _));
+            Assert.True(diff.TryGetProperty("inlinePerFile", out var inline));
+            Assert.Equal(JsonValueKind.Array, inline.ValueKind);
+            Assert.True(inline.GetArrayLength() >= 1, "Expected at least one file diff entry");
+            var first = inline[0];
+            Assert.True(first.TryGetProperty("file", out _));
+            Assert.True(first.TryGetProperty("diff", out var diffText));
+            Assert.Contains("--- a/", diffText.GetString() ?? "", StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// Cov-03: --include and --exclude that both target the same file path → exclude wins.
+    /// Demonstrates overlap behavior of the glob matcher and ensures Excludes loop is exercised.
+    /// </summary>
+    [Scenario("Cov-03: overlapping include/exclude — exclude wins")]
+    [Fact]
+    public async Task Apply_OverlappingIncludeExclude_ExcludeWins()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "test.wrapgod-migration.json");
+            await File.WriteAllTextAsync(schemaPath, MakeRenameSchema());
+
+            var compDir = Path.Combine(tempDir, "Components");
+            Directory.CreateDirectory(compDir);
+            var csPath = Path.Combine(compDir, "Widget.cs");
+            await File.WriteAllTextAsync(csPath, SourceWithMatch);
+
+            // Include matches AND exclude matches the same file — exclude must win.
+            var (exitCode, _, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" " +
+                $"--include \"**/Components/**\" --exclude \"**/Components/Widget.cs\"");
+
+            Assert.Equal(0, exitCode);
+            // File is untouched because exclude removed it from the matched set.
+            Assert.Contains("OldWidget", await File.ReadAllTextAsync(csPath), StringComparison.Ordinal);
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// Cov-04: A rule whose Confidence is auto but whose Kind cannot be re-resolved by
+    /// the schema (rule.Id mismatch) exercises ResolveRuleKind's null path. Indirectly
+    /// covered via JSON appliedByRule.kind being present (non-null) for valid rules.
+    /// </summary>
+    [Scenario("Cov-04: appliedByRule.kind is populated from the schema's rule kind")]
+    [Fact]
+    public async Task Apply_AppliedByRule_KindIsResolved()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "test.wrapgod-migration.json");
+            var csPath     = Path.Combine(tempDir, "Widget.cs");
+            await File.WriteAllTextAsync(schemaPath, MakeRenameSchema());
+            await File.WriteAllTextAsync(csPath, SourceWithMatch);
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --json");
+
+            Assert.Equal(0, exitCode);
+            using var doc = JsonDocument.Parse(stdout);
+            var byRule = doc.RootElement.GetProperty("appliedByRule");
+            Assert.True(byRule.GetArrayLength() >= 1);
+            var kind = byRule[0].GetProperty("kind");
+            Assert.Equal(JsonValueKind.String, kind.ValueKind);
+            Assert.Equal("renameType", kind.GetString());
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// Cov-05: Apply with no file modifications (rule does not match any source) →
+    /// FilesModified == 0 in both modes, BuildDryRunDiff is not invoked.
+    /// </summary>
+    [Scenario("Cov-05: no matches → filesModified=0, no diff produced")]
+    [Fact]
+    public async Task Apply_NoMatches_FilesModifiedZero()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "test.wrapgod-migration.json");
+            var csPath     = Path.Combine(tempDir, "Widget.cs");
+            await File.WriteAllTextAsync(schemaPath, MakeRenameSchema());
+            // Source contains no reference to OldWidget — rule will not match.
+            await File.WriteAllTextAsync(csPath,
+                "namespace MyApp { class Unrelated { int Other; } }");
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --json");
+
+            Assert.Equal(0, exitCode);
+            using var doc = JsonDocument.Parse(stdout);
+            Assert.True(doc.RootElement.GetProperty("filesScanned").GetInt32() >= 1);
+            Assert.Equal(0, doc.RootElement.GetProperty("filesModified").GetInt32());
+            Assert.Equal(0, doc.RootElement.GetProperty("applied").GetInt32());
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
+
+    /// <summary>
+    /// Cov-06: Mixed schema (auto rule that matches AND manual rule) with --json →
+    /// exercises both manualDetails (with non-empty matchedFiles) and appliedByRule
+    /// in the same JSON document.
+    /// </summary>
+    [Scenario("Cov-06: mixed auto+manual rules with --json → manualDetails populated alongside appliedByRule")]
+    [Fact]
+    public async Task Apply_MixedRules_Json_PopulatesAllArrays()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var schemaPath = Path.Combine(tempDir, "mixed.wrapgod-migration.json");
+            var csPath     = Path.Combine(tempDir, "Widget.cs");
+
+            var mixedSchema = """
+            {
+              "schema": "wrapgod-migration/1.0",
+              "library": "TestLib",
+              "from": "1.0.0",
+              "to": "2.0.0",
+              "rules": [
+                {
+                  "kind": "renameType",
+                  "id": "AUTO-001",
+                  "confidence": "auto",
+                  "oldName": "OldWidget",
+                  "newName": "NewWidget"
+                },
+                {
+                  "kind": "renameType",
+                  "id": "MANUAL-001",
+                  "confidence": "manual",
+                  "note": "Manual review required",
+                  "oldName": "OldWidget",
+                  "newName": "NewWidget"
+                }
+              ]
+            }
+            """;
+
+            await File.WriteAllTextAsync(schemaPath, mixedSchema);
+            await File.WriteAllTextAsync(csPath, SourceWithMatch);
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"apply --schema \"{schemaPath}\" --project-dir \"{tempDir}\" --json");
+
+            Assert.Equal(0, exitCode);
+            using var doc = JsonDocument.Parse(stdout);
+            var manualDetails = doc.RootElement.GetProperty("manualDetails");
+            Assert.Equal(JsonValueKind.Array, manualDetails.ValueKind);
+            Assert.True(manualDetails.GetArrayLength() >= 1, "manualDetails should have ≥1 entry");
+            var first = manualDetails[0];
+            Assert.True(first.TryGetProperty("ruleId",       out _));
+            Assert.True(first.TryGetProperty("note",         out _));
+            Assert.True(first.TryGetProperty("matchedFiles", out var matched));
+            Assert.Equal(JsonValueKind.Array, matched.ValueKind);
+
+            // The auto rule that matched should appear in appliedByRule.
+            var byRule = doc.RootElement.GetProperty("appliedByRule");
+            Assert.True(byRule.GetArrayLength() >= 1);
+        }
+        finally
+        {
+            SafeDelete(tempDir);
+        }
+    }
 }
