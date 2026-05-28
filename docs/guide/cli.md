@@ -20,6 +20,7 @@ wrap-god [command] [options]
 - [`explain`](#explain) -- Show traceability info for a type or member
 - [`migrate init`](#migrate-init) -- Analyze a project and generate a migration plan
 - [`migrate generate`](#migrate-generate) -- Generate a draft migration schema from two library versions
+- [`migrate apply`](#migrate-apply) -- Apply a migration schema to a codebase (with --dry-run support)
 - [`migrate status`](#migrate-status) -- Report migration progress from the state file
 - [`ci bootstrap`](#ci-bootstrap) -- Generate recommended CI workflow files
 - [`ci parity`](#ci-parity) -- Compare CI config against the recommended baseline
@@ -573,6 +574,113 @@ Output:   mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json
       "manual": 7
     }
   }
+}
+```
+
+---
+
+### `migrate apply`
+
+**Synopsis:** Apply a `MigrationSchema` to a project directory, rewriting source files according to the schema rules and persisting state for idempotent re-runs.
+
+**Usage:**
+```
+wrap-god migrate apply [options]
+```
+
+**Options:**
+
+| Option | Required | Description | Default |
+|--------|----------|-------------|---------|
+| `--schema`, `-s` | Yes | Path to migration schema JSON produced by `migrate generate` | — |
+| `--project-dir`, `-p` | No | Root directory for glob resolution and state file location | Current directory |
+| `--include` | No | Glob pattern for files to include (repeatable) | `**/*.cs` |
+| `--exclude` | No | Glob pattern for files to exclude (repeatable) | `**/bin/**`, `**/obj/**`, `**/.wrapgod/**` |
+| `--dry-run` | No | Preview changes without modifying files or persisting state | `false` |
+| `--json` | No | Emit summary as JSON to stdout | `false` |
+| `--verbose`, `-v` | No | Print extra diagnostic information | `false` |
+
+**Exit codes:**
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success — all applicable rules processed |
+| `1` | Runtime error (schema not found, parse error, IO failure) |
+| `2` | Bad arguments (required flag absent) |
+
+**Behavior:**
+
+1. Load and validate the schema JSON from `--schema`.
+2. Resolve files by walking `--project-dir` and applying include/exclude glob patterns.
+3. Build `MigrationEngine.CreateDefault()` and wrap in `StatefulMigrationEngine`.
+4. Call `DryRunWithState` (with `--dry-run`) or `ApplyWithState` (without).
+5. Print a structured summary; in dry-run mode, annotate that no files were modified.
+6. Persist updated state file next to the schema (unless `--dry-run`).
+
+**Idempotence:** The command uses `StatefulMigrationEngine` from `#197`. On subsequent runs with the same schema, already-applied `(ruleId, file)` pairs are skipped, producing a no-op. If the schema file changes (schema hash differs), all rules are re-evaluated.
+
+**State file:** Written to `{schemaPath}.state.json` in the same directory as the schema. Intended to be committed alongside the schema for team visibility.
+
+**Corruption recovery:** If the state file is corrupt (invalid JSON), it is archived to `{schemaPath}.state.json.bak` and the run proceeds from scratch. The recovery is surfaced in the output as a warning.
+
+**Examples:**
+
+```bash
+# Dry-run preview
+wrap-god migrate apply \
+  --schema mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json \
+  --project-dir ./src \
+  --dry-run
+
+# Apply for real
+wrap-god migrate apply \
+  --schema mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json \
+  --project-dir ./src
+
+# Limit to specific directory, JSON output
+wrap-god migrate apply \
+  --schema mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json \
+  --project-dir ./src \
+  --include "**/Components/**" \
+  --exclude "**/Generated/**" \
+  --json
+
+# Verbose mode for extra diagnostic output
+wrap-god migrate apply \
+  --schema mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json \
+  --project-dir ./src \
+  --verbose
+```
+
+**Human-readable output:**
+```
+WrapGod migrate apply [DRY-RUN]
+--------------------------------
+Schema:    mudblazor.6.0.0-to-7.0.0.wrapgod-migration.json (47 rules)
+Files:     128 scanned, 22 modified
+Applied:   38 rewrites
+Skipped:   6
+Manual:    3 rules require human intervention
+
+Skipped:
+  MUD-017 src/Dialogs/Confirm.cs:42  Ambiguous: two overloads of Show() in scope
+
+Manual:
+  MANUAL-001 Parameters restructured -- requires manual mapping
+    matched in: src/Dialogs/Confirm.cs, src/Dialogs/Edit.cs
+
+(no files were modified)
+```
+
+**JSON output (`--json`):**
+```json
+{
+  "dryRun": true,
+  "filesScanned": 128,
+  "filesModified": 22,
+  "applied": 38,
+  "skipped": 6,
+  "manual": 3
 }
 ```
 
