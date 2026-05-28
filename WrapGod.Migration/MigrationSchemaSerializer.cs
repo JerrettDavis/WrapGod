@@ -80,7 +80,7 @@ public sealed class MigrationRuleConverter : JsonConverter<MigrationRule>
     private static void ValidateKindMappings()
     {
         var allKinds = new System.Collections.Generic.HashSet<MigrationRuleKind>(
-            (MigrationRuleKind[])Enum.GetValues(typeof(MigrationRuleKind)));
+            Enum.GetValues<MigrationRuleKind>());
         var typeMappedKinds = new System.Collections.Generic.HashSet<MigrationRuleKind>(KindToType.Keys);
         var stringMappedKinds = new System.Collections.Generic.HashSet<MigrationRuleKind>(KindStringMap.Values);
 
