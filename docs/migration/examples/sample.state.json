@@ -1,0 +1,53 @@
+{
+  "schema": "mudblazor.6.0-to-7.0.wrapgod-migration.json",
+  "schemaHash": "sha256:a3f1c9e82b4d7f0615ae234d9c8b1f56e3a7d2c0491b8e5f67239a4c1d0e8f32",
+  "startedAt": "2025-06-01T08:00:00+00:00",
+  "lastRunAt": "2025-06-01T09:15:30+00:00",
+  "summary": {
+    "totalRules": 5,
+    "applied": 3,
+    "skipped": 1,
+    "manual": 1
+  },
+  "applied": [
+    {
+      "ruleId": "MUD-001",
+      "file": "src/Components/MyButton.razor.cs",
+      "line": 14,
+      "originalText": "MudButton",
+      "replacedWith": "MudButtonEx"
+    },
+    {
+      "ruleId": "MUD-002",
+      "file": "src/Pages/Index.razor.cs",
+      "line": 8,
+      "originalText": "MudAlert",
+      "replacedWith": "MudAlertV2"
+    },
+    {
+      "ruleId": "MUD-004",
+      "file": "src/Layouts/MainLayout.razor.cs",
+      "line": 22,
+      "originalText": "MudThemeProvider",
+      "replacedWith": "MudThemeProviderV3"
+    }
+  ],
+  "skipped": [
+    {
+      "ruleId": "MUD-005",
+      "file": "src/Pages/Counter.razor.cs",
+      "line": 0,
+      "reason": "no match found in file"
+    }
+  ],
+  "manual": [
+    {
+      "ruleId": "MUD-003",
+      "note": "Manually rename constructor parameter 'Color' to 'ButtonColor' — cannot be inferred automatically",
+      "matchedFiles": [
+        "src/Pages/Custom.razor.cs",
+        "src/Components/Toolbar.razor.cs"
+      ]
+    }
+  ]
+}

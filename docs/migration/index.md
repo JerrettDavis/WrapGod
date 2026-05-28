@@ -8,3 +8,4 @@ Strategies and automation for migrating codebases between library versions and a
 - [Migration Engine](engine.md) — `WrapGod.Migration.Engine` rewrite pipeline contracts (`IRuleRewriter`, `RewriteContext`, `MigrationResult`)
 - [Schema Generation](schema-generation.md) — `MigrationSchemaGenerator.FromDiff` — diff → schema mapping, similarity thresholds, deterministic IDs
 - [A-Level Rewriters](rewriters.md) — Seven concrete `IRuleRewriter` implementations: `RenameType`, `RenameNamespace`, `RenameMember`, `ChangeParameter`, `RemoveMember`, `AddRequiredParameter`, `ChangeTypeReference`
+- [Migration State](state.md) — `MigrationState`, `MigrationStateStore`, `StatefulMigrationEngine`: state file location, SHA-256 schema hash, idempotent re-runs, corruption recovery
