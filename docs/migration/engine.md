@@ -111,8 +111,100 @@ full catalogue, per-rewriter contracts, and before/after examples.
 | `AddRequiredParameterRewriter` | `addRequiredParameter` | `AddRequiredParameterRule` |
 | `ChangeTypeReferenceRewriter` | `changeTypeReference` | `ChangeTypeReferenceRule` |
 
+## Orchestrator — `MigrationEngine` (#196)
+
+`MigrationEngine` is the top-level class that connects a `MigrationSchema` to a set of
+source files and drives the rewrite pipeline from start to finish.
+
+### Public API
+
+```csharp
+namespace WrapGod.Migration.Engine;
+
+public sealed class MigrationEngine
+{
+    // Primary constructors
+    public MigrationEngine(IEnumerable<IRuleRewriter> rewriters);
+
+    // Convenience: pre-loads all 7 A-level rewriters.
+    public static MigrationEngine CreateDefault();
+
+    // Apply all auto rules to files, write results to disk.
+    public MigrationResult Apply(MigrationSchema schema, IEnumerable<string> filePaths);
+
+    // Same pipeline, no disk writes; RewrittenFiles is still populated.
+    public MigrationResult DryRun(MigrationSchema schema, IEnumerable<string> filePaths);
+}
+```
+
+### Lifecycle diagram
+
+```
+foreach file in filePaths (deduplicated):
+  1. Read source text via IMigrationFileSystem.ReadAllText()
+     └─ IOException → record SkippedRewrite("<io>", …) and continue
+  2. CSharpSyntaxTree.ParseText() — syntax-only, no compilation
+  3. Manual rules: scan file with matching rewriter, collect MatchedFiles
+  4. Auto rules (schema order, Option A — sequential chain):
+     for each rule:
+       - lookup IRuleRewriter by camelCase(rule.Kind)
+       - missing → SkippedRewrite("no rewriter for kind '…'", …)
+       - found    → TryRewrite(currentRoot, rule, ctx) → update currentRoot
+  5. Using injection: add missing using directives for introduced namespaces
+  6. If modified (Apply mode): IMigrationFileSystem.WriteAllTextAtomic()
+Aggregate Applied, Skipped, Manual into MigrationResult
+```
+
+### Composition strategy
+
+**Option A — sequential chain** was chosen over Option B (single-pass dispatcher)
+because:
+
+- Every existing `IRuleRewriter` already encapsulates its own `CSharpSyntaxRewriter`
+  tree-walk; there is nothing to refactor.
+- Sequential chaining lets each rule see the output of the previous rule, enabling
+  transformation chains such as `Foo → Bar` then `Bar → Baz`.
+- The perf budget (&lt;5 s for 1 000 files) is met with room to spare
+  (~620 ms measured in CI on this machine).
+- Option B can be introduced incrementally if profiling identifies a bottleneck.
+
+Each (file, rule) pair performs one tree-walk. For a schema with `N` rules and `F` files:
+total walks = `N × F`.
+
+### File I/O abstraction (`IMigrationFileSystem`)
+
+The internal `IMigrationFileSystem` interface is injected for testability via the
+`internal MigrationEngine(IEnumerable<IRuleRewriter>, IMigrationFileSystem)` constructor
+(exposed to `WrapGod.Tests` via `InternalsVisibleTo`).
+
+The default implementation, `RealFileSystem`, uses `System.IO.File.ReadAllText` and
+an atomic write: write to `path + ".tmp"`, then `File.Move(tmp, path, overwrite: true)`.
+
+### Cross-namespace using injection
+
+After all per-file rewrites complete, the orchestrator inspects the final
+`CompilationUnitSyntax` and adds `using` directives for any namespace introduced by a
+`ChangeTypeReferenceRule`, `RenameNamespaceRule`, or `RenameTypeRule` that was actually
+applied and whose namespace is not already present. This closes the #195 deferred
+should-fix.
+
+### Performance
+
+| Scenario | Result (Release) |
+|---|---|
+| 1 000 synthetic files, 5 rules | ~620 ms |
+| Per-file overhead | ~0.6 ms |
+| Budget (hard gate) | 10 s |
+| Target | 5 s |
+
+### Manual-confidence rules
+
+Rules with `Confidence = RuleConfidence.Manual` are never applied automatically.
+The engine runs a syntax-only "would this rule match?" scan and populates
+`MigrationResult.Manual[].MatchedFiles` with every file where the pattern was
+detected. The `Applied` list contains no entries for manual rules.
+
 ## What's next
 
-- **#196** — `MigrationEngine` orchestrator with `Apply` and `DryRun` entry points.
 - **#202** — B-level structural rewriters (`SplitMethod`,
   `ExtractParameterObject`, `PropertyToMethod`, `MoveMember`).
