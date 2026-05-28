@@ -7,9 +7,10 @@ namespace WrapGod.Migration.Engine.Rewriters;
 
 /// <summary>
 /// Handles <see cref="RemoveMemberRule"/>. At every call site for the removed member,
-/// the entire expression statement is replaced with a leading trivia comment that
-/// preserves the original text so developers can see what was there and manually restore
-/// or remove the call. Records each replacement as an <see cref="AppliedRewrite"/>.
+/// the expression statement is removed entirely and its location is annotated with a
+/// migration comment attached as TRIVIA to a sibling token. This avoids leaving an
+/// orphan <c>;</c> in the rewritten code and is safe against formatters. Records each
+/// removal as an <see cref="AppliedRewrite"/>.
 /// </summary>
 internal sealed class RemoveMemberRewriter : IRuleRewriter
 {
@@ -41,44 +42,94 @@ internal sealed class RemoveMemberRewriter : IRuleRewriter
             _ctx = ctx;
         }
 
-        public override SyntaxNode? VisitExpressionStatement(ExpressionStatementSyntax node)
+        public override SyntaxNode? VisitBlock(BlockSyntax node)
         {
-            if (!IsTargetCall(node.Expression))
-                return base.VisitExpressionStatement(node);
+            // First recurse so nested blocks are processed bottom-up.
+            var visitedBlock = (BlockSyntax)base.VisitBlock(node)!;
 
-            var originalText = node.ToString().Trim();
+            // Walk statements; if a statement matches the target call, remove it and attach
+            // the migration comment as trivia to the next sibling (or the closing brace).
+            var newStatements = new List<StatementSyntax>(visitedBlock.Statements.Count);
+            // Pending comments to be prepended to the next emitted token.
+            var pendingTrivia = SyntaxTriviaList.Empty;
+
+            foreach (var stmt in visitedBlock.Statements)
+            {
+                if (TryMatchTargetStatement(stmt, out var commentText, out var originalText))
+                {
+                    // Record this as an applied rewrite — the line is the original statement's line.
+                    _ctx.RecordApplied(
+                        _rule,
+                        stmt.Span,
+                        originalText: originalText,
+                        replacementText: commentText,
+                        line: RewriterHelpers.LineOf(stmt));
+
+                    Changed = true;
+
+                    // Build the trivia: preserve the statement's leading trivia (indentation,
+                    // blank lines) then insert the comment then a newline.
+                    var commentTrivia = SyntaxFactory.Comment(commentText);
+                    var newline = SyntaxFactory.CarriageReturnLineFeed;
+
+                    pendingTrivia = pendingTrivia
+                        .AddRange(stmt.GetLeadingTrivia())
+                        .Add(commentTrivia)
+                        .Add(newline);
+
+                    // Drop the statement (do not add to newStatements).
+                    continue;
+                }
+
+                // Not a target — attach any pending trivia as leading trivia to this stmt.
+                if (pendingTrivia.Count > 0)
+                {
+                    var combined = pendingTrivia.AddRange(stmt.GetLeadingTrivia());
+                    newStatements.Add(stmt.WithLeadingTrivia(combined));
+                    pendingTrivia = SyntaxTriviaList.Empty;
+                }
+                else
+                {
+                    newStatements.Add(stmt);
+                }
+            }
+
+            // If we still have pending trivia after iterating all statements, attach it as
+            // leading trivia to the closing brace token. This handles the case where the
+            // removed call was the last (or only) statement in the block.
+            var closeBrace = visitedBlock.CloseBraceToken;
+            if (pendingTrivia.Count > 0)
+            {
+                var combined = pendingTrivia.AddRange(closeBrace.LeadingTrivia);
+                closeBrace = closeBrace.WithLeadingTrivia(combined);
+            }
+
+            if (!Changed)
+                return visitedBlock;
+
+            return visitedBlock
+                .WithStatements(SyntaxFactory.List(newStatements))
+                .WithCloseBraceToken(closeBrace);
+        }
+
+        private bool TryMatchTargetStatement(
+            StatementSyntax stmt,
+            out string commentText,
+            out string originalText)
+        {
+            commentText = string.Empty;
+            originalText = string.Empty;
+
+            if (stmt is not ExpressionStatementSyntax exprStmt)
+                return false;
+
+            if (!IsTargetCall(exprStmt.Expression))
+                return false;
+
+            originalText = exprStmt.ToString().Trim();
             var noteText = string.IsNullOrEmpty(_rule.Note) ? string.Empty : $" — {_rule.Note}";
-
-            // Build a comment that replaces the statement
-            var commentText = $"// MIGRATION: {_rule.Id} removed{noteText}: {originalText}";
-
-            // Preserve the leading trivia (indentation, blank lines) from the original node
-            var leadingTrivia = node.GetLeadingTrivia();
-            var trailingTrivia = node.GetTrailingTrivia();
-
-            var commentTrivia = SyntaxFactory.Comment(commentText);
-            var newTrivia = leadingTrivia
-                .Add(commentTrivia)
-                .AddRange(trailingTrivia);
-
-            // Replace the statement with an empty statement that carries the comment as
-            // leading trivia, then is itself invisible (just a semicolon with no real effect).
-            // Alternatively, produce a comment-only trivia on an empty statement.
-            // We emit a single-line comment on a trivial empty statement node.
-            var placeholder = SyntaxFactory.EmptyStatement(
-                    SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-                .WithLeadingTrivia(newTrivia)
-                .WithTrailingTrivia(SyntaxFactory.ElasticCarriageReturnLineFeed);
-
-            _ctx.RecordApplied(
-                _rule,
-                node.Span,
-                originalText: originalText,
-                replacementText: commentText,
-                line: RewriterHelpers.LineOf(node));
-
-            Changed = true;
-            return placeholder;
+            commentText = $"// MIGRATION: {_rule.Id} removed{noteText}: {originalText}";
+            return true;
         }
 
         private bool IsTargetCall(ExpressionSyntax expr)

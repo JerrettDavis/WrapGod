@@ -50,16 +50,22 @@ internal sealed class AddRequiredParameterRewriter : IRuleRewriter
             var args = argList.Arguments;
             var position = _rule.Position;
 
-            // Build the default argument with a TODO comment
+            // Build the default argument with a TODO comment. Use 'null' when the
+            // parameter type is clearly a reference type (nullable, string, array, common
+            // interfaces) so the rewritten code is more likely to compile under recent
+            // C# nullable-aware analyzers.
             var todoComment = SyntaxFactory.Comment(
                 $"/* TODO MIGRATION: {_rule.Id} required arg '{_rule.ParameterName}' ({_rule.ParameterType}) added */");
 
-            var defaultExpression = SyntaxFactory
-                .LiteralExpression(SyntaxKind.DefaultLiteralExpression)
+            ExpressionSyntax placeholderExpression = IsLikelyReferenceType(_rule.ParameterType)
+                ? SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)
+                : SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression);
+
+            placeholderExpression = placeholderExpression
                 .WithLeadingTrivia(SyntaxFactory.Space)
                 .WithTrailingTrivia(SyntaxFactory.Space, todoComment);
 
-            var newArg = SyntaxFactory.Argument(defaultExpression);
+            var newArg = SyntaxFactory.Argument(placeholderExpression);
 
             // Clamp position to valid range
             var insertAt = Math.Clamp(position, 0, args.Count);
@@ -90,6 +96,34 @@ internal sealed class AddRequiredParameterRewriter : IRuleRewriter
                     id.Identifier.ValueText == _rule.MethodName,
                 _ => false,
             };
+        }
+
+        /// <summary>
+        /// Heuristic — returns <see langword="true"/> when <paramref name="parameterType"/>
+        /// is clearly a reference type by syntactic shape: nullable annotation, string,
+        /// object, array, or an interface name (prefix <c>I</c> + uppercase next char).
+        /// </summary>
+        private static bool IsLikelyReferenceType(string parameterType)
+        {
+            if (string.IsNullOrEmpty(parameterType))
+                return false;
+
+            if (parameterType.EndsWith('?'))
+                return true;
+
+            if (parameterType.EndsWith("[]", StringComparison.Ordinal))
+                return true;
+
+            var shortName = RewriterHelpers.ShortName(parameterType);
+
+            if (shortName is "string" or "String" or "object" or "Object")
+                return true;
+
+            // Interface convention: starts with capital I followed by another capital
+            if (shortName.Length >= 2 && shortName[0] == 'I' && char.IsUpper(shortName[1]))
+                return true;
+
+            return false;
         }
     }
 }

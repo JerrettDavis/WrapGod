@@ -1,0 +1,31 @@
+{
+  "schema": "wrapgod-migration/1.0",
+  "library": "TestApp.Widgets",
+  "from": "1.0.0",
+  "to": "2.0.0",
+  "generatedFrom": "manual",
+  "rules": [
+    {
+      "kind": "renameNamespace",
+      "id": "RNS-001",
+      "confidence": "auto",
+      "oldNamespace": "Acme.Legacy",
+      "newNamespace": "Acme.Modern"
+    },
+    {
+      "kind": "renameMember",
+      "id": "RM-001",
+      "confidence": "auto",
+      "typeName": "Widget",
+      "oldMemberName": "Render",
+      "newMemberName": "Draw"
+    },
+    {
+      "kind": "changeTypeReference",
+      "id": "CTR-001",
+      "confidence": "auto",
+      "oldType": "IList",
+      "newType": "IReadOnlyList"
+    }
+  ]
+}

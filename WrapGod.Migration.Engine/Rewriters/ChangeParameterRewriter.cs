@@ -22,7 +22,7 @@ internal sealed class ChangeParameterRewriter : IRuleRewriter
         if (rule is not ChangeParameterRule typed)
             return null;
 
-        var walker = new ChangeParameterWalker(typed, ctx);
+        var walker = new ChangeParameterWalker(typed, ctx, node);
         var result = walker.Visit(node);
         return walker.Changed ? result : null;
     }
@@ -33,20 +33,46 @@ internal sealed class ChangeParameterRewriter : IRuleRewriter
     {
         private readonly ChangeParameterRule _rule;
         private readonly RewriteContext _ctx;
+        private readonly SyntaxNode _root;
+        private readonly string _declTypeShort;
         internal bool Changed;
 
-        internal ChangeParameterWalker(ChangeParameterRule rule, RewriteContext ctx)
+        internal ChangeParameterWalker(
+            ChangeParameterRule rule,
+            RewriteContext ctx,
+            SyntaxNode root)
         {
             _rule = rule;
             _ctx = ctx;
+            _root = root;
+            _declTypeShort = RewriterHelpers.ShortName(rule.TypeName);
         }
 
         public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
         {
             // Check if this invocation is a call to the target method on the target type.
-            // We require that the method name matches; receiver type is best-effort only.
             if (!IsTargetMethodCall(node))
                 return base.VisitInvocationExpression(node);
+
+            // Receiver-type disambiguation: if the receiver is a member access whose receiver
+            // type can be inferred and does NOT match the declaring type, record a Skipped
+            // and leave the invocation alone. This prevents wrong rewrites on unrelated
+            // methods that share a name.
+            if (node.Expression is MemberAccessExpressionSyntax mae)
+            {
+                var inferred = RewriterHelpers.TryInferReceiverTypeName(mae, _root);
+                if (inferred is not null &&
+                    !string.Equals(inferred, _declTypeShort, StringComparison.Ordinal))
+                {
+                    _ctx.RecordSkipped(
+                        _rule,
+                        node.Span,
+                        line: RewriterHelpers.LineOf(node),
+                        reason: $"ambiguous: receiver type '{inferred}' does not match " +
+                                $"declaring type '{_declTypeShort}'");
+                    return base.VisitInvocationExpression(node);
+                }
+            }
 
             var argList = node.ArgumentList;
             var newArgs = new List<ArgumentSyntax>(argList.Arguments.Count);

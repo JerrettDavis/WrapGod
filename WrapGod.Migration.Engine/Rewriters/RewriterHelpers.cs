@@ -33,9 +33,11 @@ internal static class RewriterHelpers
     /// <summary>
     /// Attempts to infer the declared type name of the receiver expression in a
     /// <see cref="MemberAccessExpressionSyntax"/> using syntax-only heuristics.
-    /// Returns the simple identifier text if the receiver is a simple name for which
-    /// a local/field declaration with an explicit type is visible in the same method
-    /// body, otherwise returns <see langword="null"/>.
+    /// Searches, in order:
+    /// (1) local variable declarations and parameters in the enclosing method body,
+    /// (2) field and property declarations on the enclosing type,
+    /// (3) the receiver identifier itself as a static type name (uppercase-start).
+    /// Returns the short type name when found, otherwise <see langword="null"/>.
     /// </summary>
     internal static string? TryInferReceiverTypeName(
         MemberAccessExpressionSyntax memberAccess,
@@ -56,67 +58,117 @@ internal static class RewriterHelpers
                 ConstructorDeclarationSyntax or
                 AccessorDeclarationSyntax);
 
-        if (enclosingBody is null)
-            return null;
-
-        // Scan local variable declarations: look for "TypeName varName =" or "TypeName varName;"
-        foreach (var local in enclosingBody.DescendantNodes().OfType<VariableDeclarationSyntax>())
+        if (enclosingBody is not null)
         {
-            foreach (var variable in local.Variables)
+            // Scan local variable declarations: skip fields (those are scanned separately
+            // below). Only inspect locals declared inside the method body.
+            foreach (var local in enclosingBody.DescendantNodes().OfType<VariableDeclarationSyntax>())
             {
-                if (variable.Identifier.ValueText != receiverName)
+                if (local.Parent is FieldDeclarationSyntax)
                     continue;
 
-                // Extract the declared type text (e.g., "MyService", "MyService?", etc.)
-                var typeSyntax = local.Type;
-                if (typeSyntax is NullableTypeSyntax nullable)
-                    typeSyntax = nullable.ElementType;
+                foreach (var variable in local.Variables)
+                {
+                    if (variable.Identifier.ValueText != receiverName)
+                        continue;
 
-                if (typeSyntax is IdentifierNameSyntax idType)
-                    return idType.Identifier.ValueText;
+                    var inferred = ExtractShortTypeName(local.Type);
+                    if (inferred is not null)
+                        return inferred;
+                }
+            }
 
-                if (typeSyntax is QualifiedNameSyntax qn)
-                    return qn.Right.Identifier.ValueText;
+            // Also check method / constructor parameters
+            var paramLists = enclosingBody
+                .ChildNodes()
+                .OfType<ParameterListSyntax>()
+                .Concat(enclosingBody.AncestorsAndSelf()
+                    .OfType<MethodDeclarationSyntax>()
+                    .Select(m => m.ParameterList))
+                .Concat(enclosingBody.AncestorsAndSelf()
+                    .OfType<ConstructorDeclarationSyntax>()
+                    .Select(c => c.ParameterList));
 
-                if (typeSyntax is GenericNameSyntax gn)
-                    return gn.Identifier.ValueText;
+            foreach (var paramList in paramLists)
+            {
+                foreach (var param in paramList.Parameters)
+                {
+                    if (param.Identifier.ValueText != receiverName)
+                        continue;
+
+                    if (param.Type is null)
+                        continue;
+
+                    var inferred = ExtractShortTypeName(param.Type);
+                    if (inferred is not null)
+                        return inferred;
+                }
             }
         }
 
-        // Also check method / constructor parameters
-        var paramLists = enclosingBody
-            .ChildNodes()
-            .OfType<ParameterListSyntax>()
-            .Concat(enclosingBody.AncestorsAndSelf()
-                .OfType<MethodDeclarationSyntax>()
-                .Select(m => m.ParameterList))
-            .Concat(enclosingBody.AncestorsAndSelf()
-                .OfType<ConstructorDeclarationSyntax>()
-                .Select(c => c.ParameterList));
+        // Walk up to the enclosing type declaration to scan fields and properties.
+        var enclosingType = memberAccess
+            .Ancestors()
+            .OfType<TypeDeclarationSyntax>()
+            .FirstOrDefault();
 
-        foreach (var paramList in paramLists)
+        if (enclosingType is not null)
         {
-            foreach (var param in paramList.Parameters)
+            // Fields: e.g. `private readonly MyService _service;`
+            foreach (var field in enclosingType.Members.OfType<FieldDeclarationSyntax>())
             {
-                if (param.Identifier.ValueText != receiverName)
+                foreach (var variable in field.Declaration.Variables)
+                {
+                    if (variable.Identifier.ValueText != receiverName)
+                        continue;
+
+                    var inferred = ExtractShortTypeName(field.Declaration.Type);
+                    if (inferred is not null)
+                        return inferred;
+                }
+            }
+
+            // Properties: e.g. `public MyService Service { get; }`
+            foreach (var prop in enclosingType.Members.OfType<PropertyDeclarationSyntax>())
+            {
+                if (prop.Identifier.ValueText != receiverName)
                     continue;
 
-                if (param.Type is null)
-                    continue;
-
-                var pType = param.Type;
-                if (pType is NullableTypeSyntax npt)
-                    pType = npt.ElementType;
-
-                if (pType is IdentifierNameSyntax pid)
-                    return pid.Identifier.ValueText;
-
-                if (pType is QualifiedNameSyntax pqn)
-                    return pqn.Right.Identifier.ValueText;
+                var inferred = ExtractShortTypeName(prop.Type);
+                if (inferred is not null)
+                    return inferred;
             }
         }
+
+        // Static-style receiver: if the receiver identifier text starts with an uppercase
+        // letter and no locals/fields/properties/parameters with that name were found, treat
+        // it as a type-of-name reference (e.g. `MyStatic.OldMethod()` calls a static member).
+        if (!string.IsNullOrEmpty(receiverName) && char.IsUpper(receiverName[0]))
+            return receiverName;
 
         return null;
+    }
+
+    /// <summary>
+    /// Extracts the short (unqualified) type name from a <see cref="TypeSyntax"/>,
+    /// peeling off nullable annotations and arrays. Returns <see langword="null"/> when
+    /// the type cannot be reduced to a simple short name.
+    /// </summary>
+    private static string? ExtractShortTypeName(TypeSyntax typeSyntax)
+    {
+        if (typeSyntax is NullableTypeSyntax nullable)
+            typeSyntax = nullable.ElementType;
+
+        if (typeSyntax is ArrayTypeSyntax array)
+            typeSyntax = array.ElementType;
+
+        return typeSyntax switch
+        {
+            IdentifierNameSyntax id => id.Identifier.ValueText,
+            QualifiedNameSyntax qn => qn.Right.Identifier.ValueText,
+            GenericNameSyntax gn => gn.Identifier.ValueText,
+            _ => null,
+        };
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using TinyBDD;
@@ -10,8 +11,11 @@ using Xunit.Abstractions;
 namespace WrapGod.Tests.Migration.Engine.Rewriters;
 
 [Feature("RemoveMemberRewriter: comment-out call sites for removed members and record Applied")]
-public sealed class RemoveMemberRewriterTests(ITestOutputHelper output) : TinyBddXunitBase(output)
+public sealed partial class RemoveMemberRewriterTests(ITestOutputHelper output) : TinyBddXunitBase(output)
 {
+    [GeneratedRegex(@"^\s*;\s*$", RegexOptions.Multiline)]
+    private static partial Regex LoneSemicolonLine();
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static RemoveMemberRewriter Make() => new();
@@ -109,5 +113,37 @@ public sealed class RemoveMemberRewriterTests(ITestOutputHelper output) : TinyBd
     public Task RemoveMemberRewriter_Kind_IsRemoveMember() =>
         Given("a RemoveMemberRewriter instance", () => Make())
         .Then("Kind is removeMember", r => r.Kind == "removeMember")
+        .AssertPassed();
+
+    // ── regression ───────────────────────────────────────────────────────────
+
+    [Scenario("Rewritten output does not contain orphaned lone-semicolon lines")]
+    [Fact]
+    public Task RemoveMember_Output_HasNoOrphanSemicolon() =>
+        Given("source with deprecated call followed by another statement", () =>
+        {
+            var (root, ctx) = Parse(
+                "class C { void M(OldApi obj) {\n    obj.Deprecated();\n    var x = 1;\n} }");
+            var result = Make().TryRewrite(root, Rule(), ctx);
+            return result!.ToFullString();
+        })
+        .Then("output does NOT contain a lone ';' on its own line", s =>
+            !LoneSemicolonLine().IsMatch(s))
+        .And("output contains the MIGRATION comment", s => s.Contains("MIGRATION"))
+        .And("output contains the surviving statement 'var x = 1'", s => s.Contains("var x = 1"))
+        .AssertPassed();
+
+    [Scenario("Removed call as last statement in block attaches comment to closing brace trivia")]
+    [Fact]
+    public Task RemoveMember_LastStatement_NoOrphanSemicolon() =>
+        Given("source where the removed call is the ONLY statement in the block", () =>
+        {
+            var (root, ctx) = Parse("class C { void M(OldApi obj) {\n    obj.Deprecated();\n} }");
+            var result = Make().TryRewrite(root, Rule(), ctx);
+            return result!.ToFullString();
+        })
+        .Then("output does NOT contain a lone ';' on its own line", s =>
+            !LoneSemicolonLine().IsMatch(s))
+        .And("output contains the MIGRATION comment", s => s.Contains("MIGRATION"))
         .AssertPassed();
 }

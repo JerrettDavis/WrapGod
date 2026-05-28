@@ -101,22 +101,27 @@ MyService svc = new MyService();
 svc.Run();
 ```
 
-**Ambiguity heuristic:** If the receiver is declared as `object`, a generic parameter,
-or an interface the rewriter cannot resolve, a `SkippedRewrite` with reason
-`"ambiguous: cannot determine receiver type"` is recorded and the call site is left
-unchanged for manual review.
+**Receiver inference scope:** searches in order — (1) local variables and parameters in
+the enclosing method/constructor/property body, (2) field and property declarations on
+the enclosing type, (3) the receiver identifier itself as a type-of-name reference (for
+static class member calls). Falls back to `SkippedRewrite` when the receiver is a
+chained-call result or any expression whose type cannot be inferred syntactically.
 
 ---
 
 ## ChangeParameterRewriter
 
-Rewrites the named-argument label of a parameter that was renamed. For parameter
-**type** changes on positional arguments, a `SkippedRewrite` with reason
+Rewrites the named-argument label of a parameter that was renamed. Also performs
+**receiver-type disambiguation** — when the receiver type can be inferred (via
+`RewriterHelpers.TryInferReceiverTypeName`) and does not match the rule's declaring
+type, the invocation is skipped to avoid rewriting unrelated methods that share a name.
+For parameter **type** changes on positional arguments, a `SkippedRewrite` with reason
 `"type change requires semantic conversion"` is recorded because a syntax-only
 rewriter cannot safely convert argument values.
 
 ```csharp
 // Rule:
+//   TypeName = "Builder"
 //   MethodName = "Build"
 //   OldParameterName = "size"
 //   NewParameterName = "buttonSize"
@@ -132,10 +137,11 @@ builder.Build(buttonSize: 42);
 
 ## RemoveMemberRewriter
 
-When a member has been completely removed from the API, every call site is replaced
-with a comment that preserves the original text for manual inspection. The replacement
-is recorded as an `AppliedRewrite` so the audit trail shows where human action is
-needed.
+When a member has been completely removed from the API, every call site is removed
+entirely and its location is annotated with a comment that preserves the original text
+for manual inspection. The comment is attached as trivia to the next sibling statement
+(or the closing brace if the removed call was the last statement), so no orphan `;`
+is left in the output. Each removal is recorded as an `AppliedRewrite`.
 
 ```csharp
 // Rule:
@@ -143,19 +149,30 @@ needed.
 //   Note = "Use NewApi.Process() instead."
 
 // Before
-obj.Deprecated();
+void M(OldApi obj)
+{
+    obj.Deprecated();
+    var x = 1;
+}
 
 // After
-// MIGRATION: DEL-001 removed — Use NewApi.Process() instead.: obj.Deprecated();
+void M(OldApi obj)
+{
+    // MIGRATION: DEL-001 removed — Use NewApi.Process() instead.: obj.Deprecated();
+    var x = 1;
+}
 ```
 
 ---
 
 ## AddRequiredParameterRewriter
 
-Inserts a `default` expression at the specified zero-based position in every matching
+Inserts a placeholder expression at the specified zero-based position in every matching
 invocation's argument list, annotated with a `TODO MIGRATION` comment so developers
-know to supply a real value. The insertion is recorded as an `AppliedRewrite`.
+know to supply a real value. The placeholder is `null` when the parameter type is
+syntactically a reference type (nullable annotation, array, `string`/`object`, or an
+interface following the `I + UpperCamelCase` convention) and `default` otherwise. The
+insertion is recorded as an `AppliedRewrite`.
 
 ```csharp
 // Rule:
