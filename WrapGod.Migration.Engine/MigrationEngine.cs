@@ -112,12 +112,36 @@ public sealed class MigrationEngine
     /// <see langword="null"/>.
     /// </exception>
     public MigrationResult Apply(MigrationSchema schema, IEnumerable<string> filePaths) =>
-        Run(schema, filePaths, dryRun: false);
+        Run(schema, filePaths, dryRun: false, alreadyApplied: null);
 
     /// <summary>
-    /// Runs the same pipeline as <see cref="Apply"/> but does not write any files
-    /// to disk.  The returned <see cref="MigrationResult.RewrittenFiles"/> dictionary
-    /// is still populated with the would-be new content for each modified file.
+    /// Applies all rules in <paramref name="schema"/> to every file in
+    /// <paramref name="filePaths"/>, skipping <c>(ruleId, file)</c> pairs present in
+    /// <paramref name="alreadyApplied"/> (state-tracking overload).
+    /// Writes modified files back to disk and returns the new <see cref="MigrationResult"/>.
+    /// </summary>
+    /// <param name="schema">The migration schema to apply.</param>
+    /// <param name="filePaths">The source file paths to process.</param>
+    /// <param name="alreadyApplied">
+    /// A set of <c>(ruleId, file)</c> pairs already applied in a prior run.
+    /// Pass an empty set or <see langword="null"/> for an unconditional full run.
+    /// </param>
+    /// <returns>A <see cref="MigrationResult"/> with <see cref="MigrationResult.DryRun"/> = <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="schema"/> or <paramref name="filePaths"/> is
+    /// <see langword="null"/>.
+    /// </exception>
+    internal MigrationResult Apply(
+        MigrationSchema schema,
+        IEnumerable<string> filePaths,
+        HashSet<(string RuleId, string File)>? alreadyApplied) =>
+        Run(schema, filePaths, dryRun: false, alreadyApplied);
+
+    /// <summary>
+    /// Runs the same pipeline as <see cref="Apply(MigrationSchema,IEnumerable{string})"/>
+    /// but does not write any files to disk.  The returned
+    /// <see cref="MigrationResult.RewrittenFiles"/> dictionary is still populated with the
+    /// would-be new content for each modified file.
     /// </summary>
     /// <param name="schema">The migration schema to apply.</param>
     /// <param name="filePaths">The source file paths to process.</param>
@@ -127,14 +151,25 @@ public sealed class MigrationEngine
     /// <see langword="null"/>.
     /// </exception>
     public MigrationResult DryRun(MigrationSchema schema, IEnumerable<string> filePaths) =>
-        Run(schema, filePaths, dryRun: true);
+        Run(schema, filePaths, dryRun: true, alreadyApplied: null);
+
+    /// <summary>
+    /// Dry-run overload that honours prior-state filtering (used by
+    /// <see cref="StatefulMigrationEngine"/>).
+    /// </summary>
+    internal MigrationResult DryRun(
+        MigrationSchema schema,
+        IEnumerable<string> filePaths,
+        HashSet<(string RuleId, string File)>? alreadyApplied) =>
+        Run(schema, filePaths, dryRun: true, alreadyApplied);
 
     // ── Core pipeline ─────────────────────────────────────────────────────────
 
     private MigrationResult Run(
         MigrationSchema schema,
         IEnumerable<string> filePaths,
-        bool dryRun)
+        bool dryRun,
+        HashSet<(string RuleId, string File)>? alreadyApplied)
     {
         ArgumentNullException.ThrowIfNull(schema);
         ArgumentNullException.ThrowIfNull(filePaths);
@@ -224,7 +259,7 @@ public sealed class MigrationEngine
             }
 
             // ── Auto rules (Option A: sequential chain) ───────────────────────
-            var ctx2 = new RewriteContext(filePath);
+            var ctx2 = new RewriteContext(filePath, alreadyApplied);
             var currentRoot = root;
             bool fileModified = false;
 
@@ -236,6 +271,10 @@ public sealed class MigrationEngine
                     // Schema-level skip already emitted up-front; do not duplicate.
                     continue;
                 }
+
+                // State-tracking: skip rules already applied to this file in a prior run.
+                if (ctx2.IsAlreadyApplied(rule.Id))
+                    continue;
 
                 var newRoot = InternalRewriterDispatcher.Apply(rewriter, currentRoot, rule, ctx2);
                 if (!ReferenceEquals(newRoot, currentRoot))

@@ -208,3 +208,11 @@ detected. The `Applied` list contains no entries for manual rules.
 
 - **#202** — B-level structural rewriters (`SplitMethod`,
   `ExtractParameterObject`, `PropertyToMethod`, `MoveMember`).
+
+## State-tracking (idempotent re-runs)
+
+`StatefulMigrationEngine` (namespace `WrapGod.Migration.Engine`) wraps the
+base engine with persistent state so that `apply` runs are idempotent. The
+state is stored in a sibling file next to the schema (e.g.
+`schema.json.state.json`). See [Migration State](state.md) for the full
+specification, hash semantics, and API reference.
