@@ -8,7 +8,27 @@ internal static class MigrateInitCommand
 {
     private static readonly JsonSerializerOptions SerializerOptions = new() { WriteIndented = true };
 
+    /// <summary>
+    /// Returns the <c>migrate</c> parent command containing only the <c>init</c> subcommand.
+    /// Preserved for backward compatibility with existing test code that invokes
+    /// <c>InvokeAsync(MigrateInitCommand.Create(), "init ...")</c>.
+    /// New code should use <see cref="CreateSubCommand"/> and compose via <c>MigrateCommandBuilder</c>.
+    /// </summary>
     public static Command Create()
+    {
+        var migrateCommand = new Command("migrate", "Migration tools for adopting WrapGod wrappers")
+        {
+            CreateSubCommand()
+        };
+
+        return migrateCommand;
+    }
+
+    /// <summary>
+    /// Returns only the <c>init</c> subcommand, suitable for inclusion in a shared
+    /// <c>migrate</c> parent built by <c>MigrateCommandBuilder</c>.
+    /// </summary>
+    public static Command CreateSubCommand()
     {
         var projectDirOption = new Option<DirectoryInfo>(
             ["--project-dir", "-p"],
@@ -33,12 +53,7 @@ internal static class MigrateInitCommand
 
         command.SetHandler(async (DirectoryInfo p, FileInfo? m, string o) => Environment.ExitCode = await HandleAsync(p, m, o), projectDirOption, manifestOption, outputOption);
 
-        var migrateCommand = new Command("migrate", "Migration tools for adopting WrapGod wrappers")
-        {
-            command
-        };
-
-        return migrateCommand;
+        return command;
     }
 
     private static async Task<int> HandleAsync(DirectoryInfo projectDir, FileInfo? manifestFile, string outputPath)

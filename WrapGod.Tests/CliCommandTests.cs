@@ -9,6 +9,8 @@ public sealed class CliCommandTests
     private static readonly string[] ExpectedRootCommands =
         ["analyze", "ci", "doctor", "explain", "extract", "generate", "init", "migrate"];
 
+    private static readonly string[] ExpectedMigrateCommands = ["generate", "init"];
+
     private static readonly string[] ExpectedCiCommands = ["bootstrap", "parity"];
 
     [Fact]
@@ -22,6 +24,10 @@ public sealed class CliCommandTests
         var ci = root.Subcommands.Single(c => c.Name == "ci");
         var ciNames = ci.Subcommands.Select(c => c.Name).OrderBy(n => n).ToArray();
         Assert.Equal(ExpectedCiCommands, ciNames);
+
+        var migrate = root.Subcommands.Single(c => c.Name == "migrate");
+        var migrateNames = migrate.Subcommands.Select(c => c.Name).OrderBy(n => n).ToArray();
+        Assert.Equal(ExpectedMigrateCommands, migrateNames);
     }
 
     [Fact]
@@ -103,7 +109,7 @@ public sealed class CliCommandTests
             AnalyzeCommand.Create(),
             DoctorCommand.Create(),
             ExplainCommand.Create(),
-            MigrateInitCommand.Create(),
+            MigrateCommandBuilder.Build(),
             ci,
         };
     }

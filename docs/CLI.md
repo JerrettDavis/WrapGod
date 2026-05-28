@@ -11,6 +11,7 @@
 - `wrap-god doctor` – environment + project health checks
 - `wrap-god explain` – explain compatibility mode behavior for a manifest
 - `wrap-god migrate init` – analyze project usage and bootstrap migration plan assets
+- `wrap-god migrate generate` – generate a draft migration schema from two library versions (NuGet or local DLLs)
 - `wrap-god ci bootstrap` – CI helper setup
 - `wrap-god ci parity` – CI parity report generation
 
@@ -32,6 +33,12 @@
 
 - `0` migration plan generated successfully
 - `1` invalid filesystem state or runtime failure (missing project directory, output path is a directory, existing plan file, invalid manifest JSON, or read/write failure)
+
+### `migrate generate`
+
+- `0` schema written successfully (0-rule schema emits a warning but still exits 0)
+- `1` runtime failure (missing files, network error, invalid version string, output file already exists)
+- `2` input validation error (conflicting modes, missing required mode flags)
 
 ## Common examples
 
