@@ -450,18 +450,170 @@ public sealed class MigrationEngineTests(ITestOutputHelper output) : TinyBddXuni
             var engine = EngineWithFs(fs);
             return engine.Apply(schema, ["c.cs"]);
         })
-        .Then("'using NewNs' appears at least once in final file", r =>
+        // Should-fix #2: assert directly that the engine rewrote the file; no silent
+        // fallback that lets the test pass when nothing happened.
+        .Then("engine rewrote c.cs", r => r.RewrittenFiles.ContainsKey("c.cs"))
+        .And("'using NewNs' appears in rewritten file", r =>
+            r.RewrittenFiles["c.cs"].Contains("using NewNs"))
+        .And("'using OldNs' is no longer present", r =>
+            !r.RewrittenFiles["c.cs"].Contains("using OldNs"))
+        .And("'using NewNs' is not duplicated (exactly 2 occurrences — Widgets and Extras)", r =>
+            CountOccurrences(r.RewrittenFiles["c.cs"], "using NewNs") == 2)
+        .AssertPassed();
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Group: review-feedback regression tests
+    // ══════════════════════════════════════════════════════════════════════════
+
+    [Scenario("Review-MustFix1: Manual rule with namespace-producing kind MUST NOT inject a using even when its ID matches an applied auto rule's pattern")]
+    [Fact]
+    public Task ReviewMustFix1_ManualRuleNamespace_NotInjected() =>
+        Given("schema with a Manual ChangeTypeReference (FakeNs.X→GhostNs.Y) and an auto RenameType that DOES apply", () =>
         {
-            // Either unchanged (no entry) or rewritten - in both cases NewNs should be present.
-            var text = r.RewrittenFiles.TryGetValue("c.cs", out var t) ? t : "using NewNs.Widgets;\nusing NewNs.Extras;\nclass C { Widget x; }";
-            return text.Contains("using NewNs");
+            // The manual rule introduces "GhostNs" namespace; if the engine were
+            // iterating schema.Rules in InjectMissingUsings, a coincidence between
+            // the manual rule's ID and an applied auto rule's ID could cause
+            // "using GhostNs" to be injected.  Must-fix #1 forbids this.
+            var source = "class C { OldWidget w; }";
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    // Auto rule that WILL apply (renames OldWidget → NewWidget in same ns)
+                    new RenameTypeRule
+                    {
+                        Id = "SHARED-ID",
+                        OldName = "OldWidget",
+                        NewName = "NewWidget",
+                        Confidence = RuleConfidence.Auto,
+                    },
+                    // Manual rule producing GhostNs — has the same Id by coincidence
+                    new ChangeTypeReferenceRule
+                    {
+                        Id = "SHARED-ID",
+                        OldType = "FakeNs.X",
+                        NewType = "GhostNs.Y",
+                        Confidence = RuleConfidence.Manual,
+                    },
+                ]
+            };
+            var fs = new InMemoryFileSystem().WithFile("c.cs", source);
+            var engine = EngineWithFs(fs);
+            return engine.Apply(schema, ["c.cs"]);
         })
-        .And("'using OldNs' is not present in rewritten file", r =>
+        .Then("file was rewritten (auto rule applied)", r => r.RewrittenFiles.ContainsKey("c.cs"))
+        .And("rewritten file does NOT contain 'using GhostNs'", r =>
+            !r.RewrittenFiles["c.cs"].Contains("using GhostNs"))
+        .And("rewritten file does NOT contain 'using FakeNs'", r =>
+            !r.RewrittenFiles["c.cs"].Contains("using FakeNs"))
+        .AssertPassed();
+
+    [Scenario("Review-MustFix2: Manual rule detection MUST NOT leak Applied/Skipped entries from its rewriter into the main audit trail")]
+    [Fact]
+    public Task ReviewMustFix2_ManualDetection_DoesNotLeakIntoMainContext() =>
+        Given("schema with a Manual rule matched by a rewriter that records Applied during detection", () =>
         {
-            if (!r.RewrittenFiles.TryGetValue("c.cs", out var text))
-                return true; // not rewritten means original which still has OldNs — acceptable
-            return !text.Contains("using OldNs");
+            // Use a custom rewriter that ALWAYS records an Applied entry whenever
+            // TryRewrite is called.  Engine's manual detection invokes this rewriter
+            // with a throwaway context, so the entry must NOT bubble into result.Applied.
+            var leaky = new LambdaRewriter("renameType", (node, rule, ctx) =>
+            {
+                ctx.RecordApplied(rule, default, "x", "y", 1);
+                return null;
+            });
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    new RenameTypeRule
+                    {
+                        Id = "MANUAL-LEAK",
+                        OldName = "Anything",
+                        NewName = "Whatever",
+                        Confidence = RuleConfidence.Manual,
+                    }
+                ]
+            };
+            var fs = new InMemoryFileSystem().WithFile("m.cs", "class C {}");
+            var engine = new MigrationEngine([leaky], fs);
+            return engine.Apply(schema, ["m.cs"]);
         })
+        .Then("Applied contains NO leaked entries for MANUAL-LEAK", r =>
+            !r.Applied.Any(a => a.RuleId == "MANUAL-LEAK"))
+        .And("Skipped contains NO leaked entries for MANUAL-LEAK", r =>
+            !r.Skipped.Any(s => s.RuleId == "MANUAL-LEAK"))
+        .And("Manual list still contains the rule entry", r =>
+            r.Manual.Any(m => m.RuleId == "MANUAL-LEAK"))
+        .AssertPassed();
+
+    [Scenario("Review-ShouldFix1: LF-only source file → injected using directive uses LF terminator (not CRLF)")]
+    [Fact]
+    public Task ReviewShouldFix1_LfOnlyFile_InjectedUsingUsesLf() =>
+        Given("LF-only file that requires namespace using injection via RenameNamespace", () =>
+        {
+            // Source uses only \n. The injected using directive must use \n, not \r\n.
+            var source = "using OldNs.A;\nclass C { Widget x; }";
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    new RenameNamespaceRule
+                    {
+                        Id = "RNS-001",
+                        OldNamespace = "OldNs",
+                        NewNamespace = "NewNs"
+                    }
+                ]
+            };
+            var fs = new InMemoryFileSystem().WithFile("lf.cs", source);
+            var engine = EngineWithFs(fs);
+            return engine.Apply(schema, ["lf.cs"]);
+        })
+        .Then("rewritten file was produced", r => r.RewrittenFiles.ContainsKey("lf.cs"))
+        // The original had no CRLF; injection must not introduce CRLF.  Roslyn may emit
+        // pre-existing using terminators unchanged, so the only safe assertion is "no
+        // CRLF anywhere in the rewritten text".
+        .And("rewritten file contains no CRLF sequences", r =>
+            !r.RewrittenFiles["lf.cs"].Contains("\r\n"))
+        .AssertPassed();
+
+    [Scenario("Review-ShouldFix3: unknown-rule-kind SkippedRewrite emitted ONCE per schema, not once per file")]
+    [Fact]
+    public Task ReviewShouldFix3_UnknownKindSkipped_OncePerSchema() =>
+        Given("schema with SplitMethod rule (no rewriter) and 5 input files", () =>
+        {
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    new SplitMethodRule
+                    {
+                        Id = "SM-001",
+                        TypeName = "Widget",
+                        OldMethodName = "Render",
+                        NewMethodNames = ["Draw", "Flush"]
+                    }
+                ]
+            };
+            var fs = new InMemoryFileSystem();
+            var paths = new string[5];
+            for (int i = 0; i < 5; i++)
+            {
+                var p = $"f{i}.cs";
+                fs.WithFile(p, "class Widget { void Render() {} }");
+                paths[i] = p;
+            }
+            var engine = EngineWithFs(fs);
+            return engine.Apply(schema, paths);
+        })
+        .Then("exactly one SM-001 SkippedRewrite (schema-level, not 5 per-file)", r =>
+            r.Skipped.Count(s => s.RuleId == "SM-001") == 1)
+        .And("the schema-level entry uses File = '<schema>'", r =>
+            r.Skipped.Single(s => s.RuleId == "SM-001").File == "<schema>")
         .AssertPassed();
 
     // ══════════════════════════════════════════════════════════════════════════
