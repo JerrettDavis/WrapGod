@@ -24,8 +24,10 @@ internal static partial class DiagnosticParser
 {
     // Pattern: <file>(<line>,<col>): <severity> <code>: <message> [optional project ref]
     // Handles both absolute Unix paths and Windows drive-letter paths.
+    // Code prefix is up to 6 letters to cover MSBuild / NETSDK / NuGet codes
+    // (e.g. NETSDK1138, NU1605, MSB3001) alongside the standard CS#### / VBNC#### / IDE####.
     [GeneratedRegex(
-        @"^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\):\s+(?<sev>error|warning|info)\s+(?<code>[A-Za-z]{1,3}\d+):\s+(?<msg>.+?)(?:\s+\[.*?\])?\s*$",
+        @"^(?<file>.+?)\((?<line>\d+),(?<col>\d+)\):\s+(?<sev>error|warning|info)\s+(?<code>[A-Za-z]{1,6}\d+):\s+(?<msg>.+?)(?:\s+\[.*?\])?\s*$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex DiagnosticLineRegex();
 

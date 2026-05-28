@@ -345,18 +345,23 @@ public sealed class MigrateVerifyCliTests
 
     // ── Scenario 10: Tiebreak — two rewrites equidistant, latest index wins ──
 
-    [Scenario("When two rewrites are equidistant the one appearing later in the state (latest applied) wins")]
+    [Scenario("When two rewrites are equidistant the one with the latest AppliedAt timestamp wins")]
     [Fact]
-    public async Task Verify_TwoRulesEquidistant_PicksLatest()
+    public async Task Verify_TwoRulesEquidistant_PicksLatestAppliedAt()
     {
         var dir = CreateTempDir();
         try
         {
             const string file = "Foo.cs";
             // Two rewrites: R-001 at line 10, R-002 at line 14. Diagnostic at line 12.
-            // |12 - 10| = 2 == |12 - 14| = 2. Tie → latest by index wins → R-002.
-            var r1 = new AppliedRewrite("R-001", file, 10, "A", "B");
-            var r2 = new AppliedRewrite("R-002", file, 14, "C", "D");
+            // |12 - 10| = 2 == |12 - 14| = 2. Tie → latest AppliedAt wins.
+            // We arrange R-001 with the LATER timestamp despite being earlier in the
+            // list — this proves we tiebreak by AppliedAt and not by index alone.
+            var laterTimestamp   = new DateTimeOffset(2026, 3, 15, 12, 0, 0, TimeSpan.Zero);
+            var earlierTimestamp = new DateTimeOffset(2026, 3, 14, 12, 0, 0, TimeSpan.Zero);
+
+            var r1 = new AppliedRewrite("R-001", file, 10, "A", "B", laterTimestamp);
+            var r2 = new AppliedRewrite("R-002", file, 14, "C", "D", earlierTimestamp);
             var schemaPath = await WriteStateAsync(dir, BuildState([r1, r2]));
 
             var diagLine = DiagLine(file, 12, 1, "error", "CS0001", "msg");
@@ -366,7 +371,36 @@ public sealed class MigrateVerifyCliTests
                 $"--schema \"{schemaPath}\" --project-dir \"{dir}\"", stub);
 
             Assert.Equal(0, exitCode);
-            Assert.Contains("R-002", stdout); // tiebreak: later index wins
+            Assert.Contains("R-001", stdout); // tiebreak: later AppliedAt wins
+        }
+        finally { SafeDelete(dir); }
+    }
+
+    // ── Scenario 10b: AppliedAt equal → falls back to index order ────────────
+
+    [Scenario("Equal AppliedAt timestamps fall back to index-order tiebreak (legacy state files)")]
+    [Fact]
+    public async Task Verify_EqualAppliedAt_FallsBackToIndexOrder()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            const string file = "Foo.cs";
+            // Both rewrites carry the default DateTimeOffset (MinValue), simulating
+            // a state file written by a build that predates the AppliedAt field.
+            var r1 = new AppliedRewrite("R-001", file, 10, "A", "B"); // default AppliedAt
+            var r2 = new AppliedRewrite("R-002", file, 14, "C", "D"); // default AppliedAt
+            var schemaPath = await WriteStateAsync(dir, BuildState([r1, r2]));
+
+            var diagLine = DiagLine(file, 12, 1, "error", "CS0001", "msg");
+            var stub = new StubBuildRunner(BuildResult.Completed(diagLine, 1));
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"--schema \"{schemaPath}\" --project-dir \"{dir}\"", stub);
+
+            Assert.Equal(0, exitCode);
+            // Equal AppliedAt → secondary tiebreak by index → later index wins → R-002
+            Assert.Contains("R-002", stdout);
         }
         finally { SafeDelete(dir); }
     }
@@ -626,6 +660,129 @@ public sealed class MigrateVerifyCliTests
 
             Assert.Equal(0, exitCode);
             Assert.Contains("CS0200", stdout);
+        }
+        finally { SafeDelete(dir); }
+    }
+
+    // ── Scenario 21: --no-build --json emits build.skipped sentinel ─────────
+
+    [Scenario("--no-build --json emits a structured build.skipped=true sentinel instead of null")]
+    [Fact]
+    public async Task Verify_NoBuild_Json_EmitsSkippedSentinel()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            var schemaPath = await WriteStateAsync(dir, BuildState());
+
+            // Stub would return errors; --no-build must short-circuit so this is never called.
+            var stub = new StubBuildRunner(BuildResult.Completed("noise", 1));
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"--schema \"{schemaPath}\" --project-dir \"{dir}\" --no-build --json", stub);
+
+            Assert.Equal(0, exitCode);
+
+            var doc = JsonDocument.Parse(stdout);
+            var buildEl = doc.RootElement.GetProperty("build");
+
+            // Must be a structured object, not null
+            Assert.Equal(JsonValueKind.Object, buildEl.ValueKind);
+
+            // skipped must be true and a reason must be present
+            Assert.True(buildEl.GetProperty("skipped").GetBoolean());
+            Assert.Equal("--no-build flag set", buildEl.GetProperty("reason").GetString());
+
+            // exitCode is null (not present as a non-null int) so consumers know not to read it
+            Assert.Equal(JsonValueKind.Null, buildEl.GetProperty("exitCode").ValueKind);
+        }
+        finally { SafeDelete(dir); }
+    }
+
+    // ── Scenario 22: Auto-detect schema when --schema omitted ───────────────
+
+    [Scenario("When --schema is omitted the command auto-detects the most recent state file")]
+    [Fact]
+    public async Task Verify_AutoDetectsSchemaFromStateFile()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            // Write schema + state file with a known applied rewrite
+            const string file = "Foo.cs";
+            var applied = new AppliedRewrite("R-AUTO", file, 10, "A", "B",
+                new DateTimeOffset(2026, 3, 14, 0, 0, 0, TimeSpan.Zero));
+            await WriteStateAsync(dir, BuildState([applied]));
+
+            // No --schema given; should auto-detect from --project-dir
+            var diagLine = DiagLine(file, 11, 1, "error", "CS0001", "near R-AUTO");
+            var stub = new StubBuildRunner(BuildResult.Completed(diagLine, 1));
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"--project-dir \"{dir}\"", stub);
+
+            Assert.Equal(0, exitCode);
+            Assert.Contains("R-AUTO", stdout);
+        }
+        finally { SafeDelete(dir); }
+    }
+
+    // ── Scenario 23: Auto-detect when schema file missing but state file exists ──
+
+    [Scenario("Auto-detect works when only the state file exists (schema deleted) — runs in state-only mode")]
+    [Fact]
+    public async Task Verify_AutoDetect_StateExists_SchemaMissing_ProceedsGracefully()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            // Write schema + state, then delete the schema file to simulate
+            // schema-deleted-but-state-retained scenarios (e.g. cleanup script).
+            var applied = new AppliedRewrite("R-001", "Foo.cs", 10, "A", "B");
+            var schemaPath = await WriteStateAsync(dir, BuildState([applied]));
+            File.Delete(schemaPath);
+            Assert.False(File.Exists(schemaPath), "schema file should be deleted for this scenario");
+
+            // State sibling still exists
+            Assert.True(File.Exists(schemaPath + ".state.json"), "state file must remain");
+
+            var stub = new StubBuildRunner(BuildResult.Completed(string.Empty, 0));
+
+            // Auto-detect via --project-dir (no --schema)
+            var (exitCode, stdout, _) = await InvokeAsync($"--project-dir \"{dir}\"", stub);
+
+            Assert.Equal(0, exitCode);
+            // The state-file's recorded rule appears (via state.Applied being read)
+            // and the command runs through to attribution without crashing.
+            Assert.Contains("verify", stdout, StringComparison.OrdinalIgnoreCase);
+        }
+        finally { SafeDelete(dir); }
+    }
+
+    // ── Scenario 24: Regex accepts wider NETSDK-style codes ──────────────────
+
+    [Scenario("DiagnosticParser regex accepts 6-letter NETSDK-style diagnostic codes")]
+    [Fact]
+    public async Task Verify_Parses_NetSdkLongCode()
+    {
+        var dir = CreateTempDir();
+        try
+        {
+            const string file = "Foo.cs";
+            var applied    = new AppliedRewrite("R-001", file, 10, "A", "B");
+            var schemaPath = await WriteStateAsync(dir, BuildState([applied]));
+
+            // NETSDK1138 is a 6-letter-prefix code; the old [A-Za-z]{1,3} regex would reject it.
+            var diagLine = DiagLine(file, 11, 1, "error", "NETSDK1138", "long-prefix code");
+            var stub = new StubBuildRunner(BuildResult.Completed(diagLine, 1));
+
+            var (exitCode, stdout, _) = await InvokeAsync(
+                $"--schema \"{schemaPath}\" --project-dir \"{dir}\" --verbose", stub);
+
+            Assert.Equal(0, exitCode);
+            // The diagnostic must have been parsed AND attributed (delta = 1)
+            Assert.Contains("R-001", stdout);
+            Assert.Contains("NETSDK1138", stdout);
         }
         finally { SafeDelete(dir); }
     }

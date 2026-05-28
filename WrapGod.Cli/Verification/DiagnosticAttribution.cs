@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using WrapGod.Migration.Engine;
 
 namespace WrapGod.Cli.Verification;
@@ -30,9 +31,33 @@ internal sealed class DiagnosticAttribution
 /// source location against the <see cref="AppliedRewrite"/> entries from the state file,
 /// using a ±3 line proximity window.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <strong>Path comparison:</strong> Paths are normalised to forward-slash separators
+/// and compared case-insensitively on Windows and case-sensitively on Linux/macOS to
+/// match the native filesystem semantics. See <see cref="GetPathComparer"/>.
+/// </para>
+/// <para>
+/// <strong>Tiebreak:</strong> When multiple rewrites fall within ±3 lines of a single
+/// diagnostic, the one with the smallest absolute line distance wins. If two are
+/// equidistant, the rewrite with the latest <see cref="AppliedRewrite.AppliedAt"/>
+/// timestamp wins (per MIGRATION-ENGINE-PLAN.md §201.a). When timestamps are equal
+/// (e.g. legacy state files that pre-date the AppliedAt field), the later index in the
+/// state's Applied list wins as a secondary tiebreak.
+/// </para>
+/// </remarks>
 internal static class RuleAttributor
 {
     private const int ProximityWindow = 3;
+
+    /// <summary>
+    /// Returns the appropriate path comparer for the current platform:
+    /// case-insensitive on Windows, case-sensitive elsewhere.
+    /// </summary>
+    private static StringComparer GetPathComparer() =>
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
 
     /// <summary>
     /// Attributes each diagnostic in <paramref name="diagnostics"/> to the nearest
@@ -54,13 +79,16 @@ internal static class RuleAttributor
         ArgumentNullException.ThrowIfNull(diagnostics);
         ArgumentNullException.ThrowIfNull(appliedRewrites);
 
+        var pathComparer = GetPathComparer();
+
         // Build a quick-lookup set from the baseline.
         var baselineSet = BuildBaselineSet(baselineDiagnostics);
 
         // Group applied rewrites by normalised file path for O(1) lookup.
+        // Group key comparison must use the platform-aware path comparer.
         var rewritesByFile = appliedRewrites
-            .GroupBy(r => NormalisePath(r.File), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+            .GroupBy(r => NormalisePath(r.File), pathComparer)
+            .ToDictionary(g => g.Key, g => g.ToList(), pathComparer);
 
         var results = new List<DiagnosticAttribution>();
 
@@ -78,10 +106,10 @@ internal static class RuleAttributor
                 if (rewritesByFile.TryGetValue(normFile, out var candidates))
                 {
                     // Find the nearest rewrite within ±3 lines.
-                    // Tiebreak: smallest distance wins; if equal, latest AppliedAt wins.
-                    // AppliedRewrite does not currently carry an AppliedAt timestamp exposed
-                    // by the model, so we use declaration order as the secondary tiebreak
-                    // (later in the list = later applied, consistent with append-only semantics).
+                    // Tiebreak (per MIGRATION-ENGINE-PLAN.md §201.a):
+                    //   1. Smallest absolute distance wins.
+                    //   2. If equal, latest AppliedAt wins.
+                    //   3. If AppliedAt also equal (legacy state files), later index wins.
                     AppliedRewrite? best = null;
                     int bestIdx = -1;
 
@@ -92,12 +120,29 @@ internal static class RuleAttributor
                         if (dist > ProximityWindow)
                             continue;
 
-                        if (dist < bestDistance ||
-                            (dist == bestDistance && idx > bestIdx))
+                        if (dist < bestDistance)
                         {
-                            bestDistance      = dist;
-                            best              = candidate;
-                            bestIdx           = idx;
+                            bestDistance = dist;
+                            best         = candidate;
+                            bestIdx      = idx;
+                            continue;
+                        }
+
+                        if (dist == bestDistance && best is not null)
+                        {
+                            // Compare AppliedAt — latest wins.
+                            // Default-valued AppliedAt (MinValue) on either side means we
+                            // fall back to index-order which equals engine record order.
+                            if (candidate.AppliedAt > best.AppliedAt)
+                            {
+                                best    = candidate;
+                                bestIdx = idx;
+                            }
+                            else if (candidate.AppliedAt == best.AppliedAt && idx > bestIdx)
+                            {
+                                best    = candidate;
+                                bestIdx = idx;
+                            }
                         }
                     }
 

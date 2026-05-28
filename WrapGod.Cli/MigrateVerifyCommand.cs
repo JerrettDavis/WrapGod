@@ -226,6 +226,20 @@ internal static class MigrateVerifyCommand
 
     // ── Auto-detect helpers ──────────────────────────────────────────────────
 
+    /// <summary>
+    /// Searches <paramref name="projectDir"/> and its parent directory for
+    /// <c>*.wrapgod-migration.json.state.json</c> files and returns the schema path
+    /// associated with the most recently written state file.
+    /// </summary>
+    /// <returns>
+    /// The schema path (i.e. the state path with the <c>.state.json</c> suffix
+    /// stripped) when both the state and its schema sibling exist. When the schema
+    /// sibling is missing, returns the state-file path itself so the caller can
+    /// pass it to <see cref="MigrationStateStore.Load(string)"/> directly —
+    /// <c>Load</c> takes a schema path and appends <c>.state.json</c>, so we hand
+    /// it the original schema path. Returns <see langword="null"/> only when no
+    /// state files are found at all.
+    /// </returns>
     private static string? AutoDetectSchemaPath(string projectDir)
     {
         // Search projectDir and its parent for *.wrapgod-migration.json.state.json
@@ -259,17 +273,23 @@ internal static class MigrateVerifyCommand
             .OrderByDescending(f => new FileInfo(f).LastWriteTimeUtc)
             .First();
 
-        // State file is <schema>.state.json
         const string stateSuffix = ".state.json";
         if (mostRecent.EndsWith(stateSuffix, StringComparison.OrdinalIgnoreCase))
         {
+            // Strip the .state.json suffix to recover the schema path.
             var candidateSchema = mostRecent[..^stateSuffix.Length];
-            if (File.Exists(candidateSchema))
-                return candidateSchema;
+
+            // Return the schema path even when the schema file is missing. The state file
+            // contains enough information for verify to run in state-only mode (similar to
+            // --no-build). The caller's schema-hash check is wrapped in an existence guard
+            // so a missing schema simply skips the schema-changed warning. Returning the
+            // schema path here lets MigrationStateStore.Load() find the state sibling.
+            return candidateSchema;
         }
 
-        // Return the state file itself so Load() can find it (GetStatePath would append .state.json again).
-        // In this case we trust the state file was written correctly.
+        // Last-resort: the state file did not end with .state.json (shouldn't happen
+        // given the glob filter, but defensive). Return null to fall back to the
+        // "no migration state" branch.
         return null;
     }
 
@@ -485,19 +505,44 @@ internal static class MigrateVerifyCommand
             })
             .ToList();
 
+        // Build a structured sentinel for the `build` key so consumers never have to
+        // null-deref. When --no-build is set OR the build runner failed to launch,
+        // `skipped` is true and `exitCode` is null; otherwise it carries the real
+        // exit code + diagnostic counts.
+        var skipped     = noBuild == true || buildResult is null;
+        var skipReason  = noBuild == true
+            ? "--no-build flag set"
+            : buildResult is null
+                ? "build was not invoked"
+                : null;
+
+        object buildBlock = skipped
+            ? new
+            {
+                skipped     = true,
+                reason      = skipReason,
+                exitCode    = (int?)null,
+                launched    = (bool?)null,
+                errors      = 0,
+                warnings    = 0,
+            }
+            : new
+            {
+                skipped     = false,
+                reason      = (string?)null,
+                exitCode    = (int?)buildResult!.ExitCode,
+                launched    = (bool?)buildResult!.Launched,
+                errors      = attributions.Count(a => a.Diagnostic.Severity == Verification.DiagnosticSeverity.Error),
+                warnings    = attributions.Count(a => a.Diagnostic.Severity == Verification.DiagnosticSeverity.Warning),
+            };
+
         var output = new
         {
             schema        = Path.GetFileName(schemaPath),
             projectDir,
             schemaChanged,
             noBuild       = noBuild ?? false,
-            build = buildResult is null ? null : (object)new
-            {
-                exitCode = buildResult.ExitCode,
-                launched = buildResult.Launched,
-                errors   = attributions.Count(a => a.Diagnostic.Severity == Verification.DiagnosticSeverity.Error),
-                warnings = attributions.Count(a => a.Diagnostic.Severity == Verification.DiagnosticSeverity.Warning),
-            },
+            build         = buildBlock,
             baselineDiagnosticsLoaded = baseline.Count,
             state = new
             {
