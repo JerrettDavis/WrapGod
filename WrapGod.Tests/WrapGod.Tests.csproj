@@ -62,6 +62,7 @@
     <ProjectReference Include="..\WrapGod.Runtime\WrapGod.Runtime.csproj" />
     <ProjectReference Include="..\WrapGod.Cli\WrapGod.Cli.csproj" />
     <ProjectReference Include="..\WrapGod.Migration\WrapGod.Migration.csproj" />
+    <ProjectReference Include="..\WrapGod.Migration.Engine\WrapGod.Migration.Engine.csproj" />
   </ItemGroup>
 
 </Project>

@@ -12,4 +12,5 @@
   <Project Path="WrapGod.Benchmarks/WrapGod.Benchmarks.csproj" />
   <Project Path="WrapGod.Targets/WrapGod.Targets.csproj" />
   <Project Path="WrapGod.Migration/WrapGod.Migration.csproj" />
+  <Project Path="WrapGod.Migration.Engine/WrapGod.Migration.Engine.csproj" />
 </Solution>
