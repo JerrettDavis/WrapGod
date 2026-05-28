@@ -1,0 +1,26 @@
+using Acme.Modern.Widgets;
+
+namespace TestApp;
+
+// Service consumer demonstrating multiple migration rule kinds simultaneously.
+public class WidgetService
+{
+    // Field receiver — used by RenameMemberRewriter via field-receiver inference.
+    private readonly Widget _widget;
+
+    public WidgetService(Widget widget)
+    {
+        _widget = widget;
+    }
+
+    public IReadOnlyList<string> GetItems()
+    {
+        // RenameMember target: _widget.Render() becomes _widget.Draw()
+        _widget.Draw();
+
+        // ChangeTypeReference: IList<string> stays in the return-type line above; this
+        // local declaration line is also rewritten.
+        IReadOnlyList<string> items = new List<string>();
+        return items;
+    }
+}

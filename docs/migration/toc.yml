@@ -12,3 +12,6 @@
 
 - name: Migration Engine
   href: engine.md
+
+- name: A-Level Rewriters
+  href: rewriters.md
