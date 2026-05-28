@@ -189,3 +189,4 @@ representative state file.
 
 - [Migration Engine](engine.md) — `MigrationEngine`, `IRuleRewriter`, `RewriteContext`
 - [Migration Schema](schema.md) — schema model and rule kinds
+- [`migrate status` CLI command](../guide/cli.md#migrate-status) — read-only progress report from the state file

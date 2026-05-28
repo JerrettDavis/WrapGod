@@ -9,7 +9,9 @@ public sealed class CliCommandTests
     private static readonly string[] ExpectedRootCommands =
         ["analyze", "ci", "doctor", "explain", "extract", "generate", "init", "migrate"];
 
-    private static readonly string[] ExpectedMigrateCommands = ["generate", "init"];
+    // TODO: when #199 / PR #215 (`migrate apply`) lands on main, add "apply" to this list.
+    // The order is alphabetical to match the assertion in RootCommand_WiresExpectedCommands.
+    private static readonly string[] ExpectedMigrateCommands = ["generate", "init", "status"];
 
     private static readonly string[] ExpectedCiCommands = ["bootstrap", "parity"];
 
