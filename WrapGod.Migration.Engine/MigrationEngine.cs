@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using WrapGod.Migration;
 using WrapGod.Migration.Engine.Rewriters;
+using WrapGod.Migration.Engine.Rewriters.Structural;
 
 namespace WrapGod.Migration.Engine;
 
@@ -82,12 +83,13 @@ public sealed class MigrationEngine
     // ── Factory ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates a <see cref="MigrationEngine"/> pre-loaded with all seven A-level
+    /// Creates a <see cref="MigrationEngine"/> pre-loaded with all A-level and B-level
     /// rewriters that ship with this package.
     /// </summary>
     public static MigrationEngine CreateDefault() =>
         new(
         [
+            // A-level rewriters
             new RenameTypeRewriter(),
             new RenameNamespaceRewriter(),
             new RenameMemberRewriter(),
@@ -95,6 +97,11 @@ public sealed class MigrationEngine
             new RemoveMemberRewriter(),
             new AddRequiredParameterRewriter(),
             new ChangeTypeReferenceRewriter(),
+            // B-level structural rewriters
+            new SplitMethodRewriter(),
+            new ExtractParameterObjectRewriter(),
+            new PropertyToMethodRewriter(),
+            new MoveMemberRewriter(),
         ]);
 
     // ── Public API ────────────────────────────────────────────────────────────

@@ -1,0 +1,32 @@
+namespace TestApp.BLevel;
+
+// B-level structural migration test fixture.
+// Exercises all four B-level rewriters on a single synthetic source.
+public class BLevelService
+{
+    private readonly Panel _panel;
+    private readonly OptionsDialog _dialog;
+    private readonly StatusButton _button;
+
+    public BLevelService(Panel panel, OptionsDialog dialog, StatusButton button)
+    {
+        _panel = panel;
+        _dialog = dialog;
+        _button = button;
+    }
+
+    public void DoWork()
+    {
+        // SplitMethod: Panel.Refresh() splits into RefreshLayout + RefreshContent
+        _panel.Refresh();
+
+        // ExtractParameterObject: dialog.Show(title: "Hello", message: "World") → new ShowOptions{...}
+        _dialog.Show(title: "Hello", message: "World");
+
+        // PropertyToMethod: button.Active = true → button.SetActive(true)
+        _button.Active = true;
+
+        // MoveMember: static LegacyHelper.ComputeHash() → ModernHelper.ComputeHash()
+        var hash = LegacyHelper.ComputeHash();
+    }
+}
