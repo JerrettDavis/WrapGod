@@ -40,26 +40,81 @@ public static class MigrationStateStore
     /// <summary>
     /// Loads the <see cref="MigrationState"/> associated with <paramref name="schemaPath"/>.
     /// Returns <see langword="null"/> when the state file does not exist, is empty,
-    /// or contains invalid JSON (the corrupt file is left in place; callers such as
-    /// <see cref="StatefulMigrationEngine"/> may archive it before proceeding).
+    /// or contains invalid JSON. Corrupt files are <strong>not</strong> archived by
+    /// this overload — use <see cref="Load(string, out bool, out string?)"/> when
+    /// the caller needs to surface recovery to the user (e.g.
+    /// <see cref="StatefulMigrationEngine"/>).
     /// </summary>
-    public static MigrationState? Load(string schemaPath)
+    public static MigrationState? Load(string schemaPath) =>
+        Load(schemaPath, out _, out _);
+
+    /// <summary>
+    /// Loads the <see cref="MigrationState"/> associated with <paramref name="schemaPath"/>
+    /// and reports whether a corrupt state file was archived during the load.
+    /// </summary>
+    /// <param name="schemaPath">Path to the schema file (the state file is its sibling).</param>
+    /// <param name="wasCorrupt">
+    /// Set to <see langword="true"/> when the state file existed but contained invalid JSON
+    /// (or was empty). In that case the corrupt file is moved to
+    /// <paramref name="backupPath"/> and the method returns <see langword="null"/>.
+    /// </param>
+    /// <param name="backupPath">
+    /// When <paramref name="wasCorrupt"/> is <see langword="true"/>, the absolute path of
+    /// the archived <c>.state.json.bak</c> file. Otherwise <see langword="null"/>.
+    /// </param>
+    /// <returns>
+    /// The loaded state, or <see langword="null"/> when the state file is missing, empty,
+    /// or corrupt. When corrupt, the caller can inspect <paramref name="wasCorrupt"/>
+    /// to surface recovery in its audit trail.
+    /// </returns>
+    public static MigrationState? Load(string schemaPath, out bool wasCorrupt, out string? backupPath)
     {
         ArgumentNullException.ThrowIfNull(schemaPath);
+
+        wasCorrupt = false;
+        backupPath = null;
 
         var statePath = GetStatePath(schemaPath);
         if (!File.Exists(statePath))
             return null;
 
+        string json;
         try
         {
-            var json = File.ReadAllText(statePath, Encoding.UTF8);
-            return MigrationStateSerializer.Deserialize(json); // returns null on bad JSON
+            json = File.ReadAllText(statePath, Encoding.UTF8);
         }
         catch (IOException)
         {
             return null;
         }
+
+        // Empty file is treated like a missing state file (not "corrupt").
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        var state = MigrationStateSerializer.Deserialize(json);
+        if (state is not null)
+            return state;
+
+        // Corrupt JSON: archive the offending file and return null so the engine
+        // can re-run from scratch. The caller surfaces a SkippedRewrite to the
+        // user (see StatefulMigrationEngine.ApplyWithState).
+        var bak = statePath + ".bak";
+        try
+        {
+            File.Move(statePath, bak, overwrite: true);
+            wasCorrupt = true;
+            backupPath = bak;
+        }
+        catch (IOException)
+        {
+            // Best-effort archive. If the move fails (e.g. file locked), leave the
+            // corrupt file in place — the next save will overwrite it atomically.
+            wasCorrupt = true;
+            backupPath = null;
+        }
+
+        return null;
     }
 
     // ── Save ─────────────────────────────────────────────────────────────────
@@ -86,7 +141,17 @@ public static class MigrationStateStore
         var tmp  = statePath + ".tmp";
 
         File.WriteAllText(tmp, json, Encoding.UTF8);
-        File.Move(tmp, statePath, overwrite: true);
+        try
+        {
+            File.Move(tmp, statePath, overwrite: true);
+        }
+        catch
+        {
+            // Move failed — destination locked, parent removed, etc.
+            // Best-effort cleanup of the .tmp file so we don't leave orphans.
+            try { File.Delete(tmp); } catch { /* best-effort */ }
+            throw;
+        }
     }
 
     // ── Hashing ──────────────────────────────────────────────────────────────

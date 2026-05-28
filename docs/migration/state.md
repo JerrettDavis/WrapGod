@@ -120,13 +120,31 @@ On each `apply` run `StatefulMigrationEngine`:
 ## Recovery from corruption
 
 If the state file contains invalid JSON (e.g. interrupted write from a previous
-run), `MigrationStateStore.Load` returns `null` and `StatefulMigrationEngine`
-proceeds as a fresh full run. The next successful run overwrites the corrupt file
-with a valid state.
+run), `MigrationStateStore.Load(schemaPath, out wasCorrupt, out backupPath)`:
+
+1. Archives the corrupt file to `{name}.state.json.bak` (overwriting any prior
+   `.bak`).
+2. Sets `wasCorrupt = true` and `backupPath = <archived path>`.
+3. Returns `null` so callers can re-run from scratch.
+
+`StatefulMigrationEngine.ApplyWithState` consumes this and emits a synthetic
+`SkippedRewrite` into the returned `MigrationResult`:
+
+| Field | Value |
+|-------|-------|
+| `RuleId` | `"<state>"` |
+| `File` | `"<state>"` |
+| `Line` | `0` |
+| `Reason` | `"State file was corrupt and archived to <bakpath>. Re-evaluating all rules."` |
+
+This makes the recovery visible to downstream consumers such as
+`migrate status` (#200), audit logs, and CI output.
 
 The atomic write strategy (write to `.tmp`, then `File.Move`) minimises the
-chance of corruption in the first place — a partial write leaves a `.tmp` orphan
-that is overwritten on the next save, not a corrupt state file.
+chance of corruption in the first place. If `File.Move` itself fails (e.g.
+destination locked or replaced by a directory), the `.tmp` orphan is deleted on
+a best-effort basis before the exception propagates so no stale `.tmp` files
+accumulate on disk.
 
 ## Public API
 
@@ -136,6 +154,10 @@ string statePath = MigrationStateStore.GetStatePath(schemaPath);
 
 // Load (null if missing/corrupt)
 MigrationState? state = MigrationStateStore.Load(schemaPath);
+
+// Load with corruption-recovery signalling
+MigrationState? state = MigrationStateStore.Load(
+    schemaPath, out bool wasCorrupt, out string? backupPath);
 
 // Save (atomic, creates parent dirs)
 MigrationStateStore.Save(schemaPath, state);

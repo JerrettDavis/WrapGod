@@ -134,4 +134,57 @@ public sealed class MigrationStateStoreTests(ITestOutputHelper output) : TinyBdd
         .Then("loaded state is not null", s => s != null)
         .And("SchemaHash is 'sha256:updated'", s => s!.SchemaHash == "sha256:updated")
         .AssertPassed();
+
+    [Scenario("Edge-02: Save cleans up .tmp orphan when File.Move fails")]
+    [Fact]
+    public Task Save_MoveFails_CleansUpTmpFile() =>
+        Given("destination state path is a non-empty directory (Move will fail); Save called", () =>
+        {
+            var path = TempSchemaPath();
+            var statePath = MigrationStateStore.GetStatePath(path);
+            // Force a Move failure by making the destination an existing non-empty directory.
+            // Windows File.Move(..., overwrite:true) cannot replace a non-empty directory.
+            Directory.CreateDirectory(statePath);
+            File.WriteAllText(Path.Combine(statePath, "blocker.txt"), "x");
+
+            Exception? caught = null;
+            try
+            {
+                MigrationStateStore.Save(path, SampleState());
+            }
+            catch (Exception ex)
+            {
+                caught = ex;
+            }
+
+            return (caught, tmpExists: File.Exists(statePath + ".tmp"));
+        })
+        .Then("Save threw (Move-into-directory failed)", t => t.caught != null)
+        .And("the .tmp file was cleaned up (no orphan left on disk)", t => !t.tmpExists)
+        .AssertPassed();
+
+    [Scenario("Edge-03: Load(out wasCorrupt, out backupPath) archives corrupt state to .bak")]
+    [Fact]
+    public Task Load_CorruptStateFile_ArchivesToBak() =>
+        Given("corrupt state file; Load(out wasCorrupt, out backupPath) called", () =>
+        {
+            var path = TempSchemaPath();
+            var statePath = MigrationStateStore.GetStatePath(path);
+            Directory.CreateDirectory(Path.GetDirectoryName(statePath)!);
+            File.WriteAllText(statePath, "{ not valid json ]");
+
+            var loaded = MigrationStateStore.Load(path, out var wasCorrupt, out var backupPath);
+
+            return (loaded,
+                    wasCorrupt,
+                    backupPath,
+                    bakExists: backupPath is not null && File.Exists(backupPath),
+                    origRemoved: !File.Exists(statePath));
+        })
+        .Then("loaded result is null", t => t.loaded == null)
+        .And("wasCorrupt is true", t => t.wasCorrupt)
+        .And("backupPath is the archived .bak path", t => t.backupPath is not null && t.backupPath.EndsWith(".state.json.bak", StringComparison.Ordinal))
+        .And(".bak file exists on disk", t => t.bakExists)
+        .And("original corrupt file was moved away", t => t.origRemoved)
+        .AssertPassed();
 }

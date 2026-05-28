@@ -77,10 +77,12 @@ public sealed class StatefulMigrationEngine
         ArgumentNullException.ThrowIfNull(schema);
         ArgumentNullException.ThrowIfNull(files);
 
-        var (priorState, currentHash) = LoadAndHash(schemaPath, schema);
+        var (priorState, currentHash, recoverySkip) = LoadAndHash(schemaPath, schema);
         var alreadyApplied = BuildAlreadyAppliedSet(priorState, currentHash);
 
         var result = _inner.Apply(schema, files, alreadyApplied);
+        if (recoverySkip is not null)
+            result = AppendSkipped(result, recoverySkip);
 
         var baseState = priorState ?? NewState(schemaPath);
         var merged = baseState.Merge(result, currentHash);
@@ -112,10 +114,14 @@ public sealed class StatefulMigrationEngine
         ArgumentNullException.ThrowIfNull(schema);
         ArgumentNullException.ThrowIfNull(files);
 
-        var (priorState, currentHash) = LoadAndHash(schemaPath, schema);
+        var (priorState, currentHash, recoverySkip) = LoadAndHash(schemaPath, schema);
         var alreadyApplied = BuildAlreadyAppliedSet(priorState, currentHash);
 
-        return _inner.DryRun(schema, files, alreadyApplied);
+        var result = _inner.DryRun(schema, files, alreadyApplied);
+        if (recoverySkip is not null)
+            result = AppendSkipped(result, recoverySkip);
+
+        return result;
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -125,9 +131,15 @@ public sealed class StatefulMigrationEngine
     /// schema hash from the schema file on disk (or from the serialized schema when the
     /// file cannot be read).
     /// </summary>
-    private static (State.MigrationState? priorState, string currentHash) LoadAndHash(
-        string schemaPath,
-        MigrationSchema schema)
+    /// <remarks>
+    /// If the state file existed but was corrupt, <see cref="MigrationStateStore.Load(string, out bool, out string?)"/>
+    /// archives it to <c>.state.json.bak</c>. We surface that as a synthetic
+    /// <see cref="SkippedRewrite"/> (<c>ruleId="&lt;state&gt;"</c>) so the audit trail
+    /// reflects the recovery and downstream consumers such as <c>migrate status</c>
+    /// can display it.
+    /// </remarks>
+    private static (State.MigrationState? priorState, string currentHash, SkippedRewrite? recoverySkip)
+        LoadAndHash(string schemaPath, MigrationSchema schema)
     {
         // Compute current hash. Prefer reading the actual file on disk so the hash
         // matches what was written; fall back to serializing the in-memory schema.
@@ -142,9 +154,39 @@ public sealed class StatefulMigrationEngine
         }
         var currentHash = MigrationStateStore.ComputeSchemaHash(schemaJson);
 
-        // Load prior state — null if missing or corrupt.
-        var priorState = MigrationStateStore.Load(schemaPath);
-        return (priorState, currentHash);
+        // Load prior state — null if missing OR corrupt. Corrupt files are archived
+        // to .state.json.bak and surfaced via the wasCorrupt out parameter so we can
+        // emit a synthetic SkippedRewrite to record the recovery.
+        var priorState = MigrationStateStore.Load(schemaPath, out var wasCorrupt, out var backupPath);
+
+        SkippedRewrite? recoverySkip = null;
+        if (wasCorrupt)
+        {
+            var message = backupPath is null
+                ? "State file was corrupt; archive failed, leaving file in place. Re-evaluating all rules."
+                : $"State file was corrupt and archived to {backupPath}. Re-evaluating all rules.";
+            recoverySkip = new SkippedRewrite("<state>", "<state>", 0, message);
+        }
+
+        return (priorState, currentHash, recoverySkip);
+    }
+
+    /// <summary>
+    /// Returns a new <see cref="MigrationResult"/> identical to <paramref name="result"/>
+    /// but with <paramref name="extra"/> appended to its <see cref="MigrationResult.Skipped"/> list.
+    /// </summary>
+    private static MigrationResult AppendSkipped(MigrationResult result, SkippedRewrite extra)
+    {
+        var newSkipped = new List<SkippedRewrite>(result.Skipped.Count + 1);
+        newSkipped.AddRange(result.Skipped);
+        newSkipped.Add(extra);
+
+        return new MigrationResult(
+            applied: [.. result.Applied],
+            skipped: newSkipped,
+            manual: [.. result.Manual],
+            rewrittenFiles: result.RewrittenFiles,
+            dryRun: result.DryRun);
     }
 
     /// <summary>

@@ -74,6 +74,18 @@ public sealed class MigrationState
     /// Returns <see langword="true"/> when a rewrite for <paramref name="ruleId"/>
     /// has already been applied to <paramref name="file"/> in a prior run.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>Performance:</strong> This is an O(n) linear scan over
+    /// <see cref="Applied"/>. It is fine for ad-hoc / one-off queries (e.g.
+    /// status display, single lookups), but hot-path callers that iterate over
+    /// many <c>(ruleId, file)</c> pairs (such as the per-file rewrite loop in
+    /// <see cref="MigrationEngine"/>) should pre-build a
+    /// <see cref="HashSet{T}"/> from <see cref="Applied"/> once and probe that
+    /// instead. See <c>StatefulMigrationEngine.BuildAlreadyAppliedSet</c> for
+    /// the canonical pre-built set used by the engine on the hot path.
+    /// </para>
+    /// </remarks>
     public bool IsAlreadyApplied(string ruleId, string file) =>
         Applied.Any(a =>
             string.Equals(a.RuleId, ruleId, StringComparison.Ordinal) &&

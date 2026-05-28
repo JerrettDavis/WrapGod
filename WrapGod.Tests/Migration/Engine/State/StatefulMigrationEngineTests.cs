@@ -176,10 +176,10 @@ public sealed class StatefulMigrationEngineTests(ITestOutputHelper output) : Tin
         .Then("ArgumentNullException was thrown", threw => threw)
         .AssertPassed();
 
-    [Scenario("Sad-02: corrupt state file is recovered — run proceeds as a fresh run")]
+    [Scenario("Sad-02: corrupt state file archived to .bak; result includes <state> SkippedRewrite")]
     [Fact]
-    public Task ApplyWithState_CorruptStateFile_RecoversFreshRun() =>
-        Given("corrupt state file; ApplyWithState recovers and writes valid state", () =>
+    public Task ApplyWithState_CorruptStateFile_ArchivesToBakAndSurfacesSkipped() =>
+        Given("corrupt state file; ApplyWithState recovers, archives to .bak, and emits synthetic <state> skip", () =>
         {
             var dir = TempDir();
             var schemaPath = WriteSchemaFile(dir, OneRenameSchema());
@@ -187,11 +187,21 @@ public sealed class StatefulMigrationEngineTests(ITestOutputHelper output) : Tin
             File.WriteAllText(statePath, "{ CORRUPT JSON ]]]");
 
             var fs = new InMemoryFileSystem().WithFile("/src/Consumer.cs", SourceWithOldWidget);
-            BuildStateful(fs).ApplyWithState(schemaPath, OneRenameSchema(), ["/src/Consumer.cs"]);
+            var result = BuildStateful(fs).ApplyWithState(schemaPath, OneRenameSchema(), ["/src/Consumer.cs"]);
 
-            return MigrationStateStore.Load(schemaPath);
+            return (result,
+                    bakExists:  File.Exists(statePath + ".bak"),
+                    state:      MigrationStateStore.Load(schemaPath),
+                    skipFound:  result.Skipped.Any(s => s.RuleId == "<state>"),
+                    skipMsg:    result.Skipped.FirstOrDefault(s => s.RuleId == "<state>")?.Reason);
         })
-        .Then("run completed and valid state file exists", s => s != null)
+        .Then("the corrupt state file was archived to .state.json.bak", t => t.bakExists)
+        .And("a fresh valid state file was written after the run", t => t.state != null)
+        .And("result includes a synthetic SkippedRewrite with ruleId == '<state>'", t => t.skipFound)
+        .And("the skip message mentions archival to .bak",
+            t => t.skipMsg is not null && t.skipMsg.Contains(".bak", StringComparison.Ordinal))
+        .And("re-evaluation produced applied entries (full re-run)",
+            t => t.result.Applied.Count > 0)
         .AssertPassed();
 
     // ══════════════════════════════════════════════════════════════════════════
