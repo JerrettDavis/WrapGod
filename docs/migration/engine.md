@@ -95,13 +95,24 @@ public sealed class MyRenameRewriter : IRuleRewriter
 - **No semantic lookup.** The engine works on syntax only so it can operate on
   broken code; rewriters must not require a `SemanticModel`.
 
+## Rewriters shipping in #195
+
+Seven concrete `IRuleRewriter` implementations are now available under
+`WrapGod.Migration.Engine.Rewriters`. See [A-Level Rewriters](rewriters.md) for the
+full catalogue, per-rewriter contracts, and before/after examples.
+
+| Class | `Kind` | Rule type |
+|---|---|---|
+| `RenameTypeRewriter` | `renameType` | `RenameTypeRule` |
+| `RenameNamespaceRewriter` | `renameNamespace` | `RenameNamespaceRule` |
+| `RenameMemberRewriter` | `renameMember` | `RenameMemberRule` |
+| `ChangeParameterRewriter` | `changeParameter` | `ChangeParameterRule` |
+| `RemoveMemberRewriter` | `removeMember` | `RemoveMemberRule` |
+| `AddRequiredParameterRewriter` | `addRequiredParameter` | `AddRequiredParameterRule` |
+| `ChangeTypeReferenceRewriter` | `changeTypeReference` | `ChangeTypeReferenceRule` |
+
 ## What's next
 
-This issue (#194) ships only the contracts. Concrete pieces follow:
-
-- **#195** — A-level syntax rewriters (`RenameType`, `RenameNamespace`,
-  `RenameMember`, `ChangeParameter`, `RemoveMember`, `AddRequiredParameter`,
-  `ChangeTypeReference`).
 - **#196** — `MigrationEngine` orchestrator with `Apply` and `DryRun` entry points.
 - **#202** — B-level structural rewriters (`SplitMethod`,
   `ExtractParameterObject`, `PropertyToMethod`, `MoveMember`).
