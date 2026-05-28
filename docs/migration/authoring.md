@@ -537,15 +537,40 @@ btn.Disabled = true;
 btn.SetDisabled(true);
 ```
 
-**Before / After (read, separate getter method):**
+**Before / After (read):**
 
 ```csharp
 // Before
 var b = btn.Disabled;
 
 // After
-var b = btn.GetDisabled();  // if newMethodName = "GetDisabled" on a separate read rule
+var b = btn.SetDisabled();  // same NewMethodName used in both contexts
 ```
+
+> **Note — single `NewMethodName` field:** `PropertyToMethodRule` has only one `NewMethodName` field, which the rewriter uses for both read and write contexts. The rewriter dispatches based on whether the property appears on the left-hand side of an assignment (write) or elsewhere (read), but it does NOT pick a different method name per context.
+>
+> **Need separate getter and setter method names?** Define **two rules** — one with the getter name and one with the setter name — both targeting the same property. The rewriter applies them in schema order:
+>
+> ```json
+> // Rule 1 — handles the write context (assignment LHS)
+> {
+>   "id": "MUD-010a",
+>   "kind": "propertyToMethod",
+>   "typeName": "MudBlazor.MudButton",
+>   "oldPropertyName": "Disabled",
+>   "newMethodName": "SetDisabled"
+> },
+> // Rule 2 — handles the read context (every other usage)
+> {
+>   "id": "MUD-010b",
+>   "kind": "propertyToMethod",
+>   "typeName": "MudBlazor.MudButton",
+>   "oldPropertyName": "Disabled",
+>   "newMethodName": "GetDisabled"
+> }
+> ```
+>
+> Because the rewriter rewrites writes to `Set...(value)` and reads to `Set...()` for a single rule, achieving distinct getter/setter names today requires deciding which name should appear in each context. A future rule kind may add separate `ReadMethodName`/`WriteMethodName` fields.
 
 **Skipped cases:** Compound-assignment expressions (`btn.Disabled++`, `btn.Disabled += 1`) are skipped.
 

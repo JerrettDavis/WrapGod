@@ -115,6 +115,58 @@ public sealed class MigrationDocsCoverageTests
         Assert.Contains(page, doc, StringComparison.OrdinalIgnoreCase);
     }
 
+    // ── JSON shape drift test ──────────────────────────────────────────────
+
+    /// <summary>
+    /// For every <see cref="MigrationRuleKind"/>, reflects on the corresponding
+    /// <c>{Kind}Rule</c> record/class in <c>WrapGod.Migration</c> and verifies
+    /// that each public property name appears (in camelCase) somewhere in
+    /// <c>authoring.md</c>. Catches schema-model drift where a property is
+    /// renamed in the C# model but the documentation still references the old
+    /// name.
+    /// </summary>
+    [Fact]
+    public void AuthoringDoc_HasMatchingJsonFieldsForEveryRuleKind()
+    {
+        var doc = File.ReadAllText(MigrationDocPath("authoring.md"));
+        var migrationAsm = typeof(MigrationRule).Assembly;
+
+        // Properties present on the base MigrationRule type (Id, Kind, Confidence, Note)
+        // are documented in the "Rule object skeleton" section and need not appear in
+        // every per-kind section.
+        var baseProps = typeof(MigrationRule)
+            .GetProperties()
+            .Select(p => p.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var missing = new List<string>();
+
+        foreach (var kindName in Enum.GetNames<MigrationRuleKind>())
+        {
+            var ruleType = migrationAsm.GetType($"WrapGod.Migration.{kindName}Rule");
+            if (ruleType is null)
+                continue; // Skip if the per-kind class isn't named {Kind}Rule.
+
+            foreach (var prop in ruleType.GetProperties())
+            {
+                if (baseProps.Contains(prop.Name))
+                    continue;
+
+                var camelCase = char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..];
+                if (!doc.Contains(camelCase, StringComparison.Ordinal))
+                {
+                    missing.Add($"{kindName}Rule.{prop.Name} → '{camelCase}'");
+                }
+            }
+        }
+
+        Assert.True(
+            missing.Count == 0,
+            "authoring.md is missing documentation for the following rule property fields " +
+            "(model has them but docs do not mention them in camelCase):\n  " +
+            string.Join("\n  ", missing));
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
     /// <summary>

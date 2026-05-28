@@ -86,7 +86,7 @@ wrap-god migrate status \
 
 This reads the state file and shows progress: how many rules have been applied, how many were skipped, and which manual rules remain.
 
-Exit code `2` means manual-confidence rules are still present. Exit code `0` means no manual rules remain (or no state file exists).
+When inspecting the result via `migrate status`, exit code `2` indicates manual-confidence rules are still present. Exit code `0` means no manual rules remain (or no state file exists). Note that `migrate apply` itself uses a different exit-code scheme (see [Exit Codes](#exit-codes) below — code 2 there means "bad arguments", not "manual rules present").
 
 ### Step 7 — Verify
 
@@ -141,6 +141,8 @@ wrap-god migrate apply \
 ---
 
 ## Exit Codes
+
+> **Note:** `migrate apply` exit codes differ from those of `migrate status`. For `migrate apply`, code `2` means "bad arguments". For `migrate status` (see [its CLI reference](../guide/cli.md#migrate-status)), code `2` means "manual-confidence rules are still present".
 
 | Code | Meaning |
 |------|---------|
