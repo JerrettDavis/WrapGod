@@ -136,6 +136,41 @@ public sealed class MigrationEngineTests(ITestOutputHelper output) : TinyBddXuni
         .And("final content does not contain Foo", content => !content.Contains("Foo"))
         .AssertPassed();
 
+    [Scenario("Happy-04b: PatternKit auto-rule chain skips prior-state rule and continues to next rule")]
+    [Fact]
+    public Task Happy04b_PatternKitAutoRuleChain_SkipsAlreadyAppliedAndContinues() =>
+        Given("two auto rules where the first is already applied for the file", () =>
+        {
+            var executed = new List<string>();
+            var rewriter = new LambdaRewriter("renameType", (node, rule, ctx) =>
+            {
+                executed.Add(rule.Id);
+                ctx.RecordApplied(rule, default, "old", "new", 1);
+                return node;
+            });
+            var schema = new MigrationSchema
+            {
+                Library = "Test", From = "1.0", To = "2.0",
+                Rules =
+                [
+                    new RenameTypeRule { Id = "RT-SKIP", OldName = "A", NewName = "B" },
+                    new RenameTypeRule { Id = "RT-RUN", OldName = "B", NewName = "C" },
+                ]
+            };
+            var alreadyApplied = new HashSet<(string RuleId, string File)>
+            {
+                ("RT-SKIP", "chain.cs")
+            };
+            var fs = new InMemoryFileSystem().WithFile("chain.cs", "class C { A value; }");
+            var engine = new MigrationEngine([rewriter], fs);
+            var result = engine.DryRun(schema, ["chain.cs"], alreadyApplied);
+            return (result, executed);
+        })
+        .Then("only the second rule executed", t => t.executed.SequenceEqual(["RT-RUN"]))
+        .And("only the second rule was recorded as applied", t =>
+            t.result.Applied.Select(a => a.RuleId).SequenceEqual(["RT-RUN"]))
+        .AssertPassed();
+
     [Scenario("Happy-05: multiple files → all matching files rewritten, count correct")]
     [Fact]
     public Task Happy05_MultipleFiles_AllMatchesRewritten() =>
