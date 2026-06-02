@@ -223,6 +223,8 @@ public sealed class MigrationEngine
                 $"no rewriter for kind '{KindKey(rule)}'"));
         }
 
+        var autoChain = BuildAutoRewriteChain(autoRules);
+
         foreach (var filePath in filePaths)
         {
             if (!dedupedPaths.Add(filePath))
@@ -269,7 +271,6 @@ public sealed class MigrationEngine
             // ── Auto rules (Option A: PatternKit sequential chain) ────────────
             var ctx2 = new RewriteContext(filePath, alreadyApplied);
             var autoState = new AutoRewriteChainState(root, ctx2);
-            var autoChain = BuildAutoRewriteChain(autoRules);
             autoChain.ExecuteAsync(autoState).AsTask().GetAwaiter().GetResult();
             var currentRoot = autoState.Root;
             var fileModified = autoState.FileModified;
