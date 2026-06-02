@@ -244,7 +244,7 @@ foreach file in filePaths (deduplicated):
      └─ IOException → record SkippedRewrite("<io>", …) and continue
   2. CSharpSyntaxTree.ParseText() — syntax-only, no compilation
   3. Manual rules: scan file with matching rewriter, collect MatchedFiles
-  4. Auto rules (schema order, Option A — sequential chain):
+  4. Auto rules (schema order, Option A — PatternKit sequential chain):
      for each rule:
        - lookup IRuleRewriter by camelCase(rule.Kind)
        - missing → SkippedRewrite("no rewriter for kind '…'", …)
@@ -256,7 +256,8 @@ Aggregate Applied, Skipped, Manual into MigrationResult
 
 ### Composition strategy
 
-**Option A — sequential chain** was chosen over Option B (single-pass dispatcher)
+**Option A — sequential chain** is implemented with PatternKit's
+`AsyncActionChain<T>` primitive and was chosen over Option B (single-pass dispatcher)
 because:
 
 - Every existing `IRuleRewriter` already encapsulates its own `CSharpSyntaxRewriter`
@@ -266,6 +267,11 @@ because:
 - The perf budget (&lt;5 s for 1 000 files) is met with room to spare
   (~620 ms measured in CI on this machine).
 - Option B can be introduced incrementally if profiling identifies a bottleneck.
+
+The public `MigrationEngine`, `IRuleRewriter`, and `RewriteContext` contracts remain
+unchanged. PatternKit owns only the per-file auto-rule composition: unknown rule kinds
+are still reported once per schema up front, already-applied rules are skipped, and each
+matching rule receives the root produced by the previous rule.
 
 Each (file, rule) pair performs one tree-walk. For a schema with `N` rules and `F` files:
 total walks = `N × F`.

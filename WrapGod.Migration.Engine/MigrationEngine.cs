@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using PatternKit.Behavioral.Chain;
 using WrapGod.Migration;
 using WrapGod.Migration.Engine.Rewriters;
 using WrapGod.Migration.Engine.Rewriters.Structural;
@@ -13,11 +14,11 @@ namespace WrapGod.Migration.Engine;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <strong>Composition strategy (Option A — sequential chain):</strong>
-/// Rules execute in schema order; rewriter N receives the output of rewriter N−1.
-/// One tree-walk per (file, rule) pair.  Option A was chosen because it is simple,
-/// the existing rewriters each encapsulate their own walk, and the perf target
-/// (&lt;5 s for 1 000 files) is met comfortably.
+/// <strong>Composition strategy (Option A — PatternKit sequential chain):</strong>
+/// Auto rules execute in schema order through a PatternKit async action chain; rewriter
+/// N receives the output of rewriter N−1. One tree-walk per (file, rule) pair. Option A
+/// was chosen because it is simple, the existing rewriters each encapsulate their own
+/// walk, and the perf target (&lt;5 s for 1 000 files) is met comfortably.
 /// </para>
 /// <para>
 /// <strong>File I/O:</strong> Inject <see cref="IMigrationFileSystem"/> for testability.
@@ -265,31 +266,13 @@ public sealed class MigrationEngine
                 }
             }
 
-            // ── Auto rules (Option A: sequential chain) ───────────────────────
+            // ── Auto rules (Option A: PatternKit sequential chain) ────────────
             var ctx2 = new RewriteContext(filePath, alreadyApplied);
-            var currentRoot = root;
-            bool fileModified = false;
-
-            foreach (var rule in autoRules)
-            {
-                var kindKey = KindKey(rule);
-                if (!_rewritersByKind.TryGetValue(kindKey, out var rewriter))
-                {
-                    // Schema-level skip already emitted up-front; do not duplicate.
-                    continue;
-                }
-
-                // State-tracking: skip rules already applied to this file in a prior run.
-                if (ctx2.IsAlreadyApplied(rule.Id))
-                    continue;
-
-                var newRoot = InternalRewriterDispatcher.Apply(rewriter, currentRoot, rule, ctx2);
-                if (!ReferenceEquals(newRoot, currentRoot))
-                {
-                    currentRoot = newRoot;
-                    fileModified = true;
-                }
-            }
+            var autoState = new AutoRewriteChainState(root, ctx2);
+            var autoChain = BuildAutoRewriteChain(autoRules);
+            autoChain.ExecuteAsync(autoState).AsTask().GetAwaiter().GetResult();
+            var currentRoot = autoState.Root;
+            var fileModified = autoState.FileModified;
 
             // ── Cross-namespace using injection ───────────────────────────────
             // After all per-rule rewrites, ensure that every namespace introduced
@@ -523,6 +506,56 @@ public sealed class MigrationEngine
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private AsyncActionChain<AutoRewriteChainState> BuildAutoRewriteChain(
+        IReadOnlyList<MigrationRule> autoRules)
+    {
+        var builder = AsyncActionChain<AutoRewriteChainState>.Create();
+
+        foreach (var rule in autoRules)
+        {
+            builder.Use((state, ct, next) =>
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var kindKey = KindKey(rule);
+                if (_rewritersByKind.TryGetValue(kindKey, out var rewriter) &&
+                    !state.Context.IsAlreadyApplied(rule.Id))
+                {
+                    var newRoot = InternalRewriterDispatcher.Apply(
+                        rewriter,
+                        state.Root,
+                        rule,
+                        state.Context);
+
+                    if (!ReferenceEquals(newRoot, state.Root))
+                    {
+                        state.Root = newRoot;
+                        state.FileModified = true;
+                    }
+                }
+
+                return next(state, ct);
+            });
+        }
+
+        builder.Finally((_, _) => ValueTask.CompletedTask);
+
+        return builder.Build();
+    }
+
+    private sealed class AutoRewriteChainState
+    {
+        public AutoRewriteChainState(SyntaxNode root, RewriteContext context)
+        {
+            Root = root;
+            Context = context;
+        }
+
+        public SyntaxNode Root { get; set; }
+        public RewriteContext Context { get; }
+        public bool FileModified { get; set; }
+    }
 
     /// <summary>
     /// Converts a <see cref="MigrationRule.Kind"/> enum value to the camelCase
