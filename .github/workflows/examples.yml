@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -84,10 +84,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -134,7 +134,7 @@ jobs:
         run: dotnet test WrapGod.Tests/WrapGod.Tests.csproj --filter "CompatibilityReportSchemaTests|ManifestSchemaTests" --nologo
 
       - name: Upload compatibility artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-version-matrix-${{ matrix.sample }}
           path: |
