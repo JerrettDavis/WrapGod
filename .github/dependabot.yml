@@ -39,3 +39,6 @@ updates:
       nuget-dependencies:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "System.CommandLine"
+        update-types: ["version-update:semver-major"]
