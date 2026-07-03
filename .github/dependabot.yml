@@ -40,5 +40,11 @@ updates:
         patterns:
           - "*"
     ignore:
+      # Pinned to the 2.0.0-beta4 line until the System.CommandLine 2.0 GA API
+      # migration is done (InvokeAsync/SetHandler/Argument<T> ctors all changed).
+      # The semver-major rule alone does NOT catch the beta4 -> 2.0.x stable jump
+      # (both are major 2), so we also ignore any >= 2.0.0 stable release.
       - dependency-name: "System.CommandLine"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "System.CommandLine"
+        versions: [">= 2.0.0"]
