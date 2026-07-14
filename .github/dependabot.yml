@@ -42,9 +42,9 @@ updates:
     ignore:
       # Pinned to the 2.0.0-beta4 line until the System.CommandLine 2.0 GA API
       # migration is done (InvokeAsync/SetHandler/Argument<T> ctors all changed).
-      # The semver-major rule alone does NOT catch the beta4 -> 2.0.x stable jump
-      # (both are major 2), so we also ignore any >= 2.0.0 stable release.
+      # Note: semver-major does NOT catch beta4 -> 2.0.x stable (both are major 2),
+      # and the ">= 2.0.0" range does NOT catch 2.0.0-rc.2 because pre-releases
+      # sort before their stable counterpart in semver (2.0.0-rc.2 < 2.0.0).
+      # Use patterns:["*"] to ignore ALL versions of System.CommandLine unconditionally.
       - dependency-name: "System.CommandLine"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "System.CommandLine"
-        versions: [">= 2.0.0"]
+        patterns: ["*"]
