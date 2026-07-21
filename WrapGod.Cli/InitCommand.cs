@@ -9,14 +9,16 @@ internal static class InitCommand
 
     public static Command Create()
     {
-        var sourceOption = new Option<string?>(
-            ["--source", "-s"],
-            "Assembly source: local file path, NuGet package (<id>@<version>), or @self");
+        var sourceOption = new Option<string?>("--source", "-s")
+        {
+            Description = "Assembly source: local file path, NuGet package (<id>@<version>), or @self"
+        };
 
-        var outputOption = new Option<string>(
-            ["--output", "-o"],
-            () => "wrapgod.config.json",
-            "Output config file name");
+        var outputOption = new Option<string>("--output", "-o")
+        {
+            Description = "Output config file name",
+            DefaultValueFactory = _ => "wrapgod.config.json"
+        };
 
         var command = new Command("init", "Bootstrap a new WrapGod project in the current directory")
         {
@@ -24,7 +26,9 @@ internal static class InitCommand
             outputOption
         };
 
-        command.SetHandler(HandleAsync, sourceOption, outputOption);
+        command.SetAction((parseResult, _) => HandleAsync(
+            parseResult.GetValue(sourceOption),
+            parseResult.GetValue(outputOption)!));
         return command;
     }
 

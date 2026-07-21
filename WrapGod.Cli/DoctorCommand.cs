@@ -9,17 +9,18 @@ internal static class DoctorCommand
 {
     public static Command Create()
     {
-        var projectDirOption = new Option<DirectoryInfo>(
-            ["--project-dir", "-p"],
-            () => new DirectoryInfo(Directory.GetCurrentDirectory()),
-            "Project directory to check (defaults to current directory)");
+        var projectDirOption = new Option<DirectoryInfo>("--project-dir", "-p")
+        {
+            Description = "Project directory to check (defaults to current directory)",
+            DefaultValueFactory = _ => new DirectoryInfo(Directory.GetCurrentDirectory())
+        };
 
         var command = new Command("doctor", "Validate environment setup and project health")
         {
             projectDirOption
         };
 
-        command.SetHandler((DirectoryInfo projectDir) => Environment.ExitCode = Handle(projectDir), projectDirOption);
+        command.SetAction(parseResult => Environment.ExitCode = Handle(parseResult.GetValue(projectDirOption)!));
         return command;
     }
 

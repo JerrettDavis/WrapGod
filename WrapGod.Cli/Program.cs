@@ -19,7 +19,7 @@ var rootCommand = new RootCommand("WrapGod CLI -- extract manifests, generate wr
     ciCommand
 };
 
-return await rootCommand.InvokeAsync(args);
+return await rootCommand.Parse(args).InvokeAsync();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Coverage exclusion for the top-level entry point.

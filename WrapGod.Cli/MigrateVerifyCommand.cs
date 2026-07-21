@@ -36,38 +36,45 @@ internal static class MigrateVerifyCommand
 
     internal static Command Create(IBuildRunner buildRunner)
     {
-        var schemaOption = new Option<FileInfo?>(
-            ["--schema", "-s"],
-            "Path to the migration schema JSON file. The state file is the sibling <schema>.state.json. " +
-            "When omitted, the command searches --project-dir for *.wrapgod-migration.json.state.json files.");
+        var schemaOption = new Option<FileInfo?>("--schema", "-s")
+        {
+            Description = "Path to the migration schema JSON file. The state file is the sibling <schema>.state.json. " +
+                "When omitted, the command searches --project-dir for *.wrapgod-migration.json.state.json files."
+        };
 
-        var projectDirOption = new Option<DirectoryInfo?>(
-            ["--project-dir", "-p"],
-            "Project root directory. Used to find the .csproj and to auto-detect state files when " +
-            "--schema is omitted. Defaults to the current directory.");
+        var projectDirOption = new Option<DirectoryInfo?>("--project-dir", "-p")
+        {
+            Description = "Project root directory. Used to find the .csproj and to auto-detect state files when " +
+                "--schema is omitted. Defaults to the current directory."
+        };
 
-        var noBuildOption = new Option<bool>(
-            "--no-build",
-            "Skip the dotnet build invocation. Only reports the state-file summary. " +
-            "Useful in CI when the build runs as a separate job.");
+        var noBuildOption = new Option<bool>("--no-build")
+        {
+            Description = "Skip the dotnet build invocation. Only reports the state-file summary. " +
+                "Useful in CI when the build runs as a separate job."
+        };
 
-        var jsonOption = new Option<bool>(
-            "--json",
-            "Emit output as JSON instead of human-readable text.");
+        var jsonOption = new Option<bool>("--json")
+        {
+            Description = "Emit output as JSON instead of human-readable text."
+        };
 
-        var verboseOption = new Option<bool>(
-            ["--verbose", "-v"],
-            "Include per-diagnostic details in human-readable mode.");
+        var verboseOption = new Option<bool>("--verbose", "-v")
+        {
+            Description = "Include per-diagnostic details in human-readable mode."
+        };
 
-        var buildConfigOption = new Option<string>(
-            "--build-config",
-            () => "Debug",
-            "Build configuration passed to dotnet build (Debug or Release).");
+        var buildConfigOption = new Option<string>("--build-config")
+        {
+            Description = "Build configuration passed to dotnet build (Debug or Release).",
+            DefaultValueFactory = _ => "Debug"
+        };
 
-        var baselineOption = new Option<FileInfo?>(
-            "--baseline",
-            "Path to a pre-migration diagnostic baseline JSON file. " +
-            "When provided, diagnostics present in the baseline are classified as pre-existing.");
+        var baselineOption = new Option<FileInfo?>("--baseline")
+        {
+            Description = "Path to a pre-migration diagnostic baseline JSON file. " +
+                "When provided, diagnostics present in the baseline are classified as pre-existing."
+        };
 
         var command = new Command("verify", "Optionally build the project and correlate compiler diagnostics to migration rules")
         {
@@ -80,19 +87,19 @@ internal static class MigrateVerifyCommand
             baselineOption,
         };
 
-        command.SetHandler(async (context) =>
+        command.SetAction((parseResult, cancellationToken) =>
         {
-            var schema      = context.ParseResult.GetValueForOption(schemaOption);
-            var projectDir  = context.ParseResult.GetValueForOption(projectDirOption);
-            var noBuild     = context.ParseResult.GetValueForOption(noBuildOption);
-            var json        = context.ParseResult.GetValueForOption(jsonOption);
-            var verbose     = context.ParseResult.GetValueForOption(verboseOption);
-            var buildConfig = context.ParseResult.GetValueForOption(buildConfigOption)!;
-            var baseline    = context.ParseResult.GetValueForOption(baselineOption);
+            var schema      = parseResult.GetValue(schemaOption);
+            var projectDir  = parseResult.GetValue(projectDirOption);
+            var noBuild     = parseResult.GetValue(noBuildOption);
+            var json        = parseResult.GetValue(jsonOption);
+            var verbose     = parseResult.GetValue(verboseOption);
+            var buildConfig = parseResult.GetValue(buildConfigOption)!;
+            var baseline    = parseResult.GetValue(baselineOption);
 
-            context.ExitCode = await HandleAsync(
+            return HandleAsync(
                 schema, projectDir, noBuild, json, verbose, buildConfig, baseline,
-                buildRunner, context.GetCancellationToken());
+                buildRunner, cancellationToken);
         });
 
         return command;

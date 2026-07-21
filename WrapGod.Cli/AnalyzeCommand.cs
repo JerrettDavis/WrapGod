@@ -9,17 +9,20 @@ internal static class AnalyzeCommand
 {
     public static Command Create()
     {
-        var manifestPathArg = new Argument<FileInfo>(
-            "manifest-path",
-            "Path to the WrapGod manifest JSON file");
+        var manifestPathArg = new Argument<FileInfo>("manifest-path")
+        {
+            Description = "Path to the WrapGod manifest JSON file"
+        };
 
-        var configOption = new Option<FileInfo?>(
-            ["--config", "-c"],
-            "Path to the WrapGod config JSON file");
+        var configOption = new Option<FileInfo?>("--config", "-c")
+        {
+            Description = "Path to the WrapGod config JSON file"
+        };
 
-        var warningsAsErrorsOption = new Option<bool>(
-            "--warnings-as-errors",
-            "Treat warning diagnostics as gate failures (exit code 3)");
+        var warningsAsErrorsOption = new Option<bool>("--warnings-as-errors")
+        {
+            Description = "Treat warning diagnostics as gate failures (exit code 3)"
+        };
 
         var command = new Command("analyze", "Analyze a manifest and report diagnostic information")
         {
@@ -28,13 +31,13 @@ internal static class AnalyzeCommand
             warningsAsErrorsOption
         };
 
-        command.SetHandler(async (FileInfo manifestPath, FileInfo? config, bool warningsAsErrors) =>
-            {
-                Environment.ExitCode = await HandleAsync(manifestPath, config, warningsAsErrors);
-            },
-            manifestPathArg,
-            configOption,
-            warningsAsErrorsOption);
+        command.SetAction(async (parseResult, _) =>
+        {
+            Environment.ExitCode = await HandleAsync(
+                parseResult.GetValue(manifestPathArg)!,
+                parseResult.GetValue(configOption),
+                parseResult.GetValue(warningsAsErrorsOption));
+        });
 
         return command;
     }

@@ -10,17 +10,20 @@ internal static class ExplainCommand
 {
     public static Command Create()
     {
-        var symbolArg = new Argument<string>(
-            "symbol",
-            "Type or member name to look up (e.g. HttpClient, ILogger.LogInformation)");
+        var symbolArg = new Argument<string>("symbol")
+        {
+            Description = "Type or member name to look up (e.g. HttpClient, ILogger.LogInformation)"
+        };
 
-        var manifestOption = new Option<FileInfo?>(
-            ["--manifest", "-m"],
-            "Path to the WrapGod manifest JSON file (auto-detects *.wrapgod.json)");
+        var manifestOption = new Option<FileInfo?>("--manifest", "-m")
+        {
+            Description = "Path to the WrapGod manifest JSON file (auto-detects *.wrapgod.json)"
+        };
 
-        var configOption = new Option<FileInfo?>(
-            ["--config", "-c"],
-            "Path to the WrapGod config JSON file");
+        var configOption = new Option<FileInfo?>("--config", "-c")
+        {
+            Description = "Path to the WrapGod config JSON file"
+        };
 
         var command = new Command("explain", "Show traceability info for a type or member")
         {
@@ -29,7 +32,10 @@ internal static class ExplainCommand
             configOption
         };
 
-        command.SetHandler(HandleAsync, symbolArg, manifestOption, configOption);
+        command.SetAction((parseResult, _) => HandleAsync(
+            parseResult.GetValue(symbolArg)!,
+            parseResult.GetValue(manifestOption),
+            parseResult.GetValue(configOption)));
         return command;
     }
 
