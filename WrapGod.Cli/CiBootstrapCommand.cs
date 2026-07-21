@@ -6,14 +6,16 @@ internal static class CiBootstrapCommand
 {
     public static Command Create()
     {
-        var outputDirOption = new Option<DirectoryInfo>(
-            ["--output", "-o"],
-            () => new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), ".github", "workflows")),
-            "Output directory for generated workflow files");
+        var outputDirOption = new Option<DirectoryInfo>("--output", "-o")
+        {
+            Description = "Output directory for generated workflow files",
+            DefaultValueFactory = _ => new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), ".github", "workflows"))
+        };
 
-        var forceOption = new Option<bool>(
-            "--force",
-            "Overwrite existing workflow files");
+        var forceOption = new Option<bool>("--force")
+        {
+            Description = "Overwrite existing workflow files"
+        };
 
         var command = new Command("bootstrap", "Generate recommended CI workflow files for a WrapGod project")
         {
@@ -21,10 +23,12 @@ internal static class CiBootstrapCommand
             forceOption
         };
 
-        command.SetHandler((DirectoryInfo outputDir, bool force) =>
+        command.SetAction(parseResult =>
         {
-            Environment.ExitCode = Handle(outputDir, force);
-        }, outputDirOption, forceOption);
+            Environment.ExitCode = Handle(
+                parseResult.GetValue(outputDirOption)!,
+                parseResult.GetValue(forceOption));
+        });
 
         return command;
     }

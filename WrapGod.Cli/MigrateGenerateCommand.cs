@@ -19,51 +19,62 @@ internal static class MigrateGenerateCommand
 
     public static Command Create()
     {
-        var packageOption = new Option<string?>(
-            "--package",
-            "NuGet package ID (e.g. Serilog). Mutually exclusive with --from-assembly/--to-assembly.");
+        var packageOption = new Option<string?>("--package")
+        {
+            Description = "NuGet package ID (e.g. Serilog). Mutually exclusive with --from-assembly/--to-assembly."
+        };
 
-        var fromOption = new Option<string>(
-            "--from",
-            "Source version (e.g. 2.12.0). Required in both modes.");
-        fromOption.IsRequired = true;
+        var fromOption = new Option<string>("--from")
+        {
+            Description = "Source version (e.g. 2.12.0). Required in both modes.",
+            Required = true
+        };
 
-        var toOption = new Option<string>(
-            "--to",
-            "Target version (e.g. 3.1.1). Required in both modes.");
-        toOption.IsRequired = true;
+        var toOption = new Option<string>("--to")
+        {
+            Description = "Target version (e.g. 3.1.1). Required in both modes.",
+            Required = true
+        };
 
-        var fromAssemblyOption = new Option<FileInfo?>(
-            "--from-assembly",
-            "Path to the baseline assembly DLL. Mutually exclusive with --package.");
+        var fromAssemblyOption = new Option<FileInfo?>("--from-assembly")
+        {
+            Description = "Path to the baseline assembly DLL. Mutually exclusive with --package."
+        };
 
-        var toAssemblyOption = new Option<FileInfo?>(
-            "--to-assembly",
-            "Path to the target assembly DLL. Mutually exclusive with --package.");
+        var toAssemblyOption = new Option<FileInfo?>("--to-assembly")
+        {
+            Description = "Path to the target assembly DLL. Mutually exclusive with --package."
+        };
 
-        var outputOption = new Option<string?>(
-            ["--output", "-o"],
-            "Output path for the draft migration schema JSON. Defaults to {library}.{from}-to-{to}.wrapgod-migration.json.");
+        var outputOption = new Option<string?>("--output", "-o")
+        {
+            Description = "Output path for the draft migration schema JSON. Defaults to {library}.{from}-to-{to}.wrapgod-migration.json."
+        };
 
-        var sourceOption = new Option<string?>(
-            "--source",
-            "Private NuGet feed URL (defaults to nuget.org).");
+        var sourceOption = new Option<string?>("--source")
+        {
+            Description = "Private NuGet feed URL (defaults to nuget.org)."
+        };
 
-        var tfmOption = new Option<string?>(
-            "--tfm",
-            "Target framework moniker override (e.g. net8.0).");
+        var tfmOption = new Option<string?>("--tfm")
+        {
+            Description = "Target framework moniker override (e.g. net8.0)."
+        };
 
-        var ruleIdPrefixOption = new Option<string?>(
-            "--rule-id-prefix",
-            "Prefix for generated rule IDs (e.g. 'SLG' -> 'SLG-001'). Defaults to a prefix derived from the library name.");
+        var ruleIdPrefixOption = new Option<string?>("--rule-id-prefix")
+        {
+            Description = "Prefix for generated rule IDs (e.g. 'SLG' -> 'SLG-001'). Defaults to a prefix derived from the library name."
+        };
 
-        var noRenameDetectionOption = new Option<bool>(
-            "--no-rename-detection",
-            "Disable rename detection. Every removed type/member emits a RemoveMemberRule.");
+        var noRenameDetectionOption = new Option<bool>("--no-rename-detection")
+        {
+            Description = "Disable rename detection. Every removed type/member emits a RemoveMemberRule."
+        };
 
-        var jsonOption = new Option<bool>(
-            "--json",
-            "Emit the final summary as JSON to stdout instead of human-readable text.");
+        var jsonOption = new Option<bool>("--json")
+        {
+            Description = "Emit the final summary as JSON to stdout instead of human-readable text."
+        };
 
         var command = new Command("generate", "Produce a draft MigrationSchema JSON by diffing two NuGet versions or two local assemblies")
         {
@@ -80,26 +91,24 @@ internal static class MigrateGenerateCommand
             jsonOption,
         };
 
-        command.SetHandler(async (context) =>
+        command.SetAction((parseResult, cancellationToken) =>
         {
-            var package = context.ParseResult.GetValueForOption(packageOption);
-            var from = context.ParseResult.GetValueForOption(fromOption)!;
-            var to = context.ParseResult.GetValueForOption(toOption)!;
-            var fromAssembly = context.ParseResult.GetValueForOption(fromAssemblyOption);
-            var toAssembly = context.ParseResult.GetValueForOption(toAssemblyOption);
-            var output = context.ParseResult.GetValueForOption(outputOption);
-            var source = context.ParseResult.GetValueForOption(sourceOption);
-            var tfm = context.ParseResult.GetValueForOption(tfmOption);
-            var ruleIdPrefix = context.ParseResult.GetValueForOption(ruleIdPrefixOption);
-            var noRenameDetection = context.ParseResult.GetValueForOption(noRenameDetectionOption);
-            var json = context.ParseResult.GetValueForOption(jsonOption);
+            var package = parseResult.GetValue(packageOption);
+            var from = parseResult.GetValue(fromOption)!;
+            var to = parseResult.GetValue(toOption)!;
+            var fromAssembly = parseResult.GetValue(fromAssemblyOption);
+            var toAssembly = parseResult.GetValue(toAssemblyOption);
+            var output = parseResult.GetValue(outputOption);
+            var source = parseResult.GetValue(sourceOption);
+            var tfm = parseResult.GetValue(tfmOption);
+            var ruleIdPrefix = parseResult.GetValue(ruleIdPrefixOption);
+            var noRenameDetection = parseResult.GetValue(noRenameDetectionOption);
+            var json = parseResult.GetValue(jsonOption);
 
-            var exitCode = await HandleAsync(
+            return HandleAsync(
                 package, from, to, fromAssembly, toAssembly,
                 output, source, tfm, ruleIdPrefix, noRenameDetection, json,
-                context.GetCancellationToken());
-
-            context.ExitCode = exitCode;
+                cancellationToken);
         });
 
         return command;

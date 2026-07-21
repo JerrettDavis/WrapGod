@@ -53,41 +53,44 @@ internal static class MigrateApplyCommand
         // exit with code 1 (which we cannot easily intercept from inside a sub-command
         // handler without rebuilding the parent parse pipeline).  Instead, the handler
         // checks for null and returns exit code 2 itself, matching the plan §4.3 contract.
-        var schemaOption = new Option<FileInfo?>(
-            ["--schema", "-s"],
-            "Path to the migration schema JSON produced by 'migrate generate'.");
-
-        var projectDirOption = new Option<DirectoryInfo?>(
-            ["--project-dir", "-p"],
-            "Project root directory for glob resolution and state file location. Defaults to the current directory.");
-
-        var includeOption = new Option<string[]>(
-            "--include",
-            "Glob pattern for files to include. Can be specified multiple times. Default: **/*.cs")
+        var schemaOption = new Option<FileInfo?>("--schema", "-s")
         {
+            Description = "Path to the migration schema JSON produced by 'migrate generate'."
+        };
+
+        var projectDirOption = new Option<DirectoryInfo?>("--project-dir", "-p")
+        {
+            Description = "Project root directory for glob resolution and state file location. Defaults to the current directory."
+        };
+
+        var includeOption = new Option<string[]>("--include")
+        {
+            Description = "Glob pattern for files to include. Can be specified multiple times. Default: **/*.cs",
             AllowMultipleArgumentsPerToken = false,
             Arity = ArgumentArity.ZeroOrMore,
         };
 
-        var excludeOption = new Option<string[]>(
-            "--exclude",
-            "Glob pattern for files to exclude. Can be specified multiple times. Defaults: **/bin/**, **/obj/**, **/.wrapgod/**")
+        var excludeOption = new Option<string[]>("--exclude")
         {
+            Description = "Glob pattern for files to exclude. Can be specified multiple times. Defaults: **/bin/**, **/obj/**, **/.wrapgod/**",
             AllowMultipleArgumentsPerToken = false,
             Arity = ArgumentArity.ZeroOrMore,
         };
 
-        var dryRunOption = new Option<bool>(
-            "--dry-run",
-            "Preview changes without modifying files or persisting state.");
+        var dryRunOption = new Option<bool>("--dry-run")
+        {
+            Description = "Preview changes without modifying files or persisting state."
+        };
 
-        var jsonOption = new Option<bool>(
-            "--json",
-            "Emit the summary as JSON to stdout instead of human-readable text.");
+        var jsonOption = new Option<bool>("--json")
+        {
+            Description = "Emit the summary as JSON to stdout instead of human-readable text."
+        };
 
-        var verboseOption = new Option<bool>(
-            ["--verbose", "-v"],
-            "Print extra diagnostic information during the run.");
+        var verboseOption = new Option<bool>("--verbose", "-v")
+        {
+            Description = "Print extra diagnostic information during the run."
+        };
 
         var command = new Command("apply", "Apply a migration schema to a codebase")
         {
@@ -100,21 +103,18 @@ internal static class MigrateApplyCommand
             verboseOption,
         };
 
-        command.SetHandler((context) =>
+        command.SetAction(parseResult =>
         {
-            var schema       = context.ParseResult.GetValueForOption(schemaOption);
-            var projectDir   = context.ParseResult.GetValueForOption(projectDirOption);
-            var includes     = context.ParseResult.GetValueForOption(includeOption) ?? [];
-            var excludes     = context.ParseResult.GetValueForOption(excludeOption) ?? [];
-            var dryRun       = context.ParseResult.GetValueForOption(dryRunOption);
-            var json         = context.ParseResult.GetValueForOption(jsonOption);
-            var verbose      = context.ParseResult.GetValueForOption(verboseOption);
+            var schema       = parseResult.GetValue(schemaOption);
+            var projectDir   = parseResult.GetValue(projectDirOption);
+            var includes     = parseResult.GetValue(includeOption) ?? [];
+            var excludes     = parseResult.GetValue(excludeOption) ?? [];
+            var dryRun       = parseResult.GetValue(dryRunOption);
+            var json         = parseResult.GetValue(jsonOption);
+            var verbose      = parseResult.GetValue(verboseOption);
 
-            var exitCode = Handle(
+            return Handle(
                 schema, projectDir, includes, excludes, dryRun, json, verbose);
-
-            context.ExitCode = exitCode;
-            return Task.CompletedTask;
         });
 
         return command;

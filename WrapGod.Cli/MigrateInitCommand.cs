@@ -30,19 +30,22 @@ internal static class MigrateInitCommand
     /// </summary>
     public static Command CreateSubCommand()
     {
-        var projectDirOption = new Option<DirectoryInfo>(
-            ["--project-dir", "-p"],
-            () => new DirectoryInfo(Directory.GetCurrentDirectory()),
-            "Project directory to analyze");
+        var projectDirOption = new Option<DirectoryInfo>("--project-dir", "-p")
+        {
+            Description = "Project directory to analyze",
+            DefaultValueFactory = _ => new DirectoryInfo(Directory.GetCurrentDirectory())
+        };
 
-        var manifestOption = new Option<FileInfo?>(
-            ["--manifest", "-m"],
-            "Path to the WrapGod manifest JSON file (auto-detects *.wrapgod.json)");
+        var manifestOption = new Option<FileInfo?>("--manifest", "-m")
+        {
+            Description = "Path to the WrapGod manifest JSON file (auto-detects *.wrapgod.json)"
+        };
 
-        var outputOption = new Option<string>(
-            ["--output", "-o"],
-            () => "migration-plan.json",
-            "Output path for the migration plan");
+        var outputOption = new Option<string>("--output", "-o")
+        {
+            Description = "Output path for the migration plan",
+            DefaultValueFactory = _ => "migration-plan.json"
+        };
 
         var command = new Command("init", "Analyze a project and generate a migration plan")
         {
@@ -51,7 +54,10 @@ internal static class MigrateInitCommand
             outputOption
         };
 
-        command.SetHandler(async (DirectoryInfo p, FileInfo? m, string o) => Environment.ExitCode = await HandleAsync(p, m, o), projectDirOption, manifestOption, outputOption);
+        command.SetAction(async (parseResult, _) => Environment.ExitCode = await HandleAsync(
+            parseResult.GetValue(projectDirOption)!,
+            parseResult.GetValue(manifestOption),
+            parseResult.GetValue(outputOption)!));
 
         return command;
     }

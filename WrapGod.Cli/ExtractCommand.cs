@@ -10,31 +10,34 @@ internal static class ExtractCommand
 
     public static Command Create()
     {
-        var assemblyPathArg = new Argument<FileInfo?>(
-            "assembly-path",
-            () => null,
-            "Path to the .NET assembly to extract (optional when using --nuget)");
-
-        var outputOption = new Option<FileInfo>(
-            ["--output", "-o"],
-            () => new FileInfo("manifest.json"),
-            "Output path for the generated manifest");
-
-        var nugetOption = new Option<string[]>(
-            "--nuget",
-            "NuGet package to extract in format <packageId>@<version>. Supports multiple flags for multi-version.")
+        var assemblyPathArg = new Argument<FileInfo?>("assembly-path")
         {
+            Description = "Path to the .NET assembly to extract (optional when using --nuget)",
+            DefaultValueFactory = _ => null
+        };
+
+        var outputOption = new Option<FileInfo>("--output", "-o")
+        {
+            Description = "Output path for the generated manifest",
+            DefaultValueFactory = _ => new FileInfo("manifest.json")
+        };
+
+        var nugetOption = new Option<string[]>("--nuget")
+        {
+            Description = "NuGet package to extract in format <packageId>@<version>. Supports multiple flags for multi-version.",
             AllowMultipleArgumentsPerToken = true,
             Arity = ArgumentArity.ZeroOrMore
         };
 
-        var tfmOption = new Option<string?>(
-            "--tfm",
-            "Explicit target framework moniker override (e.g. net8.0, netstandard2.0)");
+        var tfmOption = new Option<string?>("--tfm")
+        {
+            Description = "Explicit target framework moniker override (e.g. net8.0, netstandard2.0)"
+        };
 
-        var sourceOption = new Option<string?>(
-            "--source",
-            "Private NuGet feed URL (defaults to nuget.org)");
+        var sourceOption = new Option<string?>("--source")
+        {
+            Description = "Private NuGet feed URL (defaults to nuget.org)"
+        };
 
         var command = new Command("extract", "Extract API manifest from a .NET assembly or NuGet package")
         {
@@ -45,7 +48,12 @@ internal static class ExtractCommand
             sourceOption
         };
 
-        command.SetHandler(HandleAsync, assemblyPathArg, outputOption, nugetOption, tfmOption, sourceOption);
+        command.SetAction((parseResult, _) => HandleAsync(
+            parseResult.GetValue(assemblyPathArg),
+            parseResult.GetValue(outputOption)!,
+            parseResult.GetValue(nugetOption)!,
+            parseResult.GetValue(tfmOption),
+            parseResult.GetValue(sourceOption)));
         return command;
     }
 

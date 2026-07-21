@@ -24,24 +24,26 @@ internal static class MigrateStatusCommand
 
     public static Command Create()
     {
-        var schemaOption = new Option<string>(
-            ["--schema", "-s"],
-            "Path to the migration schema JSON file. The state file is the sibling <schema>.state.json.")
+        var schemaOption = new Option<string>("--schema", "-s")
         {
-            IsRequired = true,
+            Description = "Path to the migration schema JSON file. The state file is the sibling <schema>.state.json.",
+            Required = true,
         };
 
-        var projectDirOption = new Option<string?>(
-            ["--project-dir", "-p"],
-            "Project directory used to resolve a relative --schema path (default: current directory).");
+        var projectDirOption = new Option<string?>("--project-dir", "-p")
+        {
+            Description = "Project directory used to resolve a relative --schema path (default: current directory)."
+        };
 
-        var jsonOption = new Option<bool>(
-            "--json",
-            "Emit output as JSON instead of human-readable text.");
+        var jsonOption = new Option<bool>("--json")
+        {
+            Description = "Emit output as JSON instead of human-readable text."
+        };
 
-        var verboseOption = new Option<bool>(
-            ["--verbose", "-v"],
-            "Include per-rule details and per-file applied lists in human-readable mode.");
+        var verboseOption = new Option<bool>("--verbose", "-v")
+        {
+            Description = "Include per-rule details and per-file applied lists in human-readable mode."
+        };
 
         var command = new Command("status", "Report migration progress from the state file without running any migration")
         {
@@ -51,14 +53,14 @@ internal static class MigrateStatusCommand
             verboseOption,
         };
 
-        command.SetHandler((context) =>
+        command.SetAction(parseResult =>
         {
-            var schema = context.ParseResult.GetValueForOption(schemaOption)!;
-            var projectDir = context.ParseResult.GetValueForOption(projectDirOption);
-            var json = context.ParseResult.GetValueForOption(jsonOption);
-            var verbose = context.ParseResult.GetValueForOption(verboseOption);
+            var schema = parseResult.GetValue(schemaOption)!;
+            var projectDir = parseResult.GetValue(projectDirOption);
+            var json = parseResult.GetValue(jsonOption);
+            var verbose = parseResult.GetValue(verboseOption);
 
-            context.ExitCode = Handle(schema, projectDir, json, verbose);
+            return Handle(schema, projectDir, json, verbose);
         });
 
         return command;

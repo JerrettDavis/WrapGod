@@ -6,18 +6,21 @@ internal static class GenerateCommand
 {
     public static Command Create()
     {
-        var manifestPathArg = new Argument<FileInfo>(
-            "manifest-path",
-            "Path to the WrapGod manifest JSON file");
+        var manifestPathArg = new Argument<FileInfo>("manifest-path")
+        {
+            Description = "Path to the WrapGod manifest JSON file"
+        };
 
-        var configOption = new Option<FileInfo?>(
-            ["--config", "-c"],
-            "Path to the WrapGod config JSON file");
+        var configOption = new Option<FileInfo?>("--config", "-c")
+        {
+            Description = "Path to the WrapGod config JSON file"
+        };
 
-        var outputDirOption = new Option<DirectoryInfo>(
-            ["--output-dir", "-o"],
-            () => new DirectoryInfo("./generated"),
-            "Output directory for generated source files");
+        var outputDirOption = new Option<DirectoryInfo>("--output-dir", "-o")
+        {
+            Description = "Output directory for generated source files",
+            DefaultValueFactory = _ => new DirectoryInfo("./generated")
+        };
 
         var command = new Command("generate", "Generate wrapper source from a manifest (compile-time)")
         {
@@ -26,7 +29,10 @@ internal static class GenerateCommand
             outputDirOption
         };
 
-        command.SetHandler(Handle, manifestPathArg, configOption, outputDirOption);
+        command.SetAction(parseResult => Handle(
+            parseResult.GetValue(manifestPathArg)!,
+            parseResult.GetValue(configOption),
+            parseResult.GetValue(outputDirOption)!));
         return command;
     }
 

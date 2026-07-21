@@ -23,20 +23,21 @@ internal static class CiParityReportCommand
 
     public static Command Create()
     {
-        var workflowDirOption = new Option<DirectoryInfo>(
-            ["--workflow-dir", "-w"],
-            () => new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), ".github", "workflows")),
-            "Directory containing CI workflow files");
+        var workflowDirOption = new Option<DirectoryInfo>("--workflow-dir", "-w")
+        {
+            Description = "Directory containing CI workflow files",
+            DefaultValueFactory = _ => new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), ".github", "workflows"))
+        };
 
         var command = new Command("parity", "Compare current CI config against the recommended WrapGod baseline")
         {
             workflowDirOption
         };
 
-        command.SetHandler((DirectoryInfo workflowDir) =>
+        command.SetAction(parseResult =>
         {
-            Environment.ExitCode = Handle(workflowDir);
-        }, workflowDirOption);
+            Environment.ExitCode = Handle(parseResult.GetValue(workflowDirOption)!);
+        });
 
         return command;
     }
