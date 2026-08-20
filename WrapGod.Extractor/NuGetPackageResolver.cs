@@ -98,6 +98,11 @@ public sealed class NuGetPackageResolver
         var cache = new SourceCacheContext();
         var repository = Repository.Factory.GetCoreV3(sourceFeed);
         var resource = await repository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);
+        if (resource is null)
+        {
+            throw new InvalidOperationException(
+                $"Failed to obtain a package resource from feed '{sourceFeed}'.");
+        }
 
         var nugetVersion = new NuGetVersion(version);
 
