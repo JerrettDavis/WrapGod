@@ -17,8 +17,8 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-    <PackageReference Include="TinyBDD" Version="0.19.40" />
-    <PackageReference Include="TinyBDD.Xunit" Version="0.19.40" />
+    <PackageReference Include="TinyBDD" Version="0.19.42" />
+    <PackageReference Include="TinyBDD.Xunit" Version="0.19.42" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
   </ItemGroup>
