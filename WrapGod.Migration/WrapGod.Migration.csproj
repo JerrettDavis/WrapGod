@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.13" />
     <ProjectReference Include="..\WrapGod.Extractor\WrapGod.Extractor.csproj" />
   </ItemGroup>
 
