@@ -9,13 +9,10 @@ on:
       - 'schemas/**'
       - '.github/workflows/examples.yml'
       - 'WrapGod.Tests/**'
+  # No path filter on pull_request: build-examples and nuget-version-matrix are required status
+  # checks, so they must report on every PR or PRs that touch other paths stay BLOCKED forever.
   pull_request:
     branches: [ main ]
-    paths:
-      - 'examples/**'
-      - 'schemas/**'
-      - '.github/workflows/examples.yml'
-      - 'WrapGod.Tests/**'
 
 jobs:
   build-examples:
