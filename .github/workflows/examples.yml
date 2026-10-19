@@ -1,3 +1,4 @@
+# Note: required status checks from this workflow only report when its path filters match.
 name: Examples
 
 on:
